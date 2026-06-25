@@ -1,0 +1,34 @@
+# Dependency directories (VERY IMPORTANT to ignore)
+node_modules/
+client/node_modules/
+oncology-backend/node_modules/
+
+# Build outputs
+dist/
+client/dist/
+oncology-backend/dist/
+
+# Environment variables & Local configuration (Sensitive data)
+.env
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
+oncology-backend/.env
+
+# Logs
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+*.log
+
+# Editor & System files
+.vscode/
+.idea/
+.DS_Store
+Thumbs.db
+*.suo
+*.ntvs*
+*.njsproj
+*.sln
+*.sw?

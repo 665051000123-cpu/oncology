@@ -1,0 +1,1383 @@
+<!DOCTYPE html>
+<html lang="th">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Oncology Dose Verification System - RAM2 HOSPITAL</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/axios/dist/axios.min.js"></script>
+    <style>
+        /* =================================================== */
+        /* 🛠️ ป้องกันและซ่อนปุ่มลูกศรควบคุมตัวเลข (Spin Buttons) */
+        /* =================================================== */
+        input[type="number"]::-webkit-outer-spin-button,
+        input[type="number"]::-webkit-inner-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+
+        input[type="number"] {
+            -moz-appearance: textfield;
+        }
+
+        /* =================================================== */
+        /* 🎬 Custom Keyframes & Animations */
+        /* =================================================== */
+        @keyframes popIn {
+            0% {
+                transform: scale(0.9);
+                opacity: 0;
+            }
+
+            70% {
+                transform: scale(1.05);
+            }
+
+            100% {
+                transform: scale(1);
+                opacity: 1;
+            }
+        }
+
+        @keyframes rowSlideIn {
+            0% {
+                transform: translateY(10px);
+                opacity: 0;
+                background-color: rgba(16, 185, 129, 0.2);
+            }
+
+            100% {
+                transform: translateY(0);
+                opacity: 1;
+            }
+        }
+
+        .animate-pop {
+            animation: popIn 0.4s ease-out forwards;
+        }
+
+        .animate-row-in {
+            animation: rowSlideIn 0.5s ease-out forwards;
+        }
+
+        /* =================================================== */
+        /* สไตล์เริ่มต้นสำหรับโหมดมืด (Dark Mode) - Premium Refinement */
+        /* =================================================== */
+        body {
+            background-color: #020617 !important;
+            /* Slate 950 - Modern Deep Blue */
+            color: #f8fafc !important;
+            /* Slate 50 */
+            font-size: 18px;
+            transition: background-color 0.5s cubic-bezier(0.4, 0, 0.2, 1), color 0.5s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body:not(.light-mode) label {
+            color: #94a3b8 !important;
+            /* Slate 400 - Better contrast for labels */
+            font-weight: 700 !important;
+            letter-spacing: 0.025em;
+        }
+
+        body:not(.light-mode) .dark-subtitle-fix {
+            color: #cbd5e1 !important;
+            /* Slate 300 */
+            font-weight: 600 !important;
+        }
+
+        body:not(.light-mode) .form-control,
+        body:not(.light-mode) select,
+        body:not(.light-mode) input {
+            font-weight: 600 !important;
+            font-size: 18px !important;
+            background-color: #0f172a !important;
+            /* Solid Slate 900 */
+            border: 1.5px solid rgba(51, 65, 85, 0.8) !important;
+            /* Slate 700 */
+            color: #ffffff !important;
+            border-radius: 12px !important;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body:not(.light-mode) .form-control:focus,
+        body:not(.light-mode) select:focus,
+        body:not(.light-mode) input:focus {
+            border-color: #0ea5e9 !important;
+            /* Sky 500 */
+            background-color: #1e293b !important;
+            box-shadow: 0 0 0 4px rgba(14, 165, 233, 0.15);
+            outline: none !important;
+        }
+
+        body:not(.light-mode) .unselected-btn {
+            background-color: rgba(30, 41, 59, 0.5) !important;
+            /* Slate 800 Semi-transparent */
+            border: 1.5px solid rgba(71, 85, 105, 0.5) !important;
+            /* Slate 600 */
+            color: #94a3b8 !important;
+            /* Slate 400 */
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+            backdrop-filter: blur(4px);
+        }
+
+        body:not(.light-mode) .unselected-btn p {
+            color: #64748b !important;
+            /* Slate 500 */
+        }
+
+        body:not(.light-mode) input[type="radio"]:checked+.unselected-btn {
+            background-color: rgba(14, 165, 233, 0.15) !important;
+            /* Sky 500 Alpha */
+            border: 2px solid #0ea5e9 !important;
+            /* Sky 500 */
+            color: #38bdf8 !important;
+            /* Sky 400 */
+            transform: translateY(-1px);
+            box-shadow: 0 10px 15px -3px rgba(0, 0, 0, 0.1), 0 4px 6px -2px rgba(0, 0, 0, 0.05);
+        }
+
+        body:not(.light-mode) input[type="radio"]:checked+.unselected-btn p {
+            color: #7dd3fc !important;
+            /* Sky 300 */
+        }
+
+        body:not(.light-mode) td {
+            color: #e2e8f0 !important;
+            /* Slate 200 */
+            font-size: 16px !important;
+            font-weight: 500 !important;
+            border-bottom: 1px solid rgba(51, 65, 85, 0.4) !important;
+        }
+
+        body:not(.light-mode) th {
+            color: #94a3b8 !important;
+            /* Slate 400 */
+            font-size: 14px !important;
+            font-weight: 700 !important;
+            text-transform: uppercase;
+            letter-spacing: 0.05em;
+            background-color: rgba(15, 23, 42, 0.9) !important;
+            /* Slate 900 */
+            border-bottom: 2px solid rgba(51, 65, 85, 0.8) !important;
+        }
+
+        body:not(.light-mode) #historyLogTableBody tr:hover {
+            background-color: rgba(30, 41, 59, 0.4) !important;
+        }
+
+        body:not(.light-mode) .log-subtitle-theme {
+            color: #64748b !important;
+        }
+
+        body:not(.light-mode) .btn-print-action {
+            background-color: #0ea5e9 !important;
+            /* Sky 500 */
+            color: #ffffff !important;
+            border: none !important;
+            box-shadow: 0 4px 6px -1px rgba(14, 165, 233, 0.3);
+        }
+
+        body:not(.light-mode) .btn-print-action:hover {
+            background-color: #0284c7 !important;
+            transform: translateY(-1px);
+        }
+
+        body:not(.light-mode) .btn-clear-action {
+            background-color: transparent !important;
+            color: #f87171 !important;
+            /* Red 400 */
+            border: 1.5px solid rgba(248, 113, 113, 0.3) !important;
+        }
+
+        body:not(.light-mode) .btn-clear-action:hover {
+            background-color: rgba(248, 113, 113, 0.1) !important;
+            border-color: #f87171 !important;
+        }
+
+        /* =================================================== */
+        /* สไตล์โหมดสว่าง (Light Mode) บนหน้าจอ */
+        /* =================================================== */
+        body.light-mode {
+            background-color: #f1f5f9 !important;
+            color: #000000 !important;
+        }
+
+        body.light-mode #userInfoBanner {
+            background-color: #ffffff !important;
+            border-color: #0284c7 !important;
+            box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.1), 0 8px 10px -6px rgba(0, 0, 0, 0.1);
+        }
+
+        body.light-mode #userInfoBanner #authenticatedUserName {
+            color: #0f172a !important;
+            font-weight: 900 !important;
+        }
+
+        body.light-mode #userInfoBanner span {
+            color: #0369a1 !important;
+            opacity: 1 !important;
+            font-weight: 900 !important;
+        }
+
+        body.light-mode #patientLoginStep {
+            background-color: #ffffff !important;
+            border: 3px solid #000000 !important;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.4);
+        }
+
+        body.light-mode h1,
+        body.light-mode h2,
+        body.light-mode h3 {
+            color: #000000 !important;
+            font-weight: 900 !important;
+        }
+
+        body.light-mode label {
+            color: #000000 !important;
+            font-weight: 900 !important;
+        }
+
+        body.light-mode .dark-subtitle-fix {
+            color: #000000 !important;
+            font-weight: 800 !important;
+        }
+
+        body.light-mode .form-control,
+        body.light-mode select,
+        body.light-mode input {
+            background-color: #ffffff !important;
+            border: 3px solid #000000 !important;
+            color: #000000 !important;
+            font-weight: 900 !important;
+            transition: all 0.3s ease;
+        }
+
+        body.light-mode .form-control:focus,
+        body.light-mode select:focus,
+        body.light-mode input:focus {
+            outline: none !important;
+            border-color: #0284c7 !important;
+            box-shadow: 0 0 0 4px rgba(2, 132, 199, 0.15) !important;
+        }
+
+        body.light-mode #clinicalWorkspaceStep>div:first-child {
+            background-color: #cbd5e1 !important;
+            border: 3px solid #000000 !important;
+        }
+
+        body.light-mode #bannerHN {
+            background-color: #000000 !important;
+            color: #ffffff !important;
+        }
+
+        body.light-mode #bannerName {
+            color: #000000 !important;
+        }
+
+        body.light-mode #bannerStats {
+            color: #000000 !important;
+            font-weight: 900 !important;
+        }
+
+        body.light-mode .lg\:col-span-2>div,
+        body.light-mode #logSectionBox,
+        body.light-mode .bg-\[\#111c44\] {
+            background-color: #ffffff !important;
+            border: 3px solid #000000 !important;
+        }
+
+        body.light-mode .unselected-btn {
+            background-color: #e2e8f0 !important;
+            border: 2px solid #000000 !important;
+            color: #1d4ed8 !important;
+            transition: all 0.3s cubic-bezier(0.4, 0, 0.2, 1);
+        }
+
+        body.light-mode .unselected-btn p {
+            color: #1e40af !important;
+        }
+
+        body.light-mode input[type="radio"]:checked+.unselected-btn {
+            background-color: #1d4ed8 !important;
+            border: 3px solid #000000 !important;
+            color: #ffffff !important;
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(29, 78, 216, 0.2);
+        }
+
+        body.light-mode input[type="radio"]:checked+.unselected-btn p {
+            color: #f8fafc !important;
+        }
+
+        body.light-mode #ampDetailsBox,
+        body.light-mode #carboplatinInputs {
+            background-color: #f8fafc !important;
+            border: 3px solid #000000 !important;
+        }
+
+        body.light-mode .bg-\[\#0b1329\] {
+            background-color: #f1f5f9 !important;
+            border: 3px solid #000000 !important;
+        }
+
+        body.light-mode .text-slate-300 {
+            color: #000000 !important;
+            font-weight: 900 !important;
+        }
+
+        body.light-mode #hospitalResultBox {
+            color: #000000 !important;
+        }
+
+        body.light-mode #hospitalResultBox .text-slate-400 {
+            color: #334155 !important;
+            font-weight: 800 !important;
+        }
+
+        body.light-mode #resMethod,
+        body.light-mode #resAmp {
+            color: #000000 !important;
+            font-weight: 900 !important;
+        }
+
+        body.light-mode #hospitalResultBox .bg-amber-950\/40 {
+            background-color: #fef3c7 !important;
+            border: 2px solid #d97706 !important;
+        }
+
+        body.light-mode #resDrugRule {
+            color: #78350f !important;
+            font-weight: 700 !important;
+        }
+
+        body.light-mode .overflow-x-auto {
+            border: 3px solid #000000 !important;
+        }
+
+        body.light-mode table {
+            background-color: #ffffff !important;
+        }
+
+        body.light-mode thead tr {
+            background-color: #000000 !important;
+            border-bottom: 3px solid #000000 !important;
+        }
+
+        body.light-mode th {
+            color: #ffffff !important;
+            font-size: 16px !important;
+            font-weight: 900 !important;
+            border: 1px solid #000000 !important;
+        }
+
+        body.light-mode td {
+            color: #000000 !important;
+            border: 1px solid #000000 !important;
+            font-size: 16px !important;
+            font-weight: 800 !important;
+        }
+
+        body.light-mode .log-subtitle-theme {
+            color: #000000 !important;
+        }
+
+        body.light-mode #themeToggleBtn {
+            background-color: #000000 !important;
+            color: #ffffff !important;
+            border: 2px solid #000000 !important;
+        }
+
+        body.light-mode .btn-print-action {
+            background-color: #2563eb !important;
+            color: #ffffff !important;
+            border: 2px solid #000000 !important;
+            font-weight: 900 !important;
+        }
+
+        body.light-mode .btn-print-action:hover {
+            background-color: #1d4ed8 !important;
+        }
+
+        body.light-mode .btn-clear-action {
+            background-color: #ef4444 !important;
+            color: #ffffff !important;
+            border: 2px solid #000000 !important;
+            font-weight: 900 !important;
+        }
+
+        body.light-mode .btn-clear-action:hover {
+            background-color: #dc2626 !important;
+        }
+
+        #printReportHeader,
+        #printSignOffArea {
+            display: none;
+        }
+
+        /* =================================================== */
+        /* 🖨️ มาตรฐานสไตล์สำหรับการพิมพ์รายงาน */
+        /* =================================================== */
+        @media print {
+            @page {
+                size: A4 portrait;
+                margin: 10mm 15mm 15mm 15mm;
+            }
+
+            #patientLoginStep,
+            #themeToggleBtn,
+            button,
+            footer,
+            .lg\:col-span-1,
+            .lg\:col-span-2>div,
+            #clinicalWorkspaceStep>div:first-child {
+                display: none !important;
+            }
+
+            body,
+            html,
+            body:not(.light-mode),
+            body.light-mode {
+                background-color: #ffffff !important;
+                background: #ffffff !important;
+                color: #334155 !important;
+                font-family: 'Sarabun', sans-serif, system-ui;
+                padding: 0 !important;
+                margin: 0 !important;
+                width: 100% !important;
+                print-color-adjust: exact !important;
+            }
+
+            #clinicalWorkspaceStep {
+                display: block !important;
+                width: 100% !important;
+                opacity: 1 !important;
+                transform: none !important;
+            }
+
+            #logSectionBox,
+            body:not(.light-mode) #logSectionBox,
+            body.light-mode #logSectionBox {
+                display: block !important;
+                border: none !important;
+                background-color: transparent !important;
+                background: transparent !important;
+                padding: 0 !important;
+                margin: 0 !important;
+                box-shadow: none !important;
+            }
+
+            #logSectionBox>div:first-child {
+                display: none !important;
+            }
+
+            #printReportHeader {
+                display: flex !important;
+                align-items: center !important;
+                justify-content: flex-start !important;
+                gap: 20px !important;
+                margin-bottom: 35px !important;
+                padding-bottom: 15px !important;
+                border-bottom: 2px solid #0284c7 !important;
+            }
+
+            #printReportHeader .header-text {
+                text-align: left !important;
+            }
+
+            #printReportHeader h1 {
+                font-size: 18px !important;
+                font-weight: 800 !important;
+                color: #0369a1 !important;
+                margin-bottom: 4px !important;
+                white-space: nowrap !important;
+            }
+
+            #printReportHeader p {
+                font-size: 12px !important;
+                color: #0284c7 !important;
+                font-weight: 700 !important;
+                text-transform: uppercase !important;
+                letter-spacing: 0.5px !important;
+                margin: 0 !important;
+            }
+
+            .overflow-x-auto,
+            body:not(.light-mode) .overflow-x-auto,
+            body.light-mode .overflow-x-auto {
+                border: none !important;
+                border-radius: 0px !important;
+                width: 100% !important;
+                background-color: transparent !important;
+                background: transparent !important;
+            }
+
+            table,
+            body:not(.light-mode) table,
+            body.light-mode table {
+                width: 100% !important;
+                border-collapse: collapse !important;
+                table-layout: fixed !important;
+                background-color: #ffffff !important;
+                background: #ffffff !important;
+            }
+
+            th:nth-child(1),
+            td:nth-child(1) {
+                width: 14%;
+                text-align: left;
+            }
+
+            th:nth-child(2),
+            td:nth-child(2) {
+                width: 12%;
+                text-align: left;
+            }
+
+            th:nth-child(3),
+            td:nth-child(3) {
+                width: 22%;
+                text-align: left;
+            }
+
+            th:nth-child(4),
+            td:nth-child(4) {
+                width: 10%;
+                text-align: center;
+            }
+
+            th:nth-child(5),
+            td:nth-child(5) {
+                width: 12%;
+                text-align: center;
+            }
+
+            th:nth-child(6),
+            td:nth-child(6) {
+                width: 15%;
+                text-align: center;
+            }
+
+            th:nth-child(7),
+            td:nth-child(7) {
+                width: 15%;
+                text-align: right;
+            }
+
+            thead tr,
+            body:not(.light-mode) thead tr,
+            body.light-mode thead tr {
+                background-color: #f0f9ff !important;
+                background: #f0f9ff !important;
+                border-top: 2px solid #0284c7 !important;
+                border-bottom: 2px solid #0284c7 !important;
+            }
+
+            th,
+            body:not(.light-mode) th,
+            body.light-mode th {
+                color: #0369a1 !important;
+                font-weight: 800 !important;
+                border: none !important;
+                padding: 12px 6px !important;
+                font-size: 14px !important;
+                background-color: #f0f9ff !important;
+            }
+
+            td,
+            body:not(.light-mode) td,
+            body.light-mode td {
+                color: #1e293b !important;
+                background-color: #ffffff !important;
+                background: #ffffff !important;
+                border: none !important;
+                border-bottom: 1px solid #e2e8f0 !important;
+                padding: 12px 6px !important;
+                font-size: 13px !important;
+                word-wrap: break-word !important;
+            }
+
+            td:nth-child(4),
+            td:nth-child(5) {
+                text-align: center !important;
+            }
+
+            td:nth-child(6),
+            body:not(.light-mode) td:nth-child(6),
+            body.light-mode td:nth-child(6) {
+                text-align: right !important;
+                font-weight: bold !important;
+                color: #0369a1 !important;
+            }
+
+            tbody tr:last-child td,
+            body:not(.light-mode) tbody tr:last-child td,
+            body.light-mode tbody tr:last-child td {
+                border-bottom: 2px solid #0284c7 !important;
+            }
+
+            #printSignOffArea,
+            body:not(.light-mode) #printSignOffArea,
+            body.light-mode #printSignOffArea {
+                display: flex !important;
+                flex-direction: column !important;
+                align-items: flex-end !important;
+                gap: 8px !important;
+                page-break-inside: avoid !important;
+                margin-top: 60px !important;
+                font-size: 13px !important;
+                color: #334155 !important;
+                width: 100% !important;
+                border: none !important;
+            }
+        }
+    </style>
+</head>
+
+<body class="bg-slate-950 p-4 md:p-8 font-sans antialiased min-h-screen flex flex-col justify-between relative">
+
+    <button id="themeToggleBtn" onclick="toggleThemeMode()"
+        class="absolute top-4 right-4 bg-slate-800 text-white dark:bg-white dark:text-slate-900 border-2 border-slate-600 px-5 py-3 rounded-full shadow-lg cursor-pointer transition-all hover:scale-105 active:scale-95 z-50 text-lg font-black">
+        🌙 Dark Mode
+    </button>
+
+    <div id="userInfoBanner"
+        class="hidden absolute top-6 left-6 flex items-center gap-4 bg-white border-2 border-sky-500 p-4 px-7 rounded-3xl shadow-2xl z-50 animate-row-in no-print">
+        <div class="w-14 h-14 rounded-2xl bg-sky-600 flex items-center justify-center shadow-lg">
+            <svg class="text-white w-7 h-7" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                    d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" />
+            </svg>
+        </div>
+        <div>
+            <span class="text-[10px] font-black text-sky-600 uppercase tracking-widest block mb-0.5">บัญชีผู้ใช้</span>
+            <p id="authenticatedUserName" class="text-xl font-black text-slate-900 leading-tight">User Name</p>
+        </div>
+    </div>
+
+    <div id="authStep"
+        class="max-w-md mx-auto bg-slate-900 border border-slate-800 rounded-3xl p-8 md:p-10 shadow-[0_20px_50px_rgba(0,0,0,0.5)] backdrop-blur-xl transition-all duration-500 translate-y-0 opacity-100">
+        <div class="text-center mb-8">
+            <div
+                class="w-20 h-20 bg-sky-600 rounded-3xl mx-auto mb-4 flex items-center justify-center shadow-lg transform rotate-3">
+                <svg class="text-white -rotate-3 w-10 h-10" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" viewBox="0 0 24 24">
+                    <path d="m18 2 4 4" />
+                    <path d="m17 7 3-3" />
+                    <path d="M19 9 8.7 19.3c-.2.2-.5.3-.7.3H5v-3c0-.3.1-.5.3-.7L15.6 5" />
+                    <path d="m9 11 4 4" />
+                    <path d="m5 19-3 3" />
+                    <path d="m14 4 6 6" />
+                </svg>
+            </div>
+            <h1 class="text-3xl font-black text-white tracking-wide">ระบบคำนวณยาเคมีบำบัด</h1>
+            <p class="text-slate-400 mt-2 font-bold uppercase tracking-widest text-[10px]">Clinical Dose Verification
+            </p>
+        </div>
+
+        <div id="loginError"
+            class="hidden bg-red-500/10 border border-red-500/50 text-red-500 p-3 rounded-lg text-xs font-bold text-center mb-6 animate-pulse">
+        </div>
+
+        <div class="space-y-6">
+            <div>
+                <label class="block text-xs font-black text-slate-400 mb-2 uppercase ml-1">รหัสพนักงาน / ID</label>
+                <input type="text" id="loginUsername" placeholder="Enter Physician/Pharmacist ID"
+                    class="form-control w-full bg-[#0b1329] border border-slate-600 rounded-lg p-3 text-white focus:outline-none">
+            </div>
+            <div>
+                <label class="block text-xs font-black text-slate-400 mb-2 uppercase ml-1">รหัสผ่าน / Password</label>
+                <div class="relative">
+                    <input type="password" id="loginPassword" placeholder="••••••••"
+                        class="form-control w-full bg-[#0b1329] border border-slate-600 rounded-lg p-3 pr-12 text-white focus:outline-none">
+                    <button type="button" onclick="togglePasswordVisibility()"
+                        class="absolute right-3 top-1/2 -translate-y-1/2 text-slate-500 hover:text-sky-500 cursor-pointer pt-4">
+                        <svg id="eyeIcon" class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path class="eye-open" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" />
+                            <path class="eye-open" stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                                d="M2.458 12C3.732 7.943 7.523 5 12 5c4.478 0 8.268 2.943 9.542 7-1.274 4.057-5.064 7-9.542 7-4.477 0-8.268-2.943-9.542-7z" />
+                            <path class="eye-closed hidden" stroke-linecap="round" stroke-linejoin="round"
+                                stroke-width="2"
+                                d="M13.875 18.825A10.05 10.05 0 0112 19c-4.478 0-8.268-2.943-9.543-7a9.97 9.97 0 011.563-3.029m5.858.908a3 3 0 114.243 4.243M9.878 9.878l4.242 4.242M9.88 9.88l-3.29-3.29m7.532 7.532l3.29 3.29M3 3l18 18" />
+                        </svg>
+                    </button>
+                </div>
+            </div>
+            <button onclick="handleLogin()" id="loginBtn"
+                class="w-full bg-sky-600 hover:bg-sky-500 active:scale-95 text-white font-black p-3.5 rounded-xl text-base tracking-wide transition-all cursor-pointer shadow-lg flex items-center justify-center gap-2">
+                <span>Authenticate</span>
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2"
+                        d="M13 10V3L4 14h7v7l9-11h-7z" />
+                </svg>
+            </button>
+        </div>
+    </div>
+
+    <div id="mainAppContainer" class="hidden">
+
+        <div id="printReportHeader">
+            <div class="header-text">
+                <h1>รายงานบันทึกประวัติการตรวจสอบขนาดยาเคมีบำบัดประจำวัน - โรงพยาบาลราม 2</h1>
+                <p>Daily Pharmacist Verification Log Report - RAM2 HOSPITAL</p>
+            </div>
+        </div>
+
+        <div id="patientLoginStep"
+            class="max-w-xl mx-auto bg-slate-900 border border-slate-800 rounded-3xl p-6 md:p-10 shadow-[0_20px_50px_rgba(0,0,0,0.3)] backdrop-blur-xl h-auto transition-all duration-500 transform translate-y-0 opacity-100">
+            <div class="text-center mb-6">
+                <h1 class="text-3xl font-black text-white tracking-wide dark:text-white">Patient Check-in</h1>
+                <p class="text-lg dark-subtitle-fix mt-2 px-2 whitespace-normal leading-relaxed text-center">
+                    กรอกข้อมูลพื้นฐานผู้ป่วยเพื่อเข้าสู่ระบบคำนวณขนาดยา
+                </p>
+            </div>
+
+            <div class="space-y-6">
+                <div>
+                    <label class="block text-base font-extrabold text-slate-200 mb-2">หมายเลข HN ผู้ป่วย <span
+                            class="text-rose-500">*</span></label>
+                    <input type="text" id="patientHN" placeholder="ระบุ HN (เช่น HN69xxxx)"
+                        class="form-control w-full bg-[#0b1329] border border-slate-600 rounded-lg p-4 text-white text-lg font-mono focus:outline-none">
+                </div>
+                <div>
+                    <label class="block text-base font-extrabold text-slate-200 mb-2">ชื่อ - นามสกุล ผู้ป่วย</label>
+                    <input type="text" id="patientName" placeholder="ระบุชื่อ-นามสกุล ของผู้ป่วย"
+                        class="form-control w-full bg-[#0b1329] border border-slate-600 rounded-lg p-4 text-white text-lg focus:outline-none">
+                </div>
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-base font-extrabold text-slate-200 mb-2">ส่วนสูง <span
+                                class="text-rose-500">*</span></label>
+                        <div class="relative">
+                            <input type="number" id="height" placeholder="0"
+                                class="form-control w-full bg-[#0b1329] border border-slate-600 rounded-lg p-4 pr-14 text-white text-lg focus:outline-none font-mono">
+                            <span
+                                class="absolute right-4 top-4 text-base text-slate-400 font-bold font-mono pointer-events-none">cm</span>
+                        </div>
+                    </div>
+                    <div>
+                        <label class="block text-base font-extrabold text-slate-200 mb-2">น้ำหนักจริงวันนี้ <span
+                                class="text-rose-500">*</span></label>
+                        <div class="relative">
+                            <input type="number" id="weight" placeholder="0"
+                                class="form-control w-full bg-[#0b1329] border border-slate-600 rounded-lg p-4 pr-14 text-white text-lg focus:outline-none font-mono">
+                            <span
+                                class="absolute right-4 top-4 text-base text-slate-400 font-bold font-mono pointer-events-none">kg</span>
+                        </div>
+                    </div>
+                </div>
+
+                <button onclick="validateAndNavigateToWorkspace()"
+                    class="w-full mt-4 bg-sky-600 hover:bg-sky-500 active:scale-98 text-white font-black p-4.5 rounded-xl text-lg tracking-wide transition-all cursor-pointer shadow-lg text-center">
+                    ตรวจสอบและเข้าสู่ระบบคำนวณ ➔
+                </button>
+            </div>
+        </div>
+
+        <div id="clinicalWorkspaceStep"
+            class="hidden space-y-6 transition-all duration-500 transform translate-y-4 opacity-0">
+
+            <div
+                class="w-full bg-slate-900/60 border border-slate-800 rounded-2xl p-5 mb-6 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 shadow-xl backdrop-blur-lg">
+                <div class="flex items-center gap-4">
+                    <span class="w-4 h-4 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <div>
+                        <div class="flex items-center gap-3">
+                            <span class="text-sm bg-sky-600/30 text-sky-400 font-black px-2.5 py-1 rounded font-mono"
+                                id="bannerHN">HN</span>
+                            <h2 class="text-xl font-black text-white" id="bannerName">ชื่อผู้ป่วย</h2>
+                        </div>
+                        <p class="text-base font-extrabold text-slate-300 mt-1 font-mono" id="bannerStats">ส่วนสูง: - cm
+                            | น้ำหนัก: - kg</p>
+                    </div>
+                </div>
+                <div class="flex gap-2">
+                    <button onclick="backToLoginStep()"
+                        class="text-base font-bold text-slate-200 hover:text-white bg-slate-900 border-2 border-slate-700 px-4 py-2.5 rounded-lg transition-all hover:bg-slate-800 active:scale-95 cursor-pointer">
+                        ⬅ เปลี่ยนเคสผู้ป่วย
+                    </button>
+                    <button onclick="handleLogout()"
+                        class="text-base font-bold text-rose-400 hover:text-rose-300 bg-rose-950/30 border-2 border-rose-900/50 px-4 py-2.5 rounded-lg transition-all hover:bg-rose-900/40 active:scale-95 cursor-pointer">
+                        🔒 Logout
+                    </button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 lg:grid-cols-3 gap-6">
+
+                <div class="lg:col-span-2 space-y-6">
+
+                    <div class="bg-slate-900/40 border border-slate-700 rounded-xl p-6 shadow-sm">
+                        <div class="flex items-center gap-3 mb-4 border-b border-slate-700 pb-3">
+                            <span
+                                class="bg-[#0284c7]/20 text-[#38bdf8] text-base font-bold px-2.5 py-1 rounded">02</span>
+                            <h2 class="text-lg font-black text-white">สูตรคำนวณพื้นที่ผิวร่างกาย (BSA Formula)</h2>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <label class="cursor-pointer group">
+                                <input type="radio" name="bsaFormula" value="mosteller" checked class="sr-only">
+                                <div
+                                    class="unselected-btn p-5 rounded-lg transition-all h-auto min-h-[90px] flex flex-col justify-center group-hover:scale-[1.01]">
+                                    <span class="text-lg font-black block">Mosteller Formula</span>
+                                    <p class="text-sm mt-1 font-mono font-bold">bsa = SQRT((H × W) / 3600)</p>
+                                </div>
+                            </label>
+                            <label class="cursor-pointer group">
+                                <input type="radio" name="bsaFormula" value="dubois" class="sr-only">
+                                <div
+                                    class="unselected-btn p-5 rounded-lg transition-all h-auto min-h-[90px] flex flex-col justify-center group-hover:scale-[1.01]">
+                                    <span class="text-lg font-black block">DuBois Formula</span>
+                                    <p class="text-sm mt-1 font-mono font-bold">bsa = 0.20247 × H^0.725 × W^0.425</p>
+                                </div>
+                            </label>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-900/40 border border-slate-700 rounded-xl p-6 shadow-sm">
+                        <div class="flex items-center gap-3 mb-4 border-b border-slate-700 pb-3">
+                            <span
+                                class="bg-[#0284c7]/20 text-[#38bdf8] text-base font-bold px-2.5 py-1 rounded">03</span>
+                            <h2 class="text-lg font-black text-white">ตรวจสอบภาวะสูญเสียอวัยวะ (Amputation Status)</h2>
+                        </div>
+                        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                            <label class="cursor-pointer group">
+                                <input type="radio" name="amputationState" value="none" checked
+                                    onchange="toggleAmpOptions()" class="sr-only">
+                                <div
+                                    class="unselected-btn p-4 rounded-lg transition-all text-center group-hover:scale-[1.01]">
+                                    <span class="text-base font-black">● ปกติ (None)</span>
+                                </div>
+                            </label>
+                            <label class="cursor-pointer group">
+                                <input type="radio" name="amputationState" value="amputee" onchange="toggleAmpOptions()"
+                                    class="sr-only">
+                                <div
+                                    class="unselected-btn p-4 rounded-lg transition-all text-center group-hover:scale-[1.01]">
+                                    <span class="text-base font-black">● มีประวัติตัดแขนขา (Amputee)</span>
+                                </div>
+                            </label>
+                        </div>
+                        <div id="ampDetailsBox"
+                            class="hidden p-5 rounded-lg border-2 border-slate-700 space-y-4 transition-all duration-300 transform scale-95 opacity-0">
+                            <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                <div>
+                                    <label class="block text-sm font-bold text-slate-200 mb-2">ระดับการตัดอวัยวะ</label>
+                                    <select id="ampLevel"
+                                        class="w-full rounded-lg p-3.5 text-base font-black focus:outline-none">
+                                        <option value="below_knee">ต่ำกว่าเข่า (BK - หักน้ำหนัก 6% / BSA 9%)</option>
+                                        <option value="above_knee">เหนือเข่า (AK - หักน้ำหนัก 15% / BSA 18%)</option>
+                                    </select>
+                                </div>
+                                <div>
+                                    <label
+                                        class="block text-sm font-bold text-slate-200 mb-2">รูปแบบการคำนวณปรับค่า</label>
+                                    <select id="ampMethod"
+                                        class="w-full rounded-lg p-3.5 text-base font-black focus:outline-none">
+                                        <option value="weight_method">Weight Method (ปรับลดที่น้ำหนัก)</option>
+                                        <option value="bsa_method">BSA Method (ปรับลดที่ผลลัพธ์ BSA)</option>
+                                    </select>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="bg-slate-900/40 border border-slate-700 rounded-xl p-6 shadow-sm">
+                        <div class="flex items-center gap-3 mb-4 border-b border-slate-700 pb-3">
+                            <span
+                                class="bg-[#0284c7]/20 text-[#38bdf8] text-base font-bold px-2.5 py-1 rounded">04</span>
+                            <h2 class="text-lg font-black text-white">การเลือกสูตรยาเคมีบำบัด (Drug-Specific Rules)</h2>
+                        </div>
+                        <div class="space-y-4">
+                            <div>
+                                <label
+                                    class="block text-base font-extrabold text-slate-200 mb-2">เลือกยาเคมีบำบัดเพื่อตรวจเช็ก
+                                    Dose Cap</label>
+                                <select id="drugSelect" onchange="toggleDrugInputs()"
+                                    class="w-full border-2 border-slate-600 rounded-lg p-4 text-lg font-black focus:outline-none">
+                                    <option value="vincristine">VINCRISTINE (Dose Cap สูงสุด 2.0 mg)</option>
+                                    <option value="carboplatin">CARBOPLATIN (Calvert Formula / Cap GFR 125)</option>
+                                    <option value="cisplatin">CISPLATIN (BSA-based Calculation)</option>
+                                    <option value="bleomycin">BLEOMYCIN (Fixed Dose 30 units คงที่)</option>
+                                </select>
+                            </div>
+                            <div id="carboplatinInputs"
+                                class="hidden p-5 rounded-lg border-2 border-slate-700 space-y-4 transition-all duration-300 transform scale-95 opacity-0">
+                                <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+                                    <div>
+                                        <label class="block text-sm font-bold text-slate-200 mb-2">Target AUC</label>
+                                        <input type="number" id="targetAuc" value="5" step="0.5"
+                                            class="form-control w-full rounded-lg p-3 text-lg font-mono font-black focus:outline-none">
+                                    </div>
+                                    <div>
+                                        <label class="block text-sm font-bold text-slate-200 mb-2">ค่า CrCl / GFR
+                                            (ml/min)</label>
+                                        <input type="number" id="gfrValue" placeholder="ระบุค่า GFR"
+                                            class="form-control w-full rounded-lg p-3 text-lg font-mono font-black focus:outline-none">
+                                    </div>
+                                </div>
+                            </div>
+                            <div id="cisplatinInputs"
+                                class="hidden p-5 rounded-lg border-2 border-slate-700 space-y-4 transition-all duration-300 transform scale-95 opacity-0">
+                                <div>
+                                    <label class="block text-sm font-bold text-slate-200 mb-2">Target Dose
+                                        (mg/m²)</label>
+                                    <input type="number" id="cisplatinTargetDose" value="75" step="5"
+                                        class="form-control w-full rounded-lg p-3 text-lg font-mono font-black focus:outline-none">
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="lg:col-span-1">
+                    <div class="bg-slate-900 border-2 border-sky-600/30 rounded-xl p-6 shadow-xl sticky top-6">
+                        <h2 class="text-base font-black text-slate-200 tracking-wide uppercase mb-4 text-center">
+                            Clinical Result Summary</h2>
+                        <div class="space-y-5 bg-slate-950/60 border-2 border-slate-800 p-5 rounded-xl text-center">
+                            <div>
+                                <span class="text-xs uppercase font-black tracking-widest text-slate-300 block">Final
+                                    BSA Result</span>
+                                <div class="text-4xl font-black text-emerald-400 font-mono mt-1 transition-all duration-300"
+                                    id="bsaDisplayContainer">
+                                    <span id="bsaDisplayValue">0.0000</span> <span
+                                        class="text-base font-normal text-slate-300">m²</span>
+                                </div>
+                            </div>
+                            <div class="border-t-2 border-slate-700 pt-4">
+                                <span
+                                    class="text-xs uppercase font-black tracking-widest text-slate-300 block">Calculated
+                                    Output Dose</span>
+                                <div class="text-4xl font-black text-amber-400 font-mono mt-1 transition-all duration-300"
+                                    id="doseDisplayContainer">
+                                    <span id="doseDisplayValue">0.00</span> <span id="doseUnitValue"
+                                        class="text-base font-normal text-slate-300">mg</span>
+                                </div>
+                            </div>
+                        </div>
+                        <button onclick="processClinicalWorkflow()"
+                            class="w-full mt-5 bg-emerald-600 hover:bg-emerald-500 active:scale-95 text-white font-black p-4 rounded-xl text-lg tracking-wide transition-all cursor-pointer shadow-md text-center">
+                            คำนวณและบันทึกข้อมูล (Verify Dose)
+                        </button>
+                        <div id="hospitalResultBox"
+                            class="hidden mt-5 space-y-3 text-base text-slate-200 border-t-2 border-slate-700 pt-4 font-bold transition-all duration-500 transform scale-95 opacity-0">
+                            <div class="flex justify-between border-b border-slate-700/50 pb-2">
+                                <span class="text-slate-400">สูตรพื้นที่ผิวที่ใช้:</span>
+                                <span id="resMethod" class="text-white"></span>
+                            </div>
+                            <div class="flex justify-between border-b border-slate-700/50 pb-2">
+                                <span class="text-slate-400">ภาวะสูญเสียอวัยวะ:</span>
+                                <span id="resAmp" class="text-white"></span>
+                            </div>
+                            <div
+                                class="bg-amber-950/40 text-amber-400 p-4 rounded-lg border border-amber-900/60 mt-2 leading-relaxed text-sm">
+                                <strong>Pharmacist Note:</strong> <span id="resDrugRule"
+                                    class="text-slate-200 font-normal"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="logSectionBox" class="w-full bg-[#111c44]/40 border border-slate-700 rounded-xl p-6 shadow-sm">
+                <div
+                    class="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-5 border-b border-slate-700/50 pb-4 w-full">
+                    <h3
+                        class="text-base font-black text-slate-200 uppercase tracking-wide flex items-center gap-2 max-w-full">
+                        <span class="w-3 h-3 bg-sky-500 rounded-full shrink-0"></span>
+                        <span class="truncate">
+                            ประวัติการตรวจสอบขนาดยาเคมีบำบัด <span
+                                class="log-subtitle-theme font-mono text-sm font-black ml-1 inline-block">(MySQL Live
+                                Sync)</span>
+                        </span>
+                    </h3>
+                    <div
+                        class="flex flex-col sm:flex-row items-stretch sm:items-center gap-3 w-full md:w-auto shrink-0">
+                        <button onclick="triggerPrintDailyLog()"
+                            class="btn-print-action text-sm font-black transition-all hover:scale-102 active:scale-98 cursor-pointer px-5 py-2.5 rounded-lg flex items-center justify-center gap-2 shadow whitespace-nowrap min-h-[42px]">
+                            🖨️ พิมพ์รายงานประจำวัน
+                        </button>
+                        <button onclick="clearHospitalLogs()"
+                            class="btn-clear-action text-sm font-black transition-all hover:scale-102 active:scale-98 cursor-pointer px-5 py-2.5 rounded-lg flex items-center justify-center gap-2 shadow whitespace-nowrap min-h-[42px]">
+                            🗑️ ล้างประวัติทั้งหมด
+                        </button>
+                    </div>
+                </div>
+                <div
+                    class="overflow-x-auto rounded-xl border border-slate-800 bg-slate-900/60 shadow-xl backdrop-blur-md">
+                    <table class="w-full text-left text-sm text-slate-200 border-collapse">
+                        <thead>
+                            <tr class="bg-slate-900 text-slate-300 border-b-2 border-slate-700">
+                                <th class="p-4 font-bold text-base">วันที่ / เวลา</th>
+                                <th class="p-4 font-bold text-base">HN ผู้ป่วย</th>
+                                <th class="p-4 font-bold text-base">ชื่อ-สกุล</th>
+                                <th class="p-4 font-bold text-base text-center">BSA (m²)</th>
+                                <th class="p-4 font-bold text-base text-center">สูตรยา</th>
+                                <th class="p-4 font-bold text-base text-center">ผู้บันทึก</th>
+                                <th class="p-4 font-bold text-base text-right">ขนาดยาคำนวณสุทธิ</th>
+
+                            </tr>
+                        </thead>
+                        <tbody id="historyLogTableBody">
+                            <tr>
+                                <td colspan="6" class="p-6 text-center text-slate-500 font-mono text-lg font-bold">
+                                    กำลังเชื่อมต่อคลังข้อมูล MySQL Server...</td>
+                            </tr>
+                        </tbody>
+                    </table>
+                </div>
+                <div id="printSignOffArea">
+                    <p>พิมพ์รายงานโดย: ...........................................................................
+                        เภสัชกรผู้ทวนสอบ</p>
+                    <p>( ........................................................................... ) Verifying
+                        Pharmacist</p>
+                    <p style="margin-top: 5px !important;">วันที่และเวลาออกรายงาน: <span
+                            id="printDateTimeStamp">-</span></p>
+                </div>
+            </div>
+        </div>
+    </div>
+    </div>
+    <footer class="w-full text-center py-6 text-xs text-slate-500 font-mono mt-8 font-bold">
+        🔒 Encrypted Clinical Calculation Environment • RAM2 HOSPITAL Authorized Use Only
+    </footer>
+
+    <script>
+        document.addEventListener("DOMContentLoaded", () => {
+            checkAuth();
+            fetchAndRenderLogs();
+            const savedTheme = localStorage.getItem("appThemeMode") || "dark";
+            if (savedTheme === "light") {
+                document.body.classList.add("light-mode");
+                document.getElementById("themeToggleBtn").innerText = "☀️ Light Mode";
+            }
+        });
+
+        function checkAuth() {
+            const user = localStorage.getItem("oncology_user");
+            if (user) {
+                showMainApp();
+            }
+        }
+
+        function handleLogin() {
+            const employee_id = document.getElementById("loginUsername").value.trim();
+            const password = document.getElementById("loginPassword").value.trim();
+            const errorDiv = document.getElementById("loginError");
+            const loginBtn = document.getElementById("loginBtn");
+
+            if (!employee_id || !password) {
+                errorDiv.innerText = "กรุณากรอกรหัสพนักงานและรหัสผ่าน";
+                errorDiv.classList.remove("hidden");
+                return;
+            }
+
+            errorDiv.classList.add("hidden");
+            loginBtn.disabled = true;
+            loginBtn.classList.add("opacity-70");
+            loginBtn.querySelector("span").innerText = "Authenticating...";
+
+            axios.post('http://127.0.0.1:5004/api/login', { employee_id, password })
+                .then(res => {
+                    const data = res.data;
+                    if (data.success) {
+                        localStorage.setItem("oncology_user", JSON.stringify(data.user));
+                        showMainApp();
+                    } else {
+                        errorDiv.innerText = data.message || "รหัสพนักงานหรือรหัสผ่านไม่ถูกต้อง";
+                        errorDiv.classList.remove("hidden");
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    const msg = err.response?.data?.message || "🔌 ไม่สามารถติดต่อ Server ได้ (Port 5004) <br><br> กรุณาเปิด Terminal (หน้าจอดำ) แล้วรันคำสั่ง: <br> <b>cd d:\\patien-system\\oncology-backend</b> <br> <b>node server.js</b> <br><br> แล้วลองใหม่อีกครั้งนะครับ";
+                    errorDiv.innerHTML = msg;
+                    errorDiv.classList.remove("hidden");
+                })
+                .finally(() => {
+                    loginBtn.disabled = false;
+                    loginBtn.classList.remove("opacity-70");
+                    loginBtn.querySelector("span").innerText = "Authenticate";
+                });
+        }
+
+        function togglePasswordVisibility() {
+            const pwd = document.getElementById("loginPassword");
+            const eyeOpen = document.querySelectorAll(".eye-open");
+            const eyeClosed = document.querySelectorAll(".eye-closed");
+
+            if (pwd.type === "password") {
+                pwd.type = "text";
+                eyeOpen.forEach(el => el.classList.add("hidden"));
+                eyeClosed.forEach(el => el.classList.remove("hidden"));
+            } else {
+                pwd.type = "password";
+                eyeOpen.forEach(el => el.classList.remove("hidden"));
+                eyeClosed.forEach(el => el.classList.add("hidden"));
+            }
+        }
+
+        function showMainApp() {
+            const authStep = document.getElementById("authStep");
+            const mainAppContainer = document.getElementById("mainAppContainer");
+            const userInfo = document.getElementById("userInfoBanner");
+            const user = JSON.parse(localStorage.getItem("oncology_user") || "{}");
+
+            authStep.classList.add("hidden");
+            mainAppContainer.classList.remove("hidden");
+            if (user.username || user.name) {
+                document.getElementById("authenticatedUserName").innerText = user.name || user.username;
+                userInfo.classList.remove("hidden");
+            }
+        }
+
+        function handleLogout() {
+            localStorage.removeItem("oncology_user");
+            location.reload();
+        }
+
+        function toggleThemeMode() {
+            const body = document.body;
+            const btn = document.getElementById("themeToggleBtn");
+            if (body.classList.contains("light-mode")) {
+                body.classList.remove("light-mode");
+                btn.innerText = "🌙 Dark Mode";
+                localStorage.setItem("appThemeMode", "dark");
+            } else {
+                body.classList.add("light-mode");
+                btn.innerText = "☀️ Light Mode";
+                localStorage.setItem("appThemeMode", "light");
+            }
+        }
+
+        function validateAndNavigateToWorkspace() {
+            const hnInput = document.getElementById("patientHN").value.trim();
+            const nameInput = document.getElementById("patientName").value.trim() || "ไม่ระบุชื่อ";
+            const heightInput = parseFloat(document.getElementById("height").value);
+            const weightInput = parseFloat(document.getElementById("weight").value);
+
+            if (!hnInput) { alert("กรุณาระบุหมายเลข HN ของผู้ป่วยก่อนเข้าสู่ระบบ"); document.getElementById("patientHN").focus(); return; }
+            if (isNaN(heightInput) || heightInput <= 0) { alert("กรุณาระบุส่วนสูงที่ถูกต้อง (มากกว่า 0 ซม.)"); document.getElementById("height").focus(); return; }
+            if (isNaN(weightInput) || weightInput <= 0) { alert("กรุณาระบุน้ำหนักที่ถูกต้อง (มากกว่า 0 กก.)"); document.getElementById("weight").focus(); return; }
+
+            document.getElementById("bannerHN").innerText = hnInput;
+            document.getElementById("bannerName").innerText = nameInput;
+            document.getElementById("bannerStats").innerText = `ส่วนสูง: ${heightInput} cm | น้ำหนักจริง: ${weightInput} kg`;
+
+            const loginStep = document.getElementById("patientLoginStep");
+            const workspaceStep = document.getElementById("clinicalWorkspaceStep");
+
+            loginStep.classList.remove("translate-y-0", "opacity-100");
+            loginStep.classList.add("translate-y-4", "opacity-0");
+
+            setTimeout(() => {
+                loginStep.classList.add("hidden");
+                workspaceStep.classList.remove("hidden");
+                setTimeout(() => {
+                    workspaceStep.classList.remove("translate-y-4", "opacity-0");
+                    workspaceStep.classList.add("translate-y-0", "opacity-100");
+                }, 50);
+            }, 400);
+        }
+
+        function backToLoginStep() {
+            const loginStep = document.getElementById("patientLoginStep");
+            const workspaceStep = document.getElementById("clinicalWorkspaceStep");
+            workspaceStep.classList.remove("translate-y-0", "opacity-100");
+            workspaceStep.classList.add("translate-y-4", "opacity-0");
+
+            setTimeout(() => {
+                workspaceStep.classList.add("hidden");
+                loginStep.classList.remove("hidden");
+                setTimeout(() => {
+                    loginStep.classList.remove("translate-y-4", "opacity-0");
+                    loginStep.classList.add("translate-y-0", "opacity-100");
+                }, 50);
+            }, 400);
+        }
+
+        function toggleAmpOptions() {
+            const state = document.querySelector('input[name="amputationState"]:checked').value;
+            const box = document.getElementById("ampDetailsBox");
+            if (state === "amputee") {
+                box.classList.remove("hidden");
+                setTimeout(() => { box.classList.remove("scale-95", "opacity-0"); box.classList.add("scale-100", "opacity-100"); }, 50);
+            } else {
+                box.classList.remove("scale-100", "opacity-100"); box.classList.add("scale-95", "opacity-0");
+                setTimeout(() => box.classList.add("hidden"), 300);
+            }
+        }
+
+        function toggleDrugInputs() {
+            const drug = document.getElementById("drugSelect").value;
+            const carboBox = document.getElementById("carboplatinInputs");
+            const cisBox = document.getElementById("cisplatinInputs");
+
+            // Handle Carboplatin
+            if (drug === "carboplatin") {
+                carboBox.classList.remove("hidden");
+                setTimeout(() => { carboBox.classList.remove("scale-95", "opacity-0"); carboBox.classList.add("scale-100", "opacity-100"); }, 50);
+            } else {
+                carboBox.classList.remove("scale-100", "opacity-100"); carboBox.classList.add("scale-95", "opacity-0");
+                setTimeout(() => carboBox.classList.add("hidden"), 300);
+            }
+
+            // Handle Cisplatin
+            if (drug === "cisplatin") {
+                cisBox.classList.remove("hidden");
+                setTimeout(() => { cisBox.classList.remove("scale-95", "opacity-0"); cisBox.classList.add("scale-100", "opacity-100"); }, 50);
+            } else {
+                cisBox.classList.remove("scale-100", "opacity-100"); cisBox.classList.add("scale-95", "opacity-0");
+                setTimeout(() => cisBox.classList.add("hidden"), 300);
+            }
+        }
+
+        /* =================================================== */
+        /* 🔗 ⚡ INTEGRATED LIVE FETCH DB SYNC LOGIC           */
+        /* =================================================== */
+        function processClinicalWorkflow() {
+            const h = parseFloat(document.getElementById("height").value);
+            let w = parseFloat(document.getElementById("weight").value);
+            const bsaFormula = document.querySelector('input[name="bsaFormula"]:checked').value;
+            const ampState = document.querySelector('input[name="amputationState"]:checked').value;
+            const drug = document.getElementById("drugSelect").value;
+
+            let ampWeightText = "ไม่มี (สัดส่วนปกติ)";
+            let bsaAdjustmentFactor = 1.0;
+
+            if (ampState === "amputee") {
+                const level = document.getElementById("ampLevel").value;
+                const method = document.getElementById("ampMethod").value;
+                let weightDropPercentage = (level === "below_knee") ? 0.06 : 0.15;
+                let bsaDropPercentage = (level === "below_knee") ? 0.09 : 0.18;
+                ampWeightText = (level === "below_knee") ? "ตัดขาต่ำกว่าเข่า (BK)" : "ตัดขาเหนือเข่า (AK)";
+                if (method === "weight_method") { w = w * (1 - weightDropPercentage); ampWeightText += " [หักน้ำหนัก]"; }
+                else { bsaAdjustmentFactor = (1 - bsaDropPercentage); ampWeightText += " [หักที่ BSA]"; }
+            }
+
+            let computedBsa = (bsaFormula === "mosteller") ? Math.sqrt((h * w) / 3600) : 0.20247 * Math.pow(h / 100, 0.725) * Math.pow(w, 0.425);
+            let finalBsa = computedBsa * bsaAdjustmentFactor;
+
+            let calculatedDose = 0; let unit = "mg"; let pharmacistNote = "";
+
+            if (drug === "vincristine") {
+                calculatedDose = finalBsa * 1.4;
+                if (calculatedDose > 2.0) { calculatedDose = 2.0; pharmacistNote = "ขนาดยาเกินเกณฑ์ปลอดภัยสากล ตรึงไว้ที่ Dose Cap ไม่เกิน 2.0 mg"; }
+                else { pharmacistNote = "คำนวณตามสัดส่วนพื้นที่ผิวจริง 1.4 mg/m²"; }
+            } else if (drug === "cisplatin") {
+                const targetDose = parseFloat(document.getElementById("cisplatinTargetDose").value) || 0;
+                calculatedDose = finalBsa * targetDose;
+                pharmacistNote = `คำนวณตามสัดส่วนพื้นที่ผิวจริง: ${targetDose} mg/m²`;
+            } else if (drug === "bleomycin") {
+                calculatedDose = 30; unit = "units"; pharmacistNote = "ใช้มาตรฐานจ่ายขนาดยึดคงที่ปลอดภัยสูง (Fixed Dose) ที่ 30 units";
+            } else if (drug === "carboplatin") {
+                const targetAuc = parseFloat(document.getElementById("targetAuc").value) || 5;
+                let gfr = parseFloat(document.getElementById("gfrValue").value);
+                if (isNaN(gfr) || gfr <= 0) { alert("จำเป็นต้องระบุค่าไต GFR สำหรับสูตรยา Carboplatin"); document.getElementById("gfrValue").focus(); return; }
+                let gfrNoteText = `ค่า GFR ปกติที่ ${gfr} ml/min`;
+                if (gfr > 125) { gfr = 125; gfrNoteText = "จำกัดเพดาน GFR ไว้สูงสุดที่ 125 ml/min เพื่อความปลอดภัย"; }
+                calculatedDose = targetAuc * (gfr + 25);
+                pharmacistNote = `คำนวณผ่าน Calvert Formula [Target AUC ${targetAuc}] (${gfrNoteText})`;
+            }
+
+            // จัดแจงร่าง Payload ส่งเข้าตัวท่อ API หลังบ้าน
+            const now = new Date();
+            const timestampStr = now.toLocaleTimeString("th-TH") + " " + now.toLocaleDateString("th-TH", { year: "2-digit", month: "short" });
+
+            const logPayload = {
+                timestamp: timestampStr,
+                hn: document.getElementById("bannerHN").innerText,
+                patientName: document.getElementById("bannerName").innerText,
+                calculatedBsaM2: finalBsa.toFixed(4),
+                formulaUsed: drug.toUpperCase(),
+                prescribedDose: `${calculatedDose.toFixed(2)} ${unit}`,
+                userName: JSON.parse(localStorage.getItem("oncology_user") || "{}").name || JSON.parse(localStorage.getItem("oncology_user") || "{}").username || "Unknown"
+            };
+
+            // 🚀 พ่นข้อมูลไปบันทึกลง MySQL Server หลังบ้าน
+            axios.post('http://127.0.0.1:5004/api/logs', logPayload)
+                .then(res => {
+                    const data = res.data;
+                    if (data.success) {
+                        document.getElementById("bsaDisplayValue").innerText = finalBsa.toFixed(4);
+                        document.getElementById("doseDisplayValue").innerText = calculatedDose.toFixed(2);
+                        document.getElementById("doseUnitValue").innerText = unit;
+
+                        document.getElementById("resMethod").innerText = `${bsaFormula.toUpperCase()} Formula`;
+                        document.getElementById("resAmp").innerText = ampWeightText;
+                        document.getElementById("resDrugRule").innerText = pharmacistNote;
+
+                        const resultBox = document.getElementById("hospitalResultBox");
+                        resultBox.classList.remove("hidden");
+                        setTimeout(() => { resultBox.classList.remove("scale-95", "opacity-0"); resultBox.classList.add("scale-100", "opacity-100"); }, 50);
+
+                        // 🎬 Trigger pop animations for results
+                        const bsaBox = document.getElementById('bsaDisplayContainer');
+                        const doseBox = document.getElementById('doseDisplayContainer');
+                        bsaBox.classList.remove('animate-pop');
+                        doseBox.classList.remove('animate-pop');
+                        void bsaBox.offsetWidth; // Force Reflow
+                        void doseBox.offsetWidth; // Force Reflow
+                        bsaBox.classList.add('animate-pop');
+                        doseBox.classList.add('animate-pop');
+
+                        // อัปเดตรีเฟรชตารางดึงค่าล่าสุดจาก MySQL ขึ้นมาโชว์ทันที
+                        fetchAndRenderLogs(data.insertedId);
+                    } else {
+                        alert("❌ Server Error: " + data.message);
+                    }
+                })
+                .catch(err => {
+                    console.error(err);
+                    const msg = err.response?.data?.message || "ติดต่อตัวหลังบ้านไม่ได้! กรุณาเปิด Terminal แล้วรันคำสั่ง `node server.js` ก่อนทำการกดคำนวณนะครับ";
+                    alert("🔌 " + msg);
+                });
+        }
+
+        // 🔄 ดึงประวัติแบบ Real-time มาจากคลัง MySQL Workbench
+        function fetchAndRenderLogs(newestId = null) {
+            axios.get('http://127.0.0.1:5004/api/logs')
+                .then(res => {
+                    const data = res.data;
+                    const tbody = document.getElementById("historyLogTableBody");
+                    if (!data.success || !data.logs || data.logs.length === 0) {
+                        tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-slate-500 font-mono text-lg font-bold">ไม่พบประวัติการบันทึกในฐานข้อมูล oncology_db</td></tr>`;
+                        return;
+                    }
+
+                    tbody.innerHTML = data.logs.map(item => {
+                        const isNewRow = (newestId && item.id === newestId) ? 'animate-row-in' : '';
+                        return `
+                        <tr class="border-b border-slate-700 hover:bg-slate-900/60 transition-colors ${isNewRow}">
+                            <td class="p-4 font-mono text-slate-300 font-bold text-base">${item.timestamp}</td>
+                            <td class="p-4 font-mono text-sky-400 font-black text-base">${item.hn}</td>
+                            <td class="p-4 font-bold text-base text-slate-200">${item.patient_name}</td>
+                            <td class="p-4 text-center font-mono text-emerald-400 font-black text-base">${parseFloat(item.calculated_bsa).toFixed(4)}</td>
+                            <td class="p-4 text-center text-slate-300 uppercase font-mono text-sm font-bold">${item.formula_used}</td>
+                            <td class="p-4 text-center text-sky-300 font-bold text-base">${item.user_name || '-'}</td>
+                            <td class="p-4 text-right font-mono text-amber-400 font-black text-base">${item.prescribed_dose}</td>
+                        </tr>
+                    `;
+                    }).join('');
+                })
+                .catch(err => {
+                    console.error("Fetch log failure:", err);
+                    const tbody = document.getElementById("historyLogTableBody");
+                    tbody.innerHTML = `<tr><td colspan="6" class="p-6 text-center text-rose-400 font-mono text-base font-bold">❌ ไม่สามารถเชื่อมต่อกับ Clinical API Bridge (Port 5004) ได้ กรุณาเปิดตัว server.js</td></tr>`;
+                });
+        }
+
+        function clearHospitalLogs() {
+            if (confirm("หมายเหตุระบบ: ฟังก์ชันล้างประวัติเวอร์ชันนี้จะล้างโครงสร้างตารางแสดงผลชั่วคราวบนหน้าต่างนี้เท่านั้น")) {
+                document.getElementById("historyLogTableBody").innerHTML = `<tr><td colspan="6" class="p-6 text-center text-slate-500 font-mono text-lg font-bold">No data logged in this session.</td></tr>`;
+            }
+        }
+
+        function triggerPrintDailyLog() {
+            const now = new Date();
+            document.getElementById("printDateTimeStamp").innerText = now.toLocaleDateString("th-TH") + " @ " + now.toLocaleTimeString("th-TH");
+            window.print();
+        }
+    </script>
+</body>
+
+</html>

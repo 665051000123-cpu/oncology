@@ -1,0 +1,242 @@
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700&display=swap');
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --bg-color: #020617;
+  /* Slate 950 */
+  --text-color: #f8fafc;
+  /* Slate 50 */
+  --card-bg: rgba(15, 23, 42, 0.7);
+  /* Slate 900 Glass */
+  --card-border: rgba(51, 65, 85, 0.4);
+  --input-bg: #0f172a;
+  /* Slate 900 */
+  --table-header-bg: #0f172a;
+}
+
+body.light-mode {
+  --bg-color: #f1f5f9;
+  --text-color: #0f172a;
+  --card-bg: #ffffff;
+  --card-border: rgba(0, 0, 0, 0.1);
+  --input-bg: #ffffff;
+  --table-header-bg: #ffffff;
+}
+
+@layer base {
+  body {
+    @apply antialiased min-h-screen transition-colors duration-500 ease-in-out;
+    background-color: var(--bg-color);
+    color: var(--text-color);
+    font-family: 'Noto Sans Thai', sans-serif;
+  }
+}
+
+@layer components {
+  .form-control {
+    @apply w-full border rounded-xl p-4 text-base focus:outline-none focus:border-sky-500 focus:ring-4 focus:ring-sky-500/10 transition-all;
+    background-color: var(--input-bg);
+    border-color: var(--card-border);
+    color: var(--text-color);
+    font-weight: 500;
+  }
+
+  .btn-primary {
+    @apply bg-sky-600 hover:bg-sky-500 active:scale-95 text-white font-black p-4 rounded-2xl text-lg tracking-wide transition-all cursor-pointer shadow-lg shadow-sky-900/20 text-center;
+  }
+
+  .premium-card {
+    background-color: var(--card-bg);
+    border: 1px solid var(--card-border);
+    @apply rounded-3xl shadow-2xl backdrop-blur-xl transition-all;
+  }
+
+  .no-print {
+    @apply block;
+  }
+}
+
+@media print {
+
+  body,
+  html {
+    background: white !important;
+    color: black !important;
+    margin: 0;
+    padding: 0;
+    visibility: visible !important;
+  }
+
+  .no-print,
+  button,
+  .theme-toggle,
+  .workspace-section,
+  .print-hide {
+    display: none !important;
+  }
+
+  .premium-card {
+    background: transparent !important;
+    border: none !important;
+    box-shadow: none !important;
+    padding: 0 !important;
+    margin: 0 !important;
+  }
+
+  .print-header {
+    display: block !important;
+    visibility: visible !important;
+    margin-bottom: 2rem;
+  }
+
+  .history-section {
+    display: block !important;
+    visibility: visible !important;
+    width: 100% !important;
+  }
+
+  .print-table {
+    display: table !important;
+    width: 100% !important;
+    border-collapse: collapse !important;
+    table-layout: fixed !important;
+  }
+
+  .scrollable-table-container {
+    max-height: none !important;
+    overflow: visible !important;
+    border: none !important;
+    box-shadow: none !important;
+  }
+
+  .scrollable-table-container thead {
+    position: static !important;
+  }
+
+  th,
+  td {
+    border: 1px solid #94a3b8 !important;
+    padding: 4px 6px !important;
+    /* Tighter padding for precision */
+    font-size: 8pt !important;
+    color: black !important;
+    word-break: break-word !important;
+    white-space: normal !important;
+    vertical-align: middle !important;
+  }
+
+  th {
+    background-color: #f1f5f9 !important;
+    font-weight: 900 !important;
+    text-transform: uppercase !important;
+    letter-spacing: 0.05em !important;
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+
+  tr:nth-child(even) {
+    background-color: #f8fafc !important;
+  }
+
+
+  /* Specific column styling for readability */
+  /* Column 4: เพศ (Gender) */
+  td:nth-child(4) {
+    text-align: center !important;
+  }
+
+  /* Column 5: BSA */
+  td:nth-child(5) {
+    text-align: center !important;
+    font-weight: bold !important;
+    color: #059669 !important;
+  }
+
+  /* Column 7: Dose */
+  td:nth-child(7) {
+    text-align: right !important;
+    font-weight: 900 !important;
+    color: #d97706 !important;
+    font-size: 10pt !important;
+  }
+
+  /* Column 8: ผู้บันทึก (Pharmacist) */
+  td:nth-child(8) {
+    text-align: center !important;
+  }
+
+  .print-only-section {
+    display: block !important;
+    visibility: visible !important;
+  }
+
+  @page {
+    margin: 0.4cm 0.8cm !important;
+  }
+}
+
+/* Custom Styles from index.html */
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  -webkit-appearance: none;
+  appearance: none;
+  margin: 0;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+  appearance: textfield;
+}
+
+body:not(.light-mode) .unselected-btn {
+  background-color: #d1d7e2;
+  border: 2px solid #475569;
+  color: #60a5fa;
+}
+
+/* Animations */
+@keyframes popIn {
+  0% {
+    transform: translateY(-10px) scale(0.9);
+    opacity: 0;
+  }
+
+  100% {
+    transform: translateY(0) scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-pop {
+  animation: popIn 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+@keyframes popInCenter {
+  0% {
+    transform: translate(-50%, -20px) scale(0.9);
+    opacity: 0;
+  }
+
+  100% {
+    transform: translate(-50%, 0) scale(1);
+    opacity: 1;
+  }
+}
+
+.animate-pop-center {
+  animation: popInCenter 0.4s cubic-bezier(0.175, 0.885, 0.32, 1.275) forwards;
+}
+
+/* Explicit gender text colors for visibility */
+.gender-text-highlight {
+  color: #0f172a !important;
+  /* Dark Slate in Light Mode */
+}
+
+body:not(.light-mode) .gender-text-highlight {
+  color: #f8fafc !important;
+  /* White/Light Slate in Dark Mode */
+}

@@ -1,0 +1,252 @@
+@import "tailwindcss";
+
+@keyframes rowSlideIn {
+  0% {
+    transform: translateY(10px);
+    opacity: 0;
+    background-color: rgba(16, 185, 129, 0.2);
+  }
+  100% {
+    transform: translateY(0);
+    opacity: 1;
+  }
+}
+
+:root {
+  font-family: Inter, ui-sans-serif, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+}
+
+body {
+  margin: 0;
+  background: #0b1329;
+  color: #fff;
+  font-size: 18px;
+}
+
+body.light-mode {
+  background: #f1f5f9;
+  color: #000;
+}
+
+input,
+select {
+  width: 100%;
+  border-radius: 0.5rem;
+  border: 2px solid #64748b;
+  background: #0f172a;
+  padding: 1rem;
+  color: #fff;
+  font-weight: 800;
+  outline: none;
+}
+
+input[type="number"]::-webkit-outer-spin-button,
+input[type="number"]::-webkit-inner-spin-button {
+  margin: 0;
+  -webkit-appearance: none;
+}
+
+input[type="number"] {
+  -moz-appearance: textfield;
+}
+
+body.light-mode input,
+body.light-mode select {
+  border: 3px solid #000;
+  background: #fff;
+  color: #000;
+}
+
+th,
+td {
+  padding: 1rem;
+  font-weight: 700;
+}
+
+.panel {
+  border: 1px solid #334155;
+  border-radius: 0.75rem;
+  background: rgba(17, 28, 68, 0.62);
+  box-shadow: 0 14px 36px rgba(0, 0, 0, 0.2);
+}
+
+body.light-mode .panel,
+body.light-mode .banner {
+  border: 3px solid #000;
+  background: #fff;
+}
+
+.banner {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  gap: 1rem;
+  border: 2px solid #334155;
+  border-radius: 0.75rem;
+  background: #1e293b;
+  padding: 1.25rem;
+}
+
+@media (min-width: 768px) {
+  .banner {
+    flex-direction: row;
+    align-items: center;
+  }
+}
+
+.theme-toggle {
+  position: absolute;
+  right: 1rem;
+  top: 1rem;
+  z-index: 50;
+  border-radius: 999px;
+  border: 2px solid #475569;
+  background: #1e293b;
+  padding: 0.75rem 1.25rem;
+  color: #fff;
+  font-size: 1rem;
+  font-weight: 900;
+}
+
+.primary-button,
+.secondary-button,
+.danger-button {
+  min-height: 42px;
+  border-radius: 0.75rem;
+  padding: 0.8rem 1.25rem;
+  font-weight: 900;
+  transition: transform 0.2s ease, background 0.2s ease;
+}
+
+.primary-button {
+  background: #0284c7;
+  color: #fff;
+}
+
+.primary-button:hover {
+  background: #0ea5e9;
+}
+
+.secondary-button {
+  border: 2px solid #334155;
+  background: #0f172a;
+  color: #e2e8f0;
+}
+
+.danger-button {
+  border: 2px solid #991b1b;
+  background: #451a03;
+  color: #fca5a5;
+}
+
+.radio-card {
+  min-height: 90px;
+  width: 100%;
+  border-radius: 0.5rem;
+  border: 2px solid #475569;
+  background: #1e293b;
+  padding: 1.25rem;
+  text-align: left;
+  color: #93c5fd;
+  transition: transform 0.2s ease, border-color 0.2s ease, background 0.2s ease;
+}
+
+.radio-card span {
+  display: block;
+  color: #bfdbfe;
+  font-size: 1.05rem;
+  font-weight: 900;
+}
+
+.radio-card p {
+  margin-top: 0.25rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 0.9rem;
+  font-weight: 800;
+}
+
+.radio-card.selected {
+  border-color: #60a5fa;
+  background: #2563eb;
+  color: #fff;
+  transform: translateY(-2px);
+}
+
+.sub-panel {
+  border: 2px solid #334155;
+  border-radius: 0.5rem;
+  background: rgba(15, 23, 42, 0.45);
+  padding: 1.25rem;
+}
+
+.result-box {
+  display: grid;
+  gap: 1.25rem;
+  border: 2px solid #334155;
+  border-radius: 0.75rem;
+  background: #0b1329;
+  padding: 1.25rem;
+  text-align: center;
+}
+
+.result-box span {
+  display: block;
+  color: #cbd5e1;
+  font-size: 0.75rem;
+  font-weight: 900;
+  letter-spacing: 0;
+  text-transform: uppercase;
+}
+
+.result-box strong {
+  display: block;
+  margin-top: 0.25rem;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
+  font-size: 2.25rem;
+  font-weight: 900;
+}
+
+.result-box small {
+  color: #cbd5e1;
+  font-size: 1rem;
+  font-weight: 500;
+}
+
+.animate-row-in {
+  animation: rowSlideIn 0.5s ease-out forwards;
+}
+
+.print-header,
+.print-signoff {
+  display: none;
+}
+
+@media print {
+  .theme-toggle,
+  .primary-button,
+  .secondary-button,
+  .danger-button,
+  .banner,
+  .panel:not(:last-of-type),
+  footer {
+    display: none !important;
+  }
+
+  .print-header,
+  .print-signoff {
+    display: block;
+    color: #000;
+  }
+
+  body,
+  main {
+    background: #fff !important;
+    color: #000 !important;
+  }
+
+  .panel {
+    border: 0;
+    box-shadow: none;
+    background: #fff;
+  }
+}
