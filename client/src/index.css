@@ -148,23 +148,28 @@ body.light-mode {
     text-align: center !important;
   }
 
-  /* Column 5: BSA */
+  /* Column 5: อายุ (Age) */
   td:nth-child(5) {
+    text-align: center !important;
+  }
+
+  /* Column 6: BSA */
+  td:nth-child(6) {
     text-align: center !important;
     font-weight: bold !important;
     color: #059669 !important;
   }
 
-  /* Column 7: Dose */
-  td:nth-child(7) {
+  /* Column 8: Dose */
+  td:nth-child(8) {
     text-align: right !important;
     font-weight: 900 !important;
     color: #d97706 !important;
     font-size: 10pt !important;
   }
 
-  /* Column 8: ผู้บันทึก (Pharmacist) */
-  td:nth-child(8) {
+  /* Column 9: ผู้บันทึก (Pharmacist) */
+  td:nth-child(9) {
     text-align: center !important;
   }
 

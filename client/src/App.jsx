@@ -1,9 +1,10 @@
 import React, { useState, useEffect, useMemo } from 'react';
 import { useCalculations } from './utils/useCalculations';
-import { Moon, Sun, ChevronRight, ArrowLeft, Printer, Trash2, History, User, Info, LogOut, ArrowUpDown, ChevronUp, ChevronDown, Filter, X } from 'lucide-react';
+import { Moon, Sun, ChevronRight, ArrowLeft, Printer, Trash2, History, User, Info, LogOut, ArrowUpDown, ChevronUp, ChevronDown, Filter, X, Settings } from 'lucide-react';
 import axios from 'axios';
 import Login from './components/Login';
 import Notification from './components/Notification';
+import AdminUsers from './components/AdminUsers';
 
 const API_BASE = '/api';
 
@@ -12,7 +13,7 @@ function App() {
     const [step, setStep] = useState('auth'); // 'auth', 'login' (patient check-in), 'workspace'
     const [user, setUser] = useState(null);
     const [loginData, setLoginData] = useState({ username: '', password: '' });
-    const [patient, setPatient] = useState({ hn: '', name: '', height: '', weight: '', gender: 'male', age: '50' });
+    const [patient, setPatient] = useState({ hn: '', name: '', height: '', weight: '', gender: '', age: '' });
     const [logs, setLogs] = useState([]);
     const [notification, setNotification] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
@@ -53,7 +54,7 @@ function App() {
     const [calcMode, setCalcMode] = useState('single'); // 'single', 'regimen'
     const [selectedRegimen, setSelectedRegimen] = useState('cv'); // 'cv', 'bc'
     const [useAutoGfr, setUseAutoGfr] = useState(false);
-    const [patientScr, setPatientScr] = useState('0.8');
+    const [patientScr, setPatientScr] = useState('');
     const [multipleDoses, setMultipleDoses] = useState([]);
     const [autoGfrValue, setAutoGfrValue] = useState(null);
     const [formulaFilter, setFormulaFilter] = useState('all');
@@ -219,7 +220,8 @@ function App() {
             formulaUsed: `${calculationDetails.formulaUsed} | ${calculationDetails.amputation}`,
             prescribedDose: doseText,
             userName: user.name || user.username,
-            gender: patient.gender
+            gender: patient.gender,
+            age: patient.age
         };
 
         try {
@@ -239,13 +241,12 @@ function App() {
     };
 
     const handlePatientCheckIn = () => {
-        if (!patient.hn || !patient.height || !patient.weight || !patient.age) {
+        if (!patient.hn || !patient.height || !patient.weight) {
             showNotification("กรุณากรอกข้อมูลที่จำเป็นให้ครบถ้วน", "error");
             return;
         }
         const h = parseFloat(patient.height);
         const w = parseFloat(patient.weight);
-        const age = parseFloat(patient.age);
         if (isNaN(h) || h < 30 || h > 250) {
             showNotification("ค่าส่วนสูงผิดปกติ! โปรดตรวจสอบข้อมูลอีกครั้ง (30 - 250 cm)", "error");
             return;
@@ -254,9 +255,12 @@ function App() {
             showNotification("ค่าน้ำหนักผิดปกติ! โปรดตรวจสอบข้อมูลอีกครั้ง (2 - 300 kg)", "error");
             return;
         }
-        if (isNaN(age) || age < 1 || age > 120) {
-            showNotification("ค่าอายุผิดปกติ! โปรดตรวจสอบข้อมูลอีกครั้ง (1 - 120 ปี)", "error");
-            return;
+        if (patient.age) {
+            const age = parseFloat(patient.age);
+            if (isNaN(age) || age < 1 || age > 120) {
+                showNotification("ค่าอายุผิดปกติ! โปรดตรวจสอบข้อมูลอีกครั้ง (1 - 120 ปี)", "error");
+                return;
+            }
         }
         setStep('workspace');
     };
@@ -453,12 +457,22 @@ function App() {
                     <div className="flex flex-col">
                         <span className={`text-xs font-black uppercase tracking-widest block mb-1 ${theme === 'dark' ? 'text-sky-400' : 'text-sky-600'}`}>บัญชีผู้ใช้</span>
                         <p className={`text-2xl font-black leading-tight ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>{user.name || user.username}</p>
-                        <button
-                            onClick={handleLogout}
-                            className="mt-1.5 flex items-center gap-1.5 text-xs font-black text-red-500 hover:text-red-400 transition-colors uppercase tracking-widest text-left cursor-pointer"
-                        >
-                            <LogOut size={14} /> ออกจากระบบ (Logout)
-                        </button>
+                        <div className="flex items-center gap-3 mt-1.5 flex-wrap">
+                            <button
+                                onClick={handleLogout}
+                                className="flex items-center gap-1.5 text-xs font-black text-red-500 hover:text-red-400 transition-colors uppercase tracking-widest text-left cursor-pointer whitespace-nowrap"
+                            >
+                                <LogOut size={14} /> ออกจากระบบ (Logout)
+                            </button>
+                            {user.role?.toUpperCase() === 'ADMIN' && step !== 'admin-users' && (
+                                <button
+                                    onClick={() => setStep('admin-users')}
+                                    className="flex items-center gap-1.5 text-xs font-black text-sky-500 hover:text-sky-400 transition-colors uppercase tracking-widest text-left cursor-pointer border-l border-slate-700/50 pl-3 whitespace-nowrap"
+                                >
+                                    <Settings size={14} /> จัดการผู้ใช้ (Admin)
+                                </button>
+                            )}
+                        </div>
                     </div>
                 </div>
             )}
@@ -494,7 +508,8 @@ function App() {
                             <div className="grid grid-cols-3 gap-4">
                                 <input type="number" placeholder="ส่วนสูง (cm)" className="form-control" onChange={e => setPatient({ ...patient, height: e.target.value })} />
                                 <input type="number" placeholder="น้ำหนัก (kg)" className="form-control" onChange={e => setPatient({ ...patient, weight: e.target.value })} />
-                                <select className="form-control" value={patient.gender || 'male'} onChange={e => setPatient({ ...patient, gender: e.target.value })}>
+                                <select className="form-control" value={patient.gender} onChange={e => setPatient({ ...patient, gender: e.target.value })}>
+                                    <option value="">เลือกเพศ (Select Gender)</option>
                                     <option value="male">ชาย (Male)</option>
                                     <option value="female">หญิง (Female)</option>
                                 </select>
@@ -502,13 +517,21 @@ function App() {
                             <button onClick={handlePatientCheckIn} className="w-full btn-primary">เข้าสู่ระบบคำนวณ ➔</button>
                         </div>
                     </div>
+                ) : step === 'admin-users' ? (
+                    <AdminUsers
+                        currentUser={user}
+                        setCurrentUser={setUser}
+                        onBack={() => setStep('workspace')}
+                        showNotification={showNotification}
+                        theme={theme}
+                    />
                 ) : (
                     <div className="animate-row-in space-y-6">
                         {/* Medical Record View */}
                         <div className="w-full premium-card p-5 flex justify-between items-center no-print">
                             <div>
                                 <h2 className="text-xl font-black">{patient.name || 'ไม่ระบุชื่อ'} ({patient.hn})</h2>
-                                <p className="text-slate-400">H: {patient.height} cm | W: {patient.weight} kg | อายุ: {patient.age} ปี | เพศ: {patient.gender === 'female' ? 'หญิง (Female)' : 'ชาย (Male)'}</p>
+                                <p className="text-slate-400">H: {patient.height} cm | W: {patient.weight} kg | อายุ: {patient.age ? `${patient.age} ปี` : '-'} | เพศ: {patient.gender === 'female' ? 'หญิง (Female)' : patient.gender === 'male' ? 'ชาย (Male)' : '-'}</p>
                             </div>
                             <button onClick={() => setStep('login')} className="bg-sky-600/10 text-sky-500 hover:bg-sky-600/20 px-4 py-2 rounded-lg border border-sky-500/30 transition-all font-bold">เปลี่ยนเคสผู้ป่วย</button>
                         </div>
@@ -824,7 +847,7 @@ function App() {
                                                             <input
                                                                 type="text"
                                                                 readOnly
-                                                                value={patient.gender === 'female' ? 'หญิง (Female)' : 'ชาย (Male)'}
+                                                                value={patient.gender === 'female' ? 'หญิง (Female)' : patient.gender === 'male' ? 'ชาย (Male)' : '-'}
                                                                 className="form-control text-sm opacity-80"
                                                                 style={{ backgroundColor: 'rgba(0, 0, 0, 0.1)' }}
                                                             />
@@ -1029,6 +1052,7 @@ function App() {
                                             {renderTableHeader('HN', 'w-[10%] whitespace-nowrap')}
                                             {renderTableHeader('ชื่อผู้ป่วย', 'w-[18%] whitespace-nowrap')}
                                             {renderTableHeader('เพศ', 'w-[8%] whitespace-nowrap', 'justify-center')}
+                                            {renderTableHeader('อายุ', 'w-[8%] whitespace-nowrap', 'justify-center')}
                                             {renderTableHeader('BSA', 'w-[8%] whitespace-nowrap', 'justify-center')}
                                             {renderTableHeader('สูตรการคำนวณ', 'w-[18%] whitespace-nowrap')}
                                             {renderTableHeader('Dose', 'w-[12%] whitespace-nowrap', 'justify-end')}
@@ -1045,6 +1069,9 @@ function App() {
                                                     <td className="p-4 text-center font-bold whitespace-nowrap gender-text-highlight">
                                                         {log.gender === 'female' ? 'หญิง' : log.gender === 'male' ? 'ชาย' : '-'}
                                                     </td>
+                                                    <td className="p-4 text-center font-bold whitespace-nowrap">
+                                                        {log.age ? `${log.age} ปี` : '-'}
+                                                    </td>
                                                     <td className="p-4 text-center text-emerald-500 font-bold whitespace-nowrap">{log.calculated_bsa}</td>
                                                     <td className="p-4 text-slate-400 font-bold uppercase leading-snug">{log.formula_used}</td>
                                                     <td className="p-4 text-right text-amber-500 font-black whitespace-nowrap">{log.prescribed_dose}</td>
@@ -1053,7 +1080,7 @@ function App() {
                                             ))
                                         ) : (
                                             <tr>
-                                                <td colSpan="8" className="p-8 text-center text-slate-500 font-bold italic">
+                                                <td colSpan="9" className="p-8 text-center text-slate-500 font-bold italic">
                                                     ไม่พบประวัติการคำนวณที่ตรงกับการค้นหา
                                                 </td>
                                             </tr>
