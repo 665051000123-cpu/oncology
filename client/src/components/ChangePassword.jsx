@@ -137,9 +137,8 @@ const ChangePassword = ({ user, onPasswordChanged, onLogout }) => {
                     </button>
                     <button
                         type="submit"
-                        className={`w-2/3 py-3 px-4 rounded-xl bg-gradient-to-r from-amber-600 to-orange-500 hover:from-amber-500 hover:to-orange-400 text-white text-sm font-black transition-all active:scale-95 shadow-md shadow-orange-500/10 cursor-pointer flex items-center justify-center gap-2 ${
-                            loading ? 'opacity-70 cursor-not-allowed' : ''
-                        }`}
+                        className={`w-2/3 py-3 px-4 rounded-xl bg-gradient-to-r from-amber-600 to-orange-500 hover:from-amber-500 hover:to-orange-400 text-white text-sm font-black transition-all active:scale-95 shadow-md shadow-orange-500/10 cursor-pointer flex items-center justify-center gap-2 ${loading ? 'opacity-70 cursor-not-allowed' : ''
+                            }`}
                         disabled={loading}
                     >
                         {loading ? 'กำลังบันทึก...' : 'บันทึกรหัสผ่านใหม่'}
