@@ -334,6 +334,23 @@ app.get('/api/logs', (expressAppReq, expressAppRes) => {
     });
 });
 
+// Activity logs endpoint (admin‑only)
+app.get('/api/admin/activities', requireAdmin, (req, res) => {
+    const query = `SELECT id, timestamp, employee_id, username, action_type, details FROM activity_logs ORDER BY id DESC`;
+    db.query(query, (err, results) => {
+        if (err) {
+            console.error('❌ Database fetch error Details:', {
+                code: err.code,
+                errno: err.errno,
+                sqlState: err.sqlState,
+                message: err.message
+            });
+            return res.status(500).json({ success: false, message: 'Database Fetch Error: ' + err.message });
+        }
+        res.json({ success: true, activities: results });
+    });
+});
+
 // 👥 Admin User Management APIs
 app.get('/api/admin/users', requireAdmin, (req, res) => {
     const query = `SELECT id, username, employee_id, role FROM login ORDER BY id DESC`;

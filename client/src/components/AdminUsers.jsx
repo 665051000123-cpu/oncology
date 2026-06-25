@@ -5,11 +5,14 @@ import axios from 'axios';
 const API_BASE = '/api';
 
 const AdminUsers = ({ currentUser, setCurrentUser, onBack, showNotification, theme }) => {
-    const [activeTab, setActiveTab] = useState('users'); // 'users' or 'logs'
+    const [activeTab, setActiveTab] = useState('users'); // 'users' | 'logs' | 'activities'
     const [users, setUsers] = useState([]);
     const [logs, setLogs] = useState([]);
     const [loading, setLoading] = useState(false);
     const [logsLoading, setLogsLoading] = useState(false);
+    const [activities, setActivities] = useState([]);
+    const [activitiesLoading, setActivitiesLoading] = useState(false);
+    const [activitySearchQuery, setActivitySearchQuery] = useState('');
     const [logSearchQuery, setLogSearchQuery] = useState('');
     const isDark = theme === 'dark';
 
@@ -37,8 +40,10 @@ const AdminUsers = ({ currentUser, setCurrentUser, onBack, showNotification, the
     useEffect(() => {
         if (activeTab === 'users') {
             fetchUsers();
-        } else {
+        } else if (activeTab === 'logs') {
             fetchLogs();
+        } else if (activeTab === 'activities') {
+            fetchActivities();
         }
     }, [activeTab]);
 
@@ -73,6 +78,23 @@ const AdminUsers = ({ currentUser, setCurrentUser, onBack, showNotification, the
             showNotification(`ไม่สามารถดึงข้อมูลประวัติการคำนวณได้: ${err.response?.data?.message || err.message}`, "error");
         } finally {
             setLogsLoading(false);
+        }
+    };
+
+    const fetchActivities = async () => {
+        setActivitiesLoading(true);
+        try {
+            const res = await axios.get(`${API_BASE}/admin/activities`, {
+                headers: { 'x-employee-id': currentUser.employee_id }
+            });
+            if (res.data.success) {
+                setActivities(res.data.activities);
+            }
+        } catch (err) {
+            console.error("Fetch activities failed:", err);
+            showNotification(`ไม่สามารถดึงข้อมูลบันทึกกิจกรรมได้: ${err.response?.data?.message || err.message}`, "error");
+        } finally {
+            setActivitiesLoading(false);
         }
     };
 
@@ -200,7 +222,17 @@ const AdminUsers = ({ currentUser, setCurrentUser, onBack, showNotification, the
             (log.formula_used && log.formula_used.toLowerCase().includes(q))
         );
     }, [logs, logSearchQuery]);
-
+    // Filter activities based on search query
+    const filteredActivities = useMemo(() => {
+        if (!activitySearchQuery.trim()) return activities;
+        const q = activitySearchQuery.toLowerCase();
+        return activities.filter(act =>
+            (act.employee_id && act.employee_id.toLowerCase().includes(q)) ||
+            (act.username && act.username.toLowerCase().includes(q)) ||
+            (act.action_type && act.action_type.toLowerCase().includes(q)) ||
+            (act.details && act.details.toLowerCase().includes(q))
+        );
+    }, [activities, activitySearchQuery]);
     return (
         <div className="animate-row-in space-y-6">
             {/* Header section */}
@@ -249,6 +281,19 @@ const AdminUsers = ({ currentUser, setCurrentUser, onBack, showNotification, the
                         }`}
                 >
                     <History size={16} /> ประวัติการคำนวณ (Calculation Logs)
+                </button>
+                <button
+                    onClick={() => setActiveTab('activities')}
+                    className={`py-3 px-6 rounded-2xl font-black text-sm flex items-center gap-2.5 transition-all active:scale-95 border cursor-pointer ${activeTab === 'activities'
+                            ? (isDark
+                                ? 'bg-sky-600 border-sky-400 text-white shadow-lg'
+                                : 'bg-sky-600 border-sky-500 text-white shadow-md')
+                            : (isDark
+                                ? 'bg-slate-800/60 border-slate-700 text-slate-400 hover:text-white'
+                                : 'bg-white border-slate-200 text-slate-600 hover:text-slate-900 shadow-sm')
+                        }`}
+                >
+                    <FileText size={16} /> บันทึกกิจกรรมระบบ (Activity Logs)
                 </button>
             </div>
 
@@ -422,7 +467,7 @@ const AdminUsers = ({ currentUser, setCurrentUser, onBack, showNotification, the
                         </div>
                     </div>
                 </div>
-            ) : (
+            ) : activeTab === 'logs' ? (
                 /* Calculation Logs View */
                 <div className="premium-card p-6 flex flex-col">
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-5">
@@ -506,7 +551,56 @@ const AdminUsers = ({ currentUser, setCurrentUser, onBack, showNotification, the
                         </table>
                     </div>
                 </div>
-            )}
+            ) : activeTab === 'activities' ? (
+    <div className="premium-card p-6 flex flex-col">
+        <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-5">
+            <h3 className="font-black uppercase tracking-wider text-sm flex items-center gap-2 opacity-90">
+                <FileText size={18} className="text-sky-500 dark:text-sky-400" />
+                บันทึกกิจกรรมระบบ (Activity Logs)
+            </h3>
+            <div className="relative w-full md:w-[320px]">
+                <input
+                    type="text"
+                    placeholder="ค้นหากิจกรรม..."
+                    value={activitySearchQuery}
+                    onChange={e => setActivitySearchQuery(e.target.value)}
+                    className="form-control py-2.5 pl-10 pr-4 text-sm rounded-xl font-bold"
+                />
+                <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+            </div>
+        </div>
+        <div className="overflow-x-auto rounded-xl border border-slate-700/20 shadow-inner scrollable-table-container">
+            <table className="w-full text-left text-sm">
+                <thead className="sticky top-0 z-10 font-bold" style={{ backgroundColor: 'var(--table-header-bg)' }}>
+                    <tr className="bg-sky-600/10 border-b border-slate-700/20 opacity-60">
+                        <th className="p-4 font-black uppercase tracking-wider text-[11px] w-[15%]">วันที่บันทึก</th>
+                        <th className="p-4 font-black uppercase tracking-wider text-[11px] w-[15%]">ผู้ใช้</th>
+                        <th className="p-4 font-black uppercase tracking-wider text-[11px] w-[50%]">กิจกรรม</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    {activitiesLoading ? (
+                        <tr>
+                            <td colSpan="3" className="p-8 text-center text-slate-500 font-bold italic">กำลังโหลดกิจกรรม...</td>
+                        </tr>
+                    ) : activities.length > 0 ? (
+                        activities.map(act => (
+                            <tr key={act.id} className="border-b border-slate-700/10 hover:bg-sky-600/5 transition-colors">
+                                <td className="p-4 font-mono opacity-70">{act.timestamp}</td>
+                                <td className="p-4 font-bold">{act.username}</td>
+                                <td className="p-4">{act.action_type}: {act.details}</td>
+                            </tr>
+                        ))
+                    ) : (
+                        <tr>
+                            <td colSpan="3" className="p-8 text-center text-slate-500 font-bold italic">ไม่พบกิจกรรมในระบบ</td>
+                        </tr>
+                    )}
+                </tbody>
+            </table>
+        </div>
+    </div>
+) : null}
 
             {/* Edit User Modal */}
             {editingUser && (
