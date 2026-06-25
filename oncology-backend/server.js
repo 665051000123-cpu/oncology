@@ -64,10 +64,26 @@ db.query("SHOW TABLES LIKE 'dosage_logs'", (tableErr, results) => {
                     )`;
                 db.query(createActTable, (err) => {
                     if (err) console.error('❌ Table Creation Failed (activity_logs):', err);
-                    else console.log('✅ Table "activity_logs" created.');
+                    else {
+                        console.log('✅ Table "activity_logs" created.');
+                        checkMustChangePasswordColumn();
+                    }
                 });
             } else {
                 console.log('✅ Table "activity_logs" is ready.');
+                checkMustChangePasswordColumn();
+            }
+        });
+    };
+
+    const checkMustChangePasswordColumn = () => {
+        db.query("SHOW COLUMNS FROM login LIKE 'must_change_password'", (colErr, colResults) => {
+            if (!colErr && colResults.length === 0) {
+                console.log('🔄 Migrating: Adding "must_change_password" column to login...');
+                db.query("ALTER TABLE login ADD COLUMN must_change_password TINYINT DEFAULT 1", (alterErr) => {
+                    if (alterErr) console.error('❌ Migration Failed (Adding must_change_password):', alterErr);
+                    else console.log('✅ Migration: "must_change_password" column added to login.');
+                });
             }
         });
     };
@@ -226,7 +242,7 @@ const logActivity = (employeeId, actionType, details) => {
 // 🔑 API Route 0: Login Authentication
 app.post('/api/login', (expressAppReq, expressAppRes) => {
     const { employee_id, password } = expressAppReq.body;
-    const query = `SELECT id, username, employee_id, role FROM login WHERE employee_id = ? AND password = ?`;
+    const query = `SELECT id, username, employee_id, role, must_change_password FROM login WHERE employee_id = ? AND password = ?`;
 
     db.query(query, [employee_id, password], (err, results) => {
         if (err) {
@@ -241,7 +257,7 @@ app.post('/api/login', (expressAppReq, expressAppRes) => {
         if (results.length > 0) {
             // บันทึกกิจกรรมการเข้าสู่ระบบ
             logActivity(employee_id, 'LOGIN', 'เข้าสู่ระบบสำเร็จ');
-            // Include role in response for front‑end to know if user is admin
+            // Include role and must_change_password in response
             expressAppRes.json({ success: true, user: results[0] });
         } else {
             expressAppRes.status(401).json({ success: false, message: 'รหัสพนักงานหรือรหัสผ่านไม่ถูกต้อง' });
@@ -258,6 +274,26 @@ app.post('/api/logout', (req, res) => {
     } else {
         res.status(400).json({ success: false, message: 'Missing employee_id' });
     }
+});
+
+// 🔑 API Route 0.6: Change Password (to clear first-time change flag)
+app.post('/api/change-password', (req, res) => {
+    const { employee_id, new_password } = req.body;
+    if (!employee_id || !new_password) {
+        return res.status(400).json({ success: false, message: 'กรุณากรอกข้อมูลให้ครบถ้วน' });
+    }
+    if (new_password.length < 6) {
+        return res.status(400).json({ success: false, message: 'รหัสผ่านใหม่ต้องมีความยาวอย่างน้อย 6 ตัวอักษร' });
+    }
+
+    const updateQuery = `UPDATE login SET password = ?, must_change_password = 0 WHERE employee_id = ?`;
+    db.query(updateQuery, [new_password, employee_id], (updateErr) => {
+        if (updateErr) {
+            return res.status(500).json({ success: false, message: 'Database update failed: ' + updateErr.message });
+        }
+        logActivity(employee_id, 'UPDATE_PASSWORD', 'เปลี่ยนรหัสผ่านครั้งแรกเรียบร้อยแล้ว');
+        res.json({ success: true, message: 'เปลี่ยนรหัสผ่านสำเร็จ' });
+    });
 });
 
 // 📥 API Route 1: รับข้อมูลคำนวณจากหน้าเว็บเข้าไปเก็บใน MySQL
@@ -370,7 +406,7 @@ app.get('/api/admin/logins', requireAdmin, (req, res) => {
 
 // 📝 Modification history endpoint (admin‑only) — เฉพาะประวัติการแก้ไขข้อมูล (ไม่รวม LOGIN)
 app.get('/api/admin/activities', requireAdmin, (req, res) => {
-    const query = `SELECT id, timestamp, employee_id, username, action_type, details FROM activity_logs WHERE action_type != 'LOGIN' ORDER BY id DESC`;
+    const query = `SELECT id, timestamp, employee_id, username, action_type, details FROM activity_logs WHERE action_type NOT IN ('LOGIN', 'LOGOUT') ORDER BY id DESC`;
     db.query(query, (err, results) => {
         if (err) {
             console.error('❌ Database fetch error (activities):', {
@@ -385,9 +421,113 @@ app.get('/api/admin/activities', requireAdmin, (req, res) => {
     });
 });
 
+// Helper for promise-based queries
+const queryAsync = (sql, params = []) => {
+    return new Promise((resolve, reject) => {
+        db.query(sql, params, (err, results) => {
+            if (err) reject(err);
+            else resolve(results);
+        });
+    });
+};
+
+// 📊 Admin Statistics Dashboard API
+app.get('/api/admin/stats', requireAdmin, async (req, res) => {
+    try {
+        const now = new Date();
+        const day = String(now.getDate()).padStart(2, '0');
+        const month = String(now.getMonth() + 1).padStart(2, '0');
+        const year = now.getFullYear() + 543;
+        const todayPrefix = `${day}/${month}/${year}%`;
+
+        const [
+            totalLogsResult,
+            totalUsersResult,
+            totalPatientsResult,
+            todayLogsResult,
+            formulaStatsResult,
+            leaderboardResult
+        ] = await Promise.all([
+            queryAsync("SELECT COUNT(*) AS count FROM dosage_logs"),
+            queryAsync("SELECT COUNT(*) AS count FROM login"),
+            queryAsync("SELECT COUNT(DISTINCT hn) AS count FROM dosage_logs"),
+            queryAsync("SELECT COUNT(*) AS count FROM dosage_logs WHERE timestamp LIKE ?", [todayPrefix]),
+            queryAsync("SELECT formula_used, prescribed_dose, COUNT(*) AS count FROM dosage_logs GROUP BY formula_used, prescribed_dose"),
+            queryAsync("SELECT user_name, COUNT(*) AS count FROM dosage_logs WHERE user_name IS NOT NULL AND user_name != '' GROUP BY user_name ORDER BY count DESC LIMIT 5")
+        ]);
+
+        const totalCalculations = totalLogsResult[0]?.count || 0;
+        const totalUsers = totalUsersResult[0]?.count || 0;
+        const totalPatients = totalPatientsResult[0]?.count || 0;
+        const todayCalculations = todayLogsResult[0]?.count || 0;
+
+        const drugCounts = {
+            'Vincristine': 0,
+            'Carboplatin': 0,
+            'Bleomycin': 0,
+            'CV Regimen': 0,
+            'BC Regimen': 0,
+            'Other': 0
+        };
+
+        formulaStatsResult.forEach(row => {
+            const formula = (row.formula_used || '').trim().toUpperCase();
+            const dose = (row.prescribed_dose || '').trim().toUpperCase();
+
+            if (formula.includes('CV')) {
+                drugCounts['CV Regimen'] += row.count;
+            } else if (formula.includes('BC')) {
+                drugCounts['BC Regimen'] += row.count;
+            } else if (dose.includes('+')) {
+                if (dose.includes('UNITS')) {
+                    drugCounts['BC Regimen'] += row.count;
+                } else {
+                    drugCounts['CV Regimen'] += row.count;
+                }
+            } else if (dose.includes('UNITS')) {
+                drugCounts['Bleomycin'] += row.count;
+            } else if (dose.includes('MG')) {
+                const numericDose = parseFloat(dose);
+                if (!isNaN(numericDose)) {
+                    if (numericDose <= 3.0) {
+                        drugCounts['Vincristine'] += row.count;
+                    } else {
+                        drugCounts['Carboplatin'] += row.count;
+                    }
+                } else {
+                    drugCounts['Other'] += row.count;
+                }
+            } else {
+                drugCounts['Other'] += row.count;
+            }
+        });
+
+        const leaderboard = leaderboardResult.map((row, index) => ({
+            rank: index + 1,
+            name: row.user_name,
+            count: row.count
+        }));
+
+        res.json({
+            success: true,
+            stats: {
+                totalCalculations,
+                totalUsers,
+                totalPatients,
+                todayCalculations,
+                drugCounts,
+                leaderboard
+            }
+        });
+    } catch (error) {
+        console.error('❌ Error compiling stats:', error);
+        res.status(500).json({ success: false, message: 'Database query failed: ' + error.message });
+    }
+});
+
 // 👥 Admin User Management APIs
 app.get('/api/admin/users', requireAdmin, (req, res) => {
-    const query = `SELECT id, username, employee_id, role FROM login ORDER BY id DESC`;
+    const query = `SELECT id, username, employee_id, role, must_change_password FROM login ORDER BY id DESC`;
     db.query(query, (err, results) => {
         if (err) {
             console.error('❌ Fetch users error:', err);
@@ -403,7 +543,10 @@ app.post('/api/admin/users', requireAdmin, (req, res) => {
     if (!username || !employee_id || !password || !role) {
         return res.status(400).json({ success: false, message: 'กรุณากรอกข้อมูลให้ครบถ้วน' });
     }
-    const query = `INSERT INTO login (username, employee_id, password, role) VALUES (?, ?, ?, ?)`;
+    if (password.length < 6) {
+        return res.status(400).json({ success: false, message: 'รหัสผ่านต้องมีความยาวอย่างน้อย 6 ตัวอักษร' });
+    }
+    const query = `INSERT INTO login (username, employee_id, password, role, must_change_password) VALUES (?, ?, ?, ?, 1)`;
     db.query(query, [username, employee_id, password, role], (err, result) => {
         if (err) {
             console.error('❌ Create user error:', err);
@@ -425,10 +568,13 @@ app.put('/api/admin/users/:id', requireAdmin, (req, res) => {
     if (!username || !employee_id || !role) {
         return res.status(400).json({ success: false, message: 'กรุณากรอกข้อมูลให้ครบถ้วน' });
     }
+    if (password && password.length < 6) {
+        return res.status(400).json({ success: false, message: 'รหัสผ่านใหม่ต้องมีความยาวอย่างน้อย 6 ตัวอักษร' });
+    }
     
     let query, params;
     if (password) {
-        query = `UPDATE login SET username = ?, employee_id = ?, password = ?, role = ? WHERE id = ?`;
+        query = `UPDATE login SET username = ?, employee_id = ?, password = ?, role = ?, must_change_password = 1 WHERE id = ?`;
         params = [username, employee_id, password, role, userId];
     } else {
         query = `UPDATE login SET username = ?, employee_id = ?, role = ? WHERE id = ?`;

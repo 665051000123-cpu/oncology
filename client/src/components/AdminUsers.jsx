@@ -1,20 +1,84 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { ArrowLeft, UserPlus, Edit2, Trash2, Shield, User, Lock, Save, X, Eye, EyeOff, Search, FileText, LogIn, PenLine } from 'lucide-react';
+import { ArrowLeft, UserPlus, Edit2, Trash2, Shield, User, Lock, Save, X, Eye, EyeOff, Search, FileText, LogIn, PenLine, LayoutDashboard, TrendingUp, Users, Activity, Filter } from 'lucide-react';
 import axios from 'axios';
 
 const API_BASE = '/api';
 
 const AdminUsers = ({ currentUser, setCurrentUser, onBack, showNotification, theme }) => {
-    const [activeTab, setActiveTab] = useState('users'); // 'users' | 'logs' | 'activities'
+    const [activeTab, setActiveTab] = useState('dashboard'); // 'dashboard' | 'users' | 'logs' | 'activities'
     const [users, setUsers] = useState([]);
     const [logs, setLogs] = useState([]);
     const [loading, setLoading] = useState(false);
     const [logsLoading, setLogsLoading] = useState(false);
     const [activities, setActivities] = useState([]);
     const [activitiesLoading, setActivitiesLoading] = useState(false);
+    const [stats, setStats] = useState(null);
+    const [statsLoading, setStatsLoading] = useState(false);
     const [activitySearchQuery, setActivitySearchQuery] = useState('');
     const [logSearchQuery, setLogSearchQuery] = useState('');
+    const [deleteConfirmUser, setDeleteConfirmUser] = useState(null);
+
+    // Filter states for Login History (logs)
+    const [showLogFilterPanel, setShowLogFilterPanel] = useState(false);
+    const [logStartDateFilter, setLogStartDateFilter] = useState('');
+    const [logEndDateFilter, setLogEndDateFilter] = useState('');
+    const [logRoleFilter, setLogRoleFilter] = useState('all');
+    const [logActionFilter, setLogActionFilter] = useState('all');
+
+    // Filter states for Modification Logs (activities)
+    const [showActivityFilterPanel, setShowActivityFilterPanel] = useState(false);
+    const [activityStartDateFilter, setActivityStartDateFilter] = useState('');
+    const [activityEndDateFilter, setActivityEndDateFilter] = useState('');
+    const [activityActionFilter, setActivityActionFilter] = useState('all');
+
     const isDark = theme === 'dark';
+
+    // Helper functions for filtering
+    const parseFilterDate = (dateStr) => {
+        if (!dateStr) return null;
+        const parts = dateStr.split('/');
+        if (parts.length < 3) return null;
+        let day = parseInt(parts[0], 10);
+        let month = parseInt(parts[1], 10) - 1; // 0-indexed
+        let year = parseInt(parts[2], 10);
+        if (year > 2400) {
+            year -= 543;
+        }
+        const d = new Date(year, month, day);
+        return isNaN(d.getTime()) ? null : d;
+    };
+
+    const handleDateInputChange = (val, currentVal, setter) => {
+        let cleaned = val.replace(/[^0-9/]/g, '');
+        if (val.length > currentVal.length) {
+            if (cleaned.length === 2 && !cleaned.includes('/')) {
+                cleaned = cleaned + '/';
+            } else if (cleaned.length === 5 && cleaned.split('/').length === 2) {
+                cleaned = cleaned + '/';
+            }
+        }
+        if (cleaned.length <= 10) {
+            setter(cleaned);
+        }
+    };
+
+    const parseThaiTimestamp = (timestampStr) => {
+        if (!timestampStr) return null;
+        const parts = timestampStr.split(' ');
+        if (parts.length === 0) return null;
+        const dateParts = parts[0].split('/');
+        if (dateParts.length < 3) return null;
+
+        let day = parseInt(dateParts[0], 10);
+        let month = parseInt(dateParts[1], 10) - 1; // 0-indexed
+        let year = parseInt(dateParts[2], 10);
+
+        if (year > 2400) {
+            year -= 543;
+        }
+
+        return new Date(year, month, day);
+    };
 
     // Form states for creating user
     const [createForm, setCreateForm] = useState({
@@ -38,7 +102,9 @@ const AdminUsers = ({ currentUser, setCurrentUser, onBack, showNotification, the
     const [showEditPassword, setShowEditPassword] = useState(false);
 
     useEffect(() => {
-        if (activeTab === 'users') {
+        if (activeTab === 'dashboard') {
+            fetchStats();
+        } else if (activeTab === 'users') {
             fetchUsers();
         } else if (activeTab === 'logs') {
             fetchLogs();
@@ -46,6 +112,23 @@ const AdminUsers = ({ currentUser, setCurrentUser, onBack, showNotification, the
             fetchActivities();
         }
     }, [activeTab]);
+
+    const fetchStats = async () => {
+        setStatsLoading(true);
+        try {
+            const res = await axios.get(`${API_BASE}/admin/stats`, {
+                headers: { 'x-employee-id': currentUser.employee_id }
+            });
+            if (res.data.success) {
+                setStats(res.data.stats);
+            }
+        } catch (err) {
+            console.error("Fetch stats failed:", err);
+            showNotification(`ไม่สามารถดึงข้อมูลสถิติได้: ${err.response?.data?.message || err.message}`, "error");
+        } finally {
+            setStatsLoading(false);
+        }
+    };
 
     const fetchUsers = async () => {
         setLoading(true);
@@ -105,6 +188,10 @@ const AdminUsers = ({ currentUser, setCurrentUser, onBack, showNotification, the
             showNotification("กรุณากรอกข้อมูลผู้ใช้ให้ครบถ้วน", "error");
             return;
         }
+        if (password.length < 6) {
+            showNotification("รหัสผ่านต้องมีความยาวอย่างน้อย 6 ตัวอักษร", "error");
+            return;
+        }
 
         try {
             const res = await axios.post(`${API_BASE}/admin/users`, createForm, {
@@ -145,6 +232,10 @@ const AdminUsers = ({ currentUser, setCurrentUser, onBack, showNotification, the
             showNotification("กรุณากรอกข้อมูลที่จำเป็นให้ครบถ้วน", "error");
             return;
         }
+        if (editForm.password && editForm.password.length < 6) {
+            showNotification("รหัสผ่านใหม่ต้องมีความยาวอย่างน้อย 6 ตัวอักษร", "error");
+            return;
+        }
 
         try {
             const res = await axios.put(`${API_BASE}/admin/users/${editingUser.id}`, editForm, {
@@ -173,48 +264,113 @@ const AdminUsers = ({ currentUser, setCurrentUser, onBack, showNotification, the
         }
     };
 
-    const handleDeleteClick = async (userId, employeeId, userName) => {
-        if (employeeId === currentUser.employee_id) {
+    const handleDeleteClick = (user) => {
+        if (user.employee_id === currentUser.employee_id) {
             showNotification("ไม่สามารถลบบัญชีของตัวเองได้", "error");
             return;
         }
+        setDeleteConfirmUser(user);
+    };
 
-        if (window.confirm(`คุณแน่ใจหรือไม่ที่จะลบผู้ใช้ "${userName}" (รหัสพนักงาน: ${employeeId}) ?`)) {
-            try {
-                const res = await axios.delete(`${API_BASE}/admin/users/${userId}`, {
-                    headers: { 'x-employee-id': currentUser.employee_id }
-                });
-                if (res.data.success) {
-                    showNotification("ลบผู้ใช้งานสำเร็จ", "success");
-                    fetchUsers();
-                }
-            } catch (err) {
-                console.error("Delete user failed:", err);
-                showNotification(`ไม่สามารถลบผู้ใช้ได้: ${err.response?.data?.message || err.message}`, "error");
+    const handleDeleteConfirm = async (userId, employeeId) => {
+        try {
+            const res = await axios.delete(`${API_BASE}/admin/users/${userId}`, {
+                headers: { 'x-employee-id': currentUser.employee_id }
+            });
+            if (res.data.success) {
+                showNotification("ลบผู้ใช้งานสำเร็จ", "success");
+                fetchUsers();
             }
+        } catch (err) {
+            console.error("Delete user failed:", err);
+            showNotification(`ไม่สามารถลบผู้ใช้ได้: ${err.response?.data?.message || err.message}`, "error");
         }
     };
 
     const filteredLogs = useMemo(() => {
-        if (!logSearchQuery.trim()) return logs;
-        const q = logSearchQuery.toLowerCase();
-        return logs.filter(log =>
-            (log.employee_id && log.employee_id.toLowerCase().includes(q)) ||
-            (log.username && log.username.toLowerCase().includes(q)) ||
-            (log.role && log.role.toLowerCase().includes(q))
-        );
-    }, [logs, logSearchQuery]);
+        let result = logs;
+        if (logSearchQuery.trim()) {
+            const q = logSearchQuery.toLowerCase();
+            result = result.filter(log =>
+                (log.employee_id && log.employee_id.toLowerCase().includes(q)) ||
+                (log.username && log.username.toLowerCase().includes(q)) ||
+                (log.role && log.role.toLowerCase().includes(q))
+            );
+        }
+        if (logStartDateFilter) {
+            const start = parseFilterDate(logStartDateFilter);
+            if (start) {
+                start.setHours(0, 0, 0, 0);
+                result = result.filter(log => {
+                    const logDate = parseThaiTimestamp(log.timestamp);
+                    if (!logDate) return false;
+                    logDate.setHours(0, 0, 0, 0);
+                    return logDate >= start;
+                });
+            }
+        }
+        if (logEndDateFilter) {
+            const end = parseFilterDate(logEndDateFilter);
+            if (end) {
+                end.setHours(23, 59, 59, 999);
+                result = result.filter(log => {
+                    const logDate = parseThaiTimestamp(log.timestamp);
+                    if (!logDate) return false;
+                    logDate.setHours(23, 59, 59, 999);
+                    return logDate <= end;
+                });
+            }
+        }
+        if (logRoleFilter !== 'all') {
+            result = result.filter(log => log.role && log.role.toLowerCase() === logRoleFilter.toLowerCase());
+        }
+        if (logActionFilter !== 'all') {
+            result = result.filter(log => log.action_type && log.action_type.toUpperCase() === logActionFilter.toUpperCase());
+        }
+        return result;
+    }, [logs, logSearchQuery, logStartDateFilter, logEndDateFilter, logRoleFilter, logActionFilter]);
+
     // Filter activities based on search query
     const filteredActivities = useMemo(() => {
-        if (!activitySearchQuery.trim()) return activities;
-        const q = activitySearchQuery.toLowerCase();
-        return activities.filter(act =>
-            (act.employee_id && act.employee_id.toLowerCase().includes(q)) ||
-            (act.username && act.username.toLowerCase().includes(q)) ||
-            (act.action_type && act.action_type.toLowerCase().includes(q)) ||
-            (act.details && act.details.toLowerCase().includes(q))
-        );
-    }, [activities, activitySearchQuery]);
+        let result = activities;
+        if (activitySearchQuery.trim()) {
+            const q = activitySearchQuery.toLowerCase();
+            result = result.filter(act =>
+                (act.employee_id && act.employee_id.toLowerCase().includes(q)) ||
+                (act.username && act.username.toLowerCase().includes(q)) ||
+                (act.action_type && act.action_type.toLowerCase().includes(q)) ||
+                (act.details && act.details.toLowerCase().includes(q))
+            );
+        }
+        if (activityStartDateFilter) {
+            const start = parseFilterDate(activityStartDateFilter);
+            if (start) {
+                start.setHours(0, 0, 0, 0);
+                result = result.filter(act => {
+                    const actDate = parseThaiTimestamp(act.timestamp);
+                    if (!actDate) return false;
+                    actDate.setHours(0, 0, 0, 0);
+                    return actDate >= start;
+                });
+            }
+        }
+        if (activityEndDateFilter) {
+            const end = parseFilterDate(activityEndDateFilter);
+            if (end) {
+                end.setHours(23, 59, 59, 999);
+                result = result.filter(act => {
+                    const actDate = parseThaiTimestamp(act.timestamp);
+                    if (!actDate) return false;
+                    actDate.setHours(23, 59, 59, 999);
+                    return actDate <= end;
+                });
+            }
+        }
+        if (activityActionFilter !== 'all') {
+            result = result.filter(act => act.action_type && act.action_type.toUpperCase() === activityActionFilter.toUpperCase());
+        }
+        return result;
+    }, [activities, activitySearchQuery, activityStartDateFilter, activityEndDateFilter, activityActionFilter]);
     return (
         <div className="animate-row-in space-y-6">
             {/* Header section */}
@@ -238,6 +394,19 @@ const AdminUsers = ({ currentUser, setCurrentUser, onBack, showNotification, the
 
             {/* Tab Switched Header */}
             <div className="flex gap-3 mb-6 no-print">
+                <button
+                    onClick={() => setActiveTab('dashboard')}
+                    className={`py-3 px-6 rounded-2xl font-black text-sm flex items-center gap-2.5 transition-all active:scale-95 border cursor-pointer ${activeTab === 'dashboard'
+                            ? (isDark
+                                ? 'bg-sky-600 border-sky-400 text-white shadow-lg'
+                                : 'bg-sky-600 border-sky-500 text-white shadow-md')
+                            : (isDark
+                                ? 'bg-slate-800/60 border-slate-700 text-slate-400 hover:text-white'
+                                : 'bg-white border-slate-200 text-slate-600 hover:text-slate-900 shadow-sm')
+                        }`}
+                >
+                    <LayoutDashboard size={16} /> แผงควบคุมสถิติ (Dashboard)
+                </button>
                 <button
                     onClick={() => setActiveTab('users')}
                     className={`py-3 px-6 rounded-2xl font-black text-sm flex items-center gap-2.5 transition-all active:scale-95 border cursor-pointer ${activeTab === 'users'
@@ -279,7 +448,169 @@ const AdminUsers = ({ currentUser, setCurrentUser, onBack, showNotification, the
                 </button>
             </div>
 
-            {activeTab === 'users' ? (
+            {activeTab === 'dashboard' ? (
+                <div className="space-y-6">
+                    {/* Stats Metric Cards */}
+                    {statsLoading ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                            {[1, 2, 3, 4].map(i => (
+                                <div key={i} className="premium-card p-6 animate-pulse flex flex-col justify-between h-[120px]">
+                                    <div className="h-4 bg-slate-300 dark:bg-slate-700 rounded w-2/3"></div>
+                                    <div className="h-8 bg-slate-300 dark:bg-slate-700 rounded w-1/2 mt-4 font-black"></div>
+                                </div>
+                            ))}
+                        </div>
+                    ) : stats ? (
+                        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-6">
+                            {/* Card 1: Total Calculations */}
+                            <div className={`premium-card p-5 border-l-4 border-l-indigo-500 bg-gradient-to-br ${
+                                isDark ? 'from-indigo-500/10 to-purple-500/5 border-indigo-500/20' : 'from-indigo-50 to-white border-indigo-200'
+                            } flex justify-between items-center transition-all hover:translate-y-[-2px]`}>
+                                <div className="space-y-2">
+                                    <p className="text-xs font-black uppercase opacity-70 tracking-wider">จำนวนการใช้ยา</p>
+                                    <h3 className="text-3xl font-black tracking-tight">{stats.totalCalculations.toLocaleString()}</h3>
+                                </div>
+                                <div className={`p-3 rounded-2xl ${isDark ? 'bg-indigo-950/40 text-indigo-400' : 'bg-indigo-100 text-indigo-600'}`}>
+                                    <Activity size={24} />
+                                </div>
+                            </div>
+
+                            {/* Card 2: Registered Pharmacists */}
+                            <div className={`premium-card p-5 border-l-4 border-l-sky-500 bg-gradient-to-br ${
+                                isDark ? 'from-sky-500/10 to-teal-500/5 border-sky-500/20' : 'from-sky-50 to-white border-sky-200'
+                            } flex justify-between items-center transition-all hover:translate-y-[-2px]`}>
+                                <div className="space-y-2">
+                                    <p className="text-xs font-black uppercase opacity-70 tracking-wider">ผู้ใช้งานในระบบ</p>
+                                    <h3 className="text-3xl font-black tracking-tight">{stats.totalUsers.toLocaleString()}</h3>
+                                </div>
+                                <div className={`p-3 rounded-2xl ${isDark ? 'bg-sky-950/40 text-sky-400' : 'bg-sky-100 text-sky-600'}`}>
+                                    <Users size={24} />
+                                </div>
+                            </div>
+
+                            {/* Card 3: Unique Patients */}
+                            <div className={`premium-card p-5 border-l-4 border-l-teal-500 bg-gradient-to-br ${
+                                isDark ? 'from-teal-500/10 to-emerald-500/5 border-teal-500/20' : 'from-teal-50 to-white border-teal-200'
+                            } flex justify-between items-center transition-all hover:translate-y-[-2px]`}>
+                                <div className="space-y-2">
+                                    <p className="text-xs font-black uppercase opacity-70 tracking-wider">จำนวนผู้ป่วย (HN สะสม)</p>
+                                    <h3 className="text-3xl font-black tracking-tight">{stats.totalPatients.toLocaleString()}</h3>
+                                </div>
+                                <div className={`p-3 rounded-2xl ${isDark ? 'bg-teal-950/40 text-teal-400' : 'bg-teal-100 text-teal-600'}`}>
+                                    <User size={24} />
+                                </div>
+                            </div>
+
+                            {/* Card 4: Today's Calculations */}
+                            <div className={`premium-card p-5 border-l-4 border-l-amber-500 bg-gradient-to-br ${
+                                isDark ? 'from-amber-500/10 to-rose-500/5 border-amber-500/20' : 'from-amber-50 to-white border-amber-200'
+                            } flex justify-between items-center transition-all hover:translate-y-[-2px]`}>
+                                <div className="space-y-2">
+                                    <p className="text-xs font-black uppercase opacity-70 tracking-wider">จำนวนการใช้ยาในวันนี้</p>
+                                    <h3 className="text-3xl font-black tracking-tight">{stats.todayCalculations.toLocaleString()}</h3>
+                                </div>
+                                <div className={`p-3 rounded-2xl ${isDark ? 'bg-amber-950/40 text-amber-400' : 'bg-amber-100 text-amber-600'}`}>
+                                    <TrendingUp size={24} />
+                                </div>
+                            </div>
+                        </div>
+                    ) : (
+                        <div className="premium-card p-6 text-center text-slate-500 font-bold italic">
+                            ไม่สามารถโหลดข้อมูลสถิติได้
+                        </div>
+                    )}
+
+                    {/* Charts & Rankings */}
+                    {!statsLoading && stats && (
+                        <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
+                            {/* Drug Distribution */}
+                            <div className="lg:col-span-3 premium-card p-6">
+                                <h3 className="font-black mb-5 uppercase tracking-wider text-sm flex items-center gap-2 opacity-90">
+                                    <Activity size={18} className="text-sky-500 dark:text-sky-400" />
+                                    ประวัติจำนวนการใช้ยา
+                                </h3>
+                                <div className="space-y-5">
+                                    {(() => {
+                                        const drugCounts = stats.drugCounts || {};
+                                        const totalDrugSum = Object.values(drugCounts).reduce((a, b) => a + b, 0) || 1;
+                                        const drugColors = {
+                                            'Vincristine': 'from-purple-500 to-indigo-500',
+                                            'Carboplatin': 'from-sky-500 to-blue-500',
+                                            'Bleomycin': 'from-teal-500 to-emerald-500',
+                                            'CV Regimen': 'from-amber-500 to-orange-500',
+                                            'BC Regimen': 'from-rose-500 to-pink-500',
+                                            'Other': 'from-slate-400 to-slate-500'
+                                        };
+
+                                        return Object.entries(drugCounts).map(([drugName, count]) => {
+                                            const percent = totalDrugSum > 0 ? Math.round((count / totalDrugSum) * 100) : 0;
+                                            const colorClass = drugColors[drugName] || 'from-sky-500 to-indigo-500';
+                                            return (
+                                                <div key={drugName} className="space-y-2">
+                                                    <div className="flex justify-between items-center text-sm">
+                                                        <span className="font-black opacity-90">{drugName}</span>
+                                                        <span className="font-bold font-mono text-xs opacity-75">
+                                                            {count.toLocaleString()} ครั้ง ({percent}%)
+                                                        </span>
+                                                    </div>
+                                                    <div className="w-full h-3 bg-slate-100 dark:bg-slate-800/80 rounded-full overflow-hidden shadow-inner border border-slate-700/5">
+                                                        <div
+                                                            className={`h-full bg-gradient-to-r ${colorClass} rounded-full transition-all duration-700 ease-out`}
+                                                            style={{ width: `${percent}%` }}
+                                                        />
+                                                    </div>
+                                                </div>
+                                            );
+                                        });
+                                    })()}
+                                </div>
+                            </div>
+
+                            {/* Pharmacist Leaderboard */}
+                            <div className="lg:col-span-2 premium-card p-6">
+                                <h3 className="font-black mb-5 uppercase tracking-wider text-sm flex items-center gap-2 opacity-90">
+                                    <TrendingUp size={18} className="text-emerald-500 dark:text-emerald-400" />
+                                    การใช้งานของเภสัชกรสูงสุด (Top Active)
+                                </h3>
+                                <div className="space-y-4">
+                                    {stats.leaderboard && stats.leaderboard.length > 0 ? (
+                                        stats.leaderboard.map((pharmacist) => {
+                                            return (
+                                                <div
+                                                    key={pharmacist.name}
+                                                    className={`p-3.5 rounded-xl border flex justify-between items-center transition-all ${
+                                                        isDark
+                                                            ? 'bg-slate-800/40 border-slate-700/40 hover:bg-slate-800/70'
+                                                            : 'bg-slate-50 border-slate-200/60 hover:bg-slate-100 shadow-sm'
+                                                    }`}
+                                                >
+                                                    <div className="flex items-center gap-3">
+                                                        <div>
+                                                            <p className="font-black text-sm">{pharmacist.name}</p>
+                                                            <p className="text-[10px] opacity-60">เภสัชกรผู้คำนวณขนาดยา</p>
+                                                        </div>
+                                                    </div>
+                                                    <div className="text-right">
+                                                        <span className={`px-2.5 py-1 rounded-full text-xs font-black font-mono border ${
+                                                            isDark ? 'bg-sky-950/40 text-sky-400 border-sky-900/30' : 'bg-sky-50 text-sky-600 border-sky-200'
+                                                        }`}>
+                                                            {pharmacist.count} ครั้ง
+                                                        </span>
+                                                    </div>
+                                                </div>
+                                            );
+                                        })
+                                    ) : (
+                                        <div className="text-center p-8 opacity-60 font-bold italic text-sm">
+                                            ยังไม่มีประวัติการคำนวณยาในระบบ
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                        </div>
+                    )}
+                </div>
+            ) : activeTab === 'users' ? (
                 <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
                     {/* Create Form Section */}
                     <div className="lg:col-span-1">
@@ -324,7 +655,7 @@ const AdminUsers = ({ currentUser, setCurrentUser, onBack, showNotification, the
                                     <div className="relative">
                                         <input
                                             type={showCreatePassword ? "text" : "password"}
-                                            placeholder="รหัสผ่านเข้าใช้งาน"
+                                            placeholder="รหัสผ่านเข้าใช้งาน (อย่างน้อย 6 ตัวอักษร)"
                                             className="form-control pl-10 pr-10 text-sm"
                                             value={createForm.password}
                                             onChange={e => setCreateForm({ ...createForm, password: e.target.value })}
@@ -375,16 +706,17 @@ const AdminUsers = ({ currentUser, setCurrentUser, onBack, showNotification, the
                                 <table className="w-full text-left text-sm">
                                     <thead className="sticky top-0 z-10 font-bold" style={{ backgroundColor: 'var(--table-header-bg)' }}>
                                         <tr className="bg-sky-600/10 border-b border-slate-700/20 opacity-60">
-                                            <th className="p-4 font-black uppercase tracking-wider text-[11px] w-[25%]">รหัสพนักงาน (ID)</th>
-                                            <th className="p-4 font-black uppercase tracking-wider text-[11px] w-[35%]">ชื่อผู้ใช้งาน</th>
-                                            <th className="p-4 font-black uppercase tracking-wider text-[11px] w-[20%] text-center">บทบาท (Role)</th>
-                                            <th className="p-4 font-black uppercase tracking-wider text-[11px] w-[20%] text-center">การจัดการ</th>
+                                            <th className="p-4 font-black uppercase tracking-wider text-[11px] w-[20%]">รหัสพนักงาน (ID)</th>
+                                            <th className="p-4 font-black uppercase tracking-wider text-[11px] w-[30%]">ชื่อผู้ใช้งาน</th>
+                                            <th className="p-4 font-black uppercase tracking-wider text-[11px] w-[15%] text-center">บทบาท (Role)</th>
+                                            <th className="p-4 font-black uppercase tracking-wider text-[11px] w-[20%] text-center">สถานะ (Status)</th>
+                                            <th className="p-4 font-black uppercase tracking-wider text-[11px] w-[15%] text-center">การจัดการ</th>
                                         </tr>
                                     </thead>
                                     <tbody>
                                         {loading ? (
                                             <tr>
-                                                <td colSpan="4" className="p-8 text-center text-slate-500 font-bold italic">
+                                                <td colSpan="5" className="p-8 text-center text-slate-500 font-bold italic">
                                                     กำลังโหลดข้อมูล...
                                                 </td>
                                             </tr>
@@ -406,6 +738,25 @@ const AdminUsers = ({ currentUser, setCurrentUser, onBack, showNotification, the
                                                         </span>
                                                     </td>
                                                     <td className="p-4 text-center">
+                                                        {u.must_change_password === 1 ? (
+                                                            <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-black border uppercase tracking-wider ${
+                                                                isDark
+                                                                    ? 'bg-amber-950/30 text-amber-400 border-amber-900/30'
+                                                                    : 'bg-amber-50 text-amber-600 border-amber-200'
+                                                            }`}>
+                                                                รอเปลี่ยนรหัส
+                                                            </span>
+                                                        ) : (
+                                                            <span className={`inline-block px-2.5 py-0.5 rounded-full text-[10px] font-black border uppercase tracking-wider ${
+                                                                isDark
+                                                                    ? 'bg-emerald-950/30 text-emerald-400 border-emerald-900/30'
+                                                                    : 'bg-emerald-50 text-emerald-600 border-emerald-200'
+                                                            }`}>
+                                                                ใช้งานปกติ
+                                                            </span>
+                                                        )}
+                                                    </td>
+                                                    <td className="p-4 text-center">
                                                         <div className="flex justify-center gap-2">
                                                             <button
                                                                 onClick={() => handleEditClick(u)}
@@ -418,7 +769,7 @@ const AdminUsers = ({ currentUser, setCurrentUser, onBack, showNotification, the
                                                                 <Edit2 size={14} />
                                                             </button>
                                                             <button
-                                                                onClick={() => handleDeleteClick(u.id, u.employee_id, u.username)}
+                                                                onClick={() => handleDeleteClick(u)}
                                                                 className={`p-2 rounded-lg border transition-all active:scale-95 cursor-pointer ${u.employee_id === currentUser.employee_id
                                                                         ? (isDark
                                                                             ? 'bg-slate-800/40 text-slate-600 border-slate-800/50 cursor-not-allowed opacity-40'
@@ -438,7 +789,7 @@ const AdminUsers = ({ currentUser, setCurrentUser, onBack, showNotification, the
                                             ))
                                         ) : (
                                             <tr>
-                                                <td colSpan="4" className="p-8 text-center text-slate-500 font-bold italic">
+                                                <td colSpan="5" className="p-8 text-center text-slate-500 font-bold italic">
                                                     ไม่พบผู้ใช้ในระบบ
                                                 </td>
                                             </tr>
@@ -457,17 +808,101 @@ const AdminUsers = ({ currentUser, setCurrentUser, onBack, showNotification, the
                             <LogIn size={18} className="text-emerald-500 dark:text-emerald-400" />
                             ประวัติการเข้าใช้งานระบบ ({filteredLogs.length} รายการ)
                         </h3>
-                        <div className="relative w-full md:w-[320px]">
-                            <input
-                                type="text"
-                                placeholder="ค้นหา รหัสพนักงาน / ชื่อผู้ใช้ / บทบาท ..."
-                                value={logSearchQuery}
-                                onChange={e => setLogSearchQuery(e.target.value)}
-                                className="form-control py-2.5 pl-10 pr-4 text-sm rounded-xl font-bold"
-                            />
-                            <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                        <div className="flex items-center gap-2.5 w-full md:w-auto">
+                            <button
+                                onClick={() => setShowLogFilterPanel(!showLogFilterPanel)}
+                                className={`py-2.5 px-4 rounded-xl border flex items-center gap-2 text-sm font-bold transition-all duration-300 whitespace-nowrap cursor-pointer ${showLogFilterPanel
+                                    ? 'bg-sky-600 border-sky-400 text-white shadow-md'
+                                    : theme === 'dark'
+                                        ? 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'
+                                        : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50 shadow-sm'
+                                    }`}
+                            >
+                                <Filter size={15} /> {showLogFilterPanel ? 'ปิดตัวกรอง' : 'ตัวกรอง (Filters)'}
+                            </button>
+                            <div className="relative w-full md:w-[240px]">
+                                <input
+                                    type="text"
+                                    placeholder="ค้นหา รหัสพนักงาน / ชื่อผู้ใช้ / บทบาท ..."
+                                    value={logSearchQuery}
+                                    onChange={e => setLogSearchQuery(e.target.value)}
+                                    className="form-control py-2.5 pl-10 pr-4 text-sm rounded-xl font-bold"
+                                />
+                                <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                            </div>
                         </div>
                     </div>
+
+                    {showLogFilterPanel && (
+                        <div className={`p-5 rounded-2xl border mb-5 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 animate-pop ${isDark
+                            ? 'bg-slate-900/60 border-slate-800'
+                            : 'bg-slate-50 border-slate-200 shadow-inner'
+                            }`}>
+                            <div>
+                                <label className="block text-[10px] font-black text-slate-400 mb-1.5 uppercase">วันที่เริ่มต้น (Start Date)</label>
+                                <input
+                                    type="text"
+                                    placeholder="วว/ดด/ปปปป (เช่น 24/06/2569)"
+                                    value={logStartDateFilter}
+                                    onChange={e => handleDateInputChange(e.target.value, logStartDateFilter, setLogStartDateFilter)}
+                                    className="form-control py-1.5 px-3 text-xs rounded-xl font-bold"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-[10px] font-black text-slate-400 mb-1.5 uppercase">วันที่สิ้นสุด (End Date)</label>
+                                <input
+                                    type="text"
+                                    placeholder="วว/ดด/ปปปป (เช่น 24/06/2569)"
+                                    value={logEndDateFilter}
+                                    onChange={e => handleDateInputChange(e.target.value, logEndDateFilter, setLogEndDateFilter)}
+                                    className="form-control py-1.5 px-3 text-xs rounded-xl font-bold"
+                                />
+                            </div>
+                            <div>
+                                <label className="block text-[10px] font-black text-slate-400 mb-1.5 uppercase">บทบาท (Role)</label>
+                                <select
+                                    value={logRoleFilter}
+                                    onChange={e => setLogRoleFilter(e.target.value)}
+                                    className="form-control py-1.5 px-3 text-xs rounded-xl font-bold"
+                                >
+                                    <option value="all">บทบาททั้งหมด (All)</option>
+                                    <option value="admin">admin</option>
+                                    <option value="pharmacist">pharmacist</option>
+                                </select>
+                            </div>
+                            <div>
+                                <label className="block text-[10px] font-black text-slate-400 mb-1.5 uppercase">ประเภทกิจกรรม</label>
+                                <select
+                                    value={logActionFilter}
+                                    onChange={e => setLogActionFilter(e.target.value)}
+                                    className="form-control py-1.5 px-3 text-xs rounded-xl font-bold"
+                                >
+                                    <option value="all">กิจกรรมทั้งหมด (All)</option>
+                                    <option value="LOGIN">LOGIN</option>
+                                    <option value="LOGOUT">LOGOUT</option>
+                                </select>
+                            </div>
+                            <div className="sm:col-span-2 md:col-span-4 flex justify-end gap-2 pt-3 border-t border-slate-700/10">
+                                <button
+                                    onClick={() => {
+                                        setLogStartDateFilter('');
+                                        setLogEndDateFilter('');
+                                        setLogRoleFilter('all');
+                                        setLogActionFilter('all');
+                                    }}
+                                    className="px-4 py-2 rounded-xl text-xs font-black bg-rose-600/10 text-rose-500 border border-rose-500/20 hover:bg-rose-600/20 transition-all cursor-pointer"
+                                >
+                                    ล้างตัวกรอง (Reset)
+                                </button>
+                                <button
+                                    onClick={() => setShowLogFilterPanel(false)}
+                                    className="px-4 py-2 rounded-xl text-xs font-black bg-slate-700 text-white transition-all cursor-pointer"
+                                >
+                                    ปิด (Close)
+                                </button>
+                            </div>
+                        </div>
+                    )}
 
                     <div className="overflow-x-auto rounded-xl border border-slate-700/20 shadow-inner scrollable-table-container">
                         <table className="w-full text-left text-sm">
@@ -538,17 +973,92 @@ const AdminUsers = ({ currentUser, setCurrentUser, onBack, showNotification, the
                 <PenLine size={18} className="text-amber-500 dark:text-amber-400" />
                 ประวัติการแก้ไขข้อมูลในระบบ ({filteredActivities.length} รายการ)
             </h3>
-            <div className="relative w-full md:w-[320px]">
-                <input
-                    type="text"
-                    placeholder="ค้นหา ผู้ใช้ / ประเภท / รายละเอียด ..."
-                    value={activitySearchQuery}
-                    onChange={e => setActivitySearchQuery(e.target.value)}
-                    className="form-control py-2.5 pl-10 pr-4 text-sm rounded-xl font-bold"
-                />
-                <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+            <div className="flex items-center gap-2.5 w-full md:w-auto">
+                <button
+                    onClick={() => setShowActivityFilterPanel(!showActivityFilterPanel)}
+                    className={`py-2.5 px-4 rounded-xl border flex items-center gap-2 text-sm font-bold transition-all duration-300 whitespace-nowrap cursor-pointer ${showActivityFilterPanel
+                        ? 'bg-sky-600 border-sky-400 text-white shadow-md'
+                        : theme === 'dark'
+                            ? 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'
+                            : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50 shadow-sm'
+                        }`}
+                >
+                    <Filter size={15} /> {showActivityFilterPanel ? 'ปิดตัวกรอง' : 'ตัวกรอง (Filters)'}
+                </button>
+                <div className="relative w-full md:w-[240px]">
+                    <input
+                        type="text"
+                        placeholder="ค้นหา ผู้ใช้ / ประเภท / รายละเอียด ..."
+                        value={activitySearchQuery}
+                        onChange={e => setActivitySearchQuery(e.target.value)}
+                        className="form-control py-2.5 pl-10 pr-4 text-sm rounded-xl font-bold"
+                    />
+                    <Search size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                </div>
             </div>
         </div>
+
+        {showActivityFilterPanel && (
+            <div className={`p-5 rounded-2xl border mb-5 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 gap-4 animate-pop ${isDark
+                ? 'bg-slate-900/60 border-slate-800'
+                : 'bg-slate-50 border-slate-200 shadow-inner'
+                }`}>
+                <div>
+                    <label className="block text-[10px] font-black text-slate-400 mb-1.5 uppercase">วันที่เริ่มต้น (Start Date)</label>
+                    <input
+                        type="text"
+                        placeholder="วว/ดด/ปปปป (เช่น 24/06/2569)"
+                        value={activityStartDateFilter}
+                        onChange={e => handleDateInputChange(e.target.value, activityStartDateFilter, setActivityStartDateFilter)}
+                        className="form-control py-1.5 px-3 text-xs rounded-xl font-bold"
+                    />
+                </div>
+                <div>
+                    <label className="block text-[10px] font-black text-slate-400 mb-1.5 uppercase">วันที่สิ้นสุด (End Date)</label>
+                    <input
+                        type="text"
+                        placeholder="วว/ดด/ปปปป (เช่น 24/06/2569)"
+                        value={activityEndDateFilter}
+                        onChange={e => handleDateInputChange(e.target.value, activityEndDateFilter, setActivityEndDateFilter)}
+                        className="form-control py-1.5 px-3 text-xs rounded-xl font-bold"
+                    />
+                </div>
+                <div>
+                    <label className="block text-[10px] font-black text-slate-400 mb-1.5 uppercase">ประเภทการแก้ไข</label>
+                    <select
+                        value={activityActionFilter}
+                        onChange={e => setActivityActionFilter(e.target.value)}
+                        className="form-control py-1.5 px-3 text-xs rounded-xl font-bold"
+                    >
+                        <option value="all">ประเภททั้งหมด (All)</option>
+                        <option value="SAVE_CALCULATION">SAVE_CALCULATION (บันทึกการคำนวณ)</option>
+                        <option value="CREATE_USER">CREATE_USER (สร้างผู้ใช้)</option>
+                        <option value="UPDATE_USER">UPDATE_USER (แก้ไขผู้ใช้)</option>
+                        <option value="DELETE_USER">DELETE_USER (ลบผู้ใช้)</option>
+                        <option value="DELETE_LOG">DELETE_LOG (ลบบันทึก)</option>
+                        <option value="UPDATE_PASSWORD">UPDATE_PASSWORD (เปลี่ยนรหัสผ่าน)</option>
+                    </select>
+                </div>
+                <div className="sm:col-span-2 md:col-span-3 flex justify-end gap-2 pt-3 border-t border-slate-700/10">
+                    <button
+                        onClick={() => {
+                            setActivityStartDateFilter('');
+                            setActivityEndDateFilter('');
+                            setActivityActionFilter('all');
+                        }}
+                        className="px-4 py-2 rounded-xl text-xs font-black bg-rose-600/10 text-rose-500 border border-rose-500/20 hover:bg-rose-600/20 transition-all cursor-pointer"
+                    >
+                        ล้างตัวกรอง (Reset)
+                    </button>
+                    <button
+                        onClick={() => setShowActivityFilterPanel(false)}
+                        className="px-4 py-2 rounded-xl text-xs font-black bg-slate-700 text-white transition-all cursor-pointer"
+                    >
+                        ปิด (Close)
+                    </button>
+                </div>
+            </div>
+        )}
         <div className="overflow-x-auto rounded-xl border border-slate-700/20 shadow-inner scrollable-table-container">
             <table className="w-full text-left text-sm">
                 <thead className="sticky top-0 z-10 font-bold" style={{ backgroundColor: 'var(--table-header-bg)' }}>
@@ -573,6 +1083,7 @@ const AdminUsers = ({ currentUser, setCurrentUser, onBack, showNotification, the
                                 'UPDATE_USER': { label: 'แก้ไขผู้ใช้', dark: 'bg-amber-950/30 text-amber-400 border-amber-900/30', light: 'bg-amber-50 text-amber-600 border-amber-200' },
                                 'DELETE_USER': { label: 'ลบผู้ใช้', dark: 'bg-rose-950/30 text-rose-400 border-rose-900/30', light: 'bg-rose-50 text-rose-600 border-rose-200' },
                                 'DELETE_LOG': { label: 'ลบบันทึก', dark: 'bg-orange-950/30 text-orange-400 border-orange-900/30', light: 'bg-orange-50 text-orange-600 border-orange-200' },
+                                'UPDATE_PASSWORD': { label: 'เปลี่ยนรหัสผ่าน', dark: 'bg-indigo-950/30 text-indigo-400 border-indigo-900/30', light: 'bg-indigo-50 text-indigo-600 border-indigo-200' },
                             };
                             const badge = actionBadge[act.action_type] || { label: act.action_type, dark: 'bg-slate-800/30 text-slate-400 border-slate-700/30', light: 'bg-slate-100 text-slate-600 border-slate-200' };
                             return (
@@ -652,7 +1163,7 @@ const AdminUsers = ({ currentUser, setCurrentUser, onBack, showNotification, the
                                 <div className="relative">
                                     <input
                                         type={showEditPassword ? "text" : "password"}
-                                        placeholder="เว้นว่างไว้เพื่อใช้รหัสผ่านเดิม"
+                                        placeholder="เว้นว่างไว้เพื่อใช้รหัสผ่านเดิม (อย่างน้อย 6 ตัวอักษร)"
                                         className="form-control pl-10 pr-10 text-sm"
                                         value={editForm.password}
                                         onChange={e => setEditForm({ ...editForm, password: e.target.value })}
@@ -703,6 +1214,42 @@ const AdminUsers = ({ currentUser, setCurrentUser, onBack, showNotification, the
                                 </button>
                             </div>
                         </form>
+                    </div>
+                </div>
+            )}
+            {/* Custom Delete Confirmation Modal */}
+            {deleteConfirmUser && (
+                <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
+                    <div className="premium-card p-6 md:p-8 w-full max-w-sm animate-pop relative border-rose-500/30">
+                        <h3 className="font-black text-lg mb-4 flex items-center gap-2 border-b border-slate-200 dark:border-slate-700/50 pb-3 text-rose-500">
+                            <Trash2 size={18} />
+                            ยืนยันการลบผู้ใช้งาน
+                        </h3>
+                        <p className="text-sm text-slate-400 mb-6 leading-relaxed">
+                            คุณแน่ใจหรือไม่ที่จะลบผู้ใช้งาน <strong className="text-slate-200">{deleteConfirmUser.username}</strong> (รหัสพนักงาน: {deleteConfirmUser.employee_id})? การกระทำนี้ไม่สามารถย้อนกลับได้
+                        </p>
+                        <div className="flex gap-3">
+                            <button
+                                type="button"
+                                onClick={() => setDeleteConfirmUser(null)}
+                                className={`w-1/2 py-3 px-4 rounded-xl border text-sm font-bold transition-all active:scale-95 cursor-pointer text-center ${isDark
+                                        ? 'border-slate-700 hover:bg-slate-800 text-slate-300'
+                                        : 'border-slate-200 hover:bg-slate-100 text-slate-600 shadow-sm'
+                                    }`}
+                            >
+                                ยกเลิก
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    handleDeleteConfirm(deleteConfirmUser.id, deleteConfirmUser.employee_id);
+                                    setDeleteConfirmUser(null);
+                                }}
+                                className="w-1/2 bg-rose-600 hover:bg-rose-500 text-white text-sm font-black py-3 px-4 rounded-xl active:scale-95 cursor-pointer text-center transition-all shadow-md shadow-rose-900/10"
+                            >
+                                ลบผู้ใช้
+                            </button>
+                        </div>
                     </div>
                 </div>
             )}

@@ -5,11 +5,12 @@ import axios from 'axios';
 import Login from './components/Login';
 import Notification from './components/Notification';
 import AdminUsers from './components/AdminUsers';
+import ChangePassword from './components/ChangePassword';
 
 const API_BASE = '/api';
 
 function App() {
-    const [theme, setTheme] = useState(localStorage.getItem('appThemeMode') || 'dark');
+    const [theme, setTheme] = useState(localStorage.getItem('appThemeMode') || 'light');
     const [step, setStep] = useState('auth'); // 'auth', 'login' (patient check-in), 'workspace'
     const [user, setUser] = useState(null);
     const [loginData, setLoginData] = useState({ username: '', password: '' });
@@ -17,6 +18,7 @@ function App() {
     const [logs, setLogs] = useState([]);
     const [notification, setNotification] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
+    const [deleteConfirmLog, setDeleteConfirmLog] = useState(null);
 
     const showNotification = (message, type = 'info') => {
         setNotification({ message, type });
@@ -134,7 +136,9 @@ function App() {
         if (useAutoGfr) {
             const ageVal = parseFloat(patient.age);
             const scrVal = parseFloat(patientScr);
-            const wtVal = parseFloat(patient.weight);
+            const wtVal = amputation === 'amputee'
+                ? parseFloat(patient.weight) * (1 - (ampDetails.level === 'below_knee' ? 0.06 : 0.15))
+                : parseFloat(patient.weight);
             if (!isNaN(ageVal) && !isNaN(scrVal) && !isNaN(wtVal) && scrVal > 0) {
                 let gfr = ((140 - ageVal) * wtVal) / (72 * scrVal);
                 if (patient.gender === 'female') {
@@ -247,19 +251,21 @@ function App() {
         setStep('auth');
     };
 
-    const handleDeleteLog = async (logId, hn, patientName) => {
+    const handleDeleteLog = (log) => {
         if (!user || user.role?.toUpperCase() !== 'ADMIN') return;
-        if (window.confirm(`คุณแน่ใจหรือไม่ที่จะลบประวัติการคำนวณของ HN: ${hn} (${patientName}) ?`)) {
-            try {
-                await axios.delete(`${API_BASE}/admin/logs/${logId}`, {
-                    headers: { 'x-employee-id': user.employee_id }
-                });
-                showNotification("ลบประวัติการคำนวณสำเร็จ", "success");
-                fetchLogs();
-            } catch (err) {
-                console.error("Failed to delete log:", err);
-                showNotification(`ไม่สามารถลบประวัติการคำนวณได้: ${err.response?.data?.message || err.message}`, "error");
-            }
+        setDeleteConfirmLog(log);
+    };
+
+    const handleDeleteConfirm = async (logId) => {
+        try {
+            await axios.delete(`${API_BASE}/admin/logs/${logId}`, {
+                headers: { 'x-employee-id': user.employee_id }
+            });
+            showNotification("ลบประวัติการคำนวณสำเร็จ", "success");
+            fetchLogs();
+        } catch (err) {
+            console.error("Failed to delete log:", err);
+            showNotification(`ไม่สามารถลบประวัติการคำนวณได้: ${err.response?.data?.message || err.message}`, "error");
         }
     };
 
@@ -472,7 +478,7 @@ function App() {
 
     return (
         <div className="p-4 md:p-8 print:p-0 min-h-screen flex flex-col justify-between relative">
-            {user && (
+            {user && user.must_change_password !== 1 && (
                 <div className="absolute top-6 left-6 flex items-center gap-5 premium-card p-5 px-8 rounded-3xl shadow-[0_20px_50px_rgba(8,_112,_184,_0.3)] z-50 animate-row-in no-print backdrop-blur-xl border-sky-500/50">
                     <div className="w-16 h-16 rounded-2xl bg-gradient-to-br from-sky-600 to-sky-400 flex items-center justify-center shadow-lg border border-white/20">
                         <User size={32} className="text-white" />
@@ -556,7 +562,14 @@ function App() {
                                 <h2 className="text-xl font-black">{patient.name || 'ไม่ระบุชื่อ'} ({patient.hn})</h2>
                                 <p className="text-slate-400">H: {patient.height} cm | W: {patient.weight} kg | อายุ: {patient.age ? `${patient.age} ปี` : '-'} | เพศ: {patient.gender === 'female' ? 'หญิง (Female)' : patient.gender === 'male' ? 'ชาย (Male)' : '-'}</p>
                             </div>
-                            <button onClick={() => setStep('login')} className="bg-sky-600/10 text-sky-500 hover:bg-sky-600/20 px-4 py-2 rounded-lg border border-sky-500/30 transition-all font-bold">เปลี่ยนเคสผู้ป่วย</button>
+                            <button onClick={() => {
+                                setPatient({ hn: '', name: '', height: '', weight: '', gender: '', age: '' });
+                                setPatientScr('');
+                                setUseAutoGfr(false);
+                                setAmputation('none');
+                                setAmpDetails({ level: 'below_knee', method: 'weight_method' });
+                                setStep('login');
+                            }} className="bg-sky-600/10 text-sky-500 hover:bg-sky-600/20 px-4 py-2 rounded-lg border border-sky-500/30 transition-all font-bold">เปลี่ยนเคสผู้ป่วย</button>
                         </div>
 
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 workspace-section">
@@ -622,11 +635,11 @@ function App() {
                                     </div>
                                     {amputation === 'amputee' && (
                                         <div className="grid grid-cols-2 gap-4 p-4 bg-sky-600/5 rounded-lg">
-                                            <select className="form-control" onChange={e => setAmpDetails({ ...ampDetails, level: e.target.value })}>
+                                            <select className="form-control" value={ampDetails.level} onChange={e => setAmpDetails({ ...ampDetails, level: e.target.value })}>
                                                 <option value="below_knee">ตัดขาใต้เข่า (Below Knee)</option>
                                                 <option value="above_knee">ตัดขาเหนือเข่า (Above Knee)</option>
                                             </select>
-                                            <select className="form-control" onChange={e => setAmpDetails({ ...ampDetails, method: e.target.value })}>
+                                            <select className="form-control" value={ampDetails.method} onChange={e => setAmpDetails({ ...ampDetails, method: e.target.value })}>
                                                 <option value="weight_method">ปรับตามน้ำหนัก (Weight Method)</option>
                                                 <option value="bsa_method">ปรับตามพื้นที่ผิว (BSA Method)</option>
                                             </select>
@@ -1103,7 +1116,7 @@ function App() {
                                                     {user?.role?.toUpperCase() === 'ADMIN' && (
                                                         <td className="p-4 text-center no-print">
                                                             <button
-                                                                onClick={() => handleDeleteLog(log.id, log.hn, log.patient_name)}
+                                                                onClick={() => handleDeleteLog(log)}
                                                                 className="text-red-500 hover:text-red-400 p-1.5 rounded-lg hover:bg-red-500/10 transition-all active:scale-95 cursor-pointer flex items-center justify-center mx-auto"
                                                                 title="ลบรายการบันทึกประวัตินี้"
                                                             >
@@ -1128,6 +1141,53 @@ function App() {
                     </div>
                 )}
             </div>
+            {user && user.must_change_password === 1 && (
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/75 backdrop-blur-md p-4 animate-fade-in no-print">
+                    <ChangePassword
+                        user={user}
+                        onPasswordChanged={(updatedUser) => {
+                            setUser(updatedUser);
+                            showNotification("เปลี่ยนรหัสผ่านเรียบร้อยแล้ว", "success");
+                        }}
+                        onLogout={handleLogout}
+                    />
+                </div>
+            )}
+            {deleteConfirmLog && (
+                <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in no-print">
+                    <div className="premium-card p-6 md:p-8 w-full max-w-sm animate-pop relative border-rose-500/30">
+                        <h3 className="font-black text-lg mb-4 flex items-center gap-2 border-b border-slate-200 dark:border-slate-700/50 pb-3 text-rose-500">
+                            <Trash2 size={18} />
+                            ยืนยันการลบประวัติ
+                        </h3>
+                        <p className="text-sm text-slate-400 mb-6 leading-relaxed">
+                            คุณแน่ใจหรือไม่ที่จะลบประวัติการคำนวณของ HN: <strong className="text-slate-200">{deleteConfirmLog.hn}</strong> ({deleteConfirmLog.patient_name || 'ไม่ระบุชื่อ'})? การกระทำนี้ไม่สามารถย้อนกลับได้
+                        </p>
+                        <div className="flex gap-3">
+                            <button
+                                type="button"
+                                onClick={() => setDeleteConfirmLog(null)}
+                                className={`w-1/2 py-3 px-4 rounded-xl border text-sm font-bold transition-all active:scale-95 cursor-pointer text-center ${theme === 'dark'
+                                        ? 'border-slate-700 hover:bg-slate-800 text-slate-300'
+                                        : 'border-slate-200 hover:bg-slate-100 text-slate-600 shadow-sm'
+                                    }`}
+                            >
+                                ยกเลิก
+                            </button>
+                            <button
+                                type="button"
+                                onClick={() => {
+                                    handleDeleteConfirm(deleteConfirmLog.id);
+                                    setDeleteConfirmLog(null);
+                                }}
+                                className="w-1/2 bg-rose-600 hover:bg-rose-500 text-white text-sm font-black py-3 px-4 rounded-xl active:scale-95 cursor-pointer text-center transition-all shadow-md shadow-rose-900/10"
+                            >
+                                ลบประวัติ
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
             {notification && (
                 <Notification
                     {...notification}
