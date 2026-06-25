@@ -234,10 +234,33 @@ function App() {
         }
     };
 
-    const handleLogout = () => {
+    const handleLogout = async () => {
+        try {
+            if (user && user.employee_id) {
+                await axios.post(`${API_BASE}/logout`, { employee_id: user.employee_id });
+            }
+        } catch (err) {
+            console.error("Failed to log logout activity:", err);
+        }
         localStorage.removeItem('oncology_user');
         setUser(null);
         setStep('auth');
+    };
+
+    const handleDeleteLog = async (logId, hn, patientName) => {
+        if (!user || user.role?.toUpperCase() !== 'ADMIN') return;
+        if (window.confirm(`คุณแน่ใจหรือไม่ที่จะลบประวัติการคำนวณของ HN: ${hn} (${patientName}) ?`)) {
+            try {
+                await axios.delete(`${API_BASE}/admin/logs/${logId}`, {
+                    headers: { 'x-employee-id': user.employee_id }
+                });
+                showNotification("ลบประวัติการคำนวณสำเร็จ", "success");
+                fetchLogs();
+            } catch (err) {
+                console.error("Failed to delete log:", err);
+                showNotification(`ไม่สามารถลบประวัติการคำนวณได้: ${err.response?.data?.message || err.message}`, "error");
+            }
+        }
     };
 
     const handlePatientCheckIn = () => {
@@ -477,11 +500,11 @@ function App() {
                 </div>
             )}
 
-            <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className="absolute top-4 right-4 bg-slate-800 text-white dark:bg-white dark:text-slate-900 border-2 border-slate-600 px-5 py-3 rounded-full shadow-lg z-50 font-black flex items-center gap-2 no-print">
+            <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className="absolute top-4 right-4 bg-slate-800 text-white dark:bg-white dark:text-slate-900 border-2 border-slate-600 px-5 py-3 rounded-full shadow-lg z-50 font-black flex items-center gap-2 no-print hover:scale-105 active:scale-95 transition-all text-sm cursor-pointer">
                 {theme === 'dark' ? <Moon size={20} /> : <Sun size={20} />} {theme === 'dark' ? 'Dark Mode' : 'Light Mode'}
             </button>
 
-            <div className="w-full max-w-5xl mx-auto my-auto pt-10">
+            <div className={`w-full max-w-5xl mx-auto my-auto print:my-0 print:pt-0 ${user ? 'pt-32 md:pt-36' : 'pt-4 md:pt-12'}`}>
                 {step === 'auth' ? (
                     <Login onLoginSuccess={(userData) => {
                         setUser(userData);
@@ -555,7 +578,7 @@ function App() {
                                     <div className="grid grid-cols-2 gap-4">
                                         {['mosteller', 'dubois'].map(f => (
                                             <button key={f} onClick={() => setFormula(f)} className={`p-4 rounded-lg border-2 transition-all font-black uppercase ${formula === f ? 'bg-sky-600 border-sky-400 text-white' : 'bg-transparent border-slate-700/30 text-slate-500'}`}>
-                                                {f.toUpperCase()}
+                                                {f === 'mosteller' ? 'มอสเตลเลอร์ (Mosteller)' : 'ดูบัวส์ (DuBois)'}
                                             </button>
                                         ))}
                                     </div>
@@ -657,14 +680,14 @@ function App() {
 
                                     {calcMode === 'single' ? (
                                         <select className="form-control mb-4" value={drug} onChange={e => setDrug(e.target.value)}>
-                                            <option value="vincristine">VINCRISTINE (Cap 2.0)</option>
-                                            <option value="carboplatin">CARBOPLATIN (Calvert)</option>
-                                            <option value="bleomycin">BLEOMYCIN (Fixed 30)</option>
+                                            <option value="vincristine">วินคริสทีน - VINCRISTINE (Cap 2.0 mg)</option>
+                                            <option value="carboplatin">คาร์โบพลาติน - CARBOPLATIN (Calvert Formula)</option>
+                                            <option value="bleomycin">บลีโอมัยซิน - BLEOMYCIN (Fixed Dose 30 units)</option>
                                         </select>
                                     ) : (
                                         <select className="form-control mb-4" value={selectedRegimen} onChange={e => setSelectedRegimen(e.target.value)}>
-                                            <option value="cv">CV Regimen: CARBOPLATIN + VINCRISTINE</option>
-                                            <option value="bc">BC Regimen: BLEOMYCIN + CARBOPLATIN</option>
+                                            <option value="cv">สูตร CV Regimen: คาร์โบพลาติน + วินคริสทีน (CARBOPLATIN + VINCRISTINE)</option>
+                                            <option value="bc">สูตร BC Regimen: บลีโอมัยซิน + คาร์โบพลาติน (BLEOMYCIN + CARBOPLATIN)</option>
                                         </select>
                                     )}
 
@@ -746,10 +769,10 @@ function App() {
 
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                 <div>
-                                                    <label className="block text-xs font-bold text-slate-400 mb-1">Target AUC</label>
+                                                    <label className="block text-xs font-bold text-slate-400 mb-1">เป้าหมายค่า AUC (Target AUC)</label>
                                                     <input
                                                         type="number"
-                                                        placeholder="Target AUC"
+                                                        placeholder="ระบุค่า Target AUC"
                                                         value={drugParams.auc}
                                                         className="form-control"
                                                         onChange={e => setDrugParams({ ...drugParams, auc: e.target.value })}
@@ -791,10 +814,10 @@ function App() {
 
                                             {!useAutoGfr ? (
                                                 <div className="space-y-2">
-                                                    <label className="block text-xs font-bold text-slate-400 mb-1">GFR Value (ml/min)</label>
+                                                    <label className="block text-xs font-bold text-slate-400 mb-1">อัตราการกรองของไต (GFR Value, ml/min)</label>
                                                     <input
                                                         type="number"
-                                                        placeholder="GFR Value"
+                                                        placeholder="ระบุค่า GFR (ml/min)"
                                                         value={drugParams.gfr}
                                                         className="form-control"
                                                         onChange={e => setDrugParams({ ...drugParams, gfr: e.target.value })}
@@ -832,10 +855,10 @@ function App() {
                                                             />
                                                         </div>
                                                         <div>
-                                                            <label className="block text-[10px] font-bold text-slate-400 mb-1">Scr (mg/dL)</label>
+                                                            <label className="block text-[10px] font-bold text-slate-400 mb-1">ครีอะตินีนในเลือด (Scr, mg/dL)</label>
                                                             <input
                                                                 type="number"
-                                                                placeholder="Scr"
+                                                                placeholder="ระบุค่า Scr"
                                                                 step="0.01"
                                                                 value={patientScr}
                                                                 className="form-control text-sm"
@@ -897,10 +920,10 @@ function App() {
                                             <div className="border-t border-slate-700/20 pt-4 space-y-3">
                                                 <span className="text-xs uppercase text-slate-500 font-black block text-center mb-1">Regimen Doses</span>
                                                 {multipleDoses.map(item => (
-                                                    <div key={item.id} className="flex justify-between items-center bg-slate-800/40 p-2.5 rounded-lg border border-slate-700/30">
-                                                        <span className="text-xs font-black text-slate-300">{item.name}</span>
-                                                        <span className="text-sm font-black text-amber-500">
-                                                            {item.dose} <span className="text-[10px] font-bold text-slate-400">{item.id === 'bleomycin' ? 'units' : 'mg'}</span>
+                                                    <div key={item.id} className="flex justify-between items-center bg-slate-100 dark:bg-slate-800/40 p-2.5 rounded-lg border border-slate-200 dark:border-slate-700/30">
+                                                        <span className="text-xs font-black text-slate-700 dark:text-slate-300">{item.name}</span>
+                                                        <span className="text-sm font-black text-amber-600 dark:text-amber-500">
+                                                            {item.dose} <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">{item.id === 'bleomycin' ? 'units' : 'mg'}</span>
                                                         </span>
                                                     </div>
                                                 ))}
@@ -944,7 +967,7 @@ function App() {
 
                         <div className="premium-card p-6 history-section">
                             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
-                                <h3 className="font-black uppercase text-slate-400 flex items-center gap-2">
+                                <h3 className="font-black uppercase text-slate-400 flex items-center gap-2 text-xl md:text-2xl print:text-3xl print:text-black">
                                     <History size={18} className="text-sky-400 print-hide" /> รายงานบันทึกประวัติการคำนวณ
                                 </h3>
                                 <div className="flex items-center gap-2.5 no-print w-full md:w-auto">
@@ -1057,6 +1080,7 @@ function App() {
                                             {renderTableHeader('สูตรการคำนวณ', 'w-[18%] whitespace-nowrap')}
                                             {renderTableHeader('Dose', 'w-[12%] whitespace-nowrap', 'justify-end')}
                                             {renderTableHeader('ผู้บันทึก', 'w-[11%] whitespace-nowrap', 'justify-center')}
+                                            {user?.role?.toUpperCase() === 'ADMIN' && renderTableHeader('จัดการ', 'w-[8%] whitespace-nowrap no-print', 'justify-center')}
                                         </tr>
                                     </thead>
                                     <tbody>
@@ -1076,11 +1100,22 @@ function App() {
                                                     <td className="p-4 text-slate-400 font-bold uppercase leading-snug">{log.formula_used}</td>
                                                     <td className="p-4 text-right text-amber-500 font-black whitespace-nowrap">{log.prescribed_dose}</td>
                                                     <td className="p-4 text-center text-sky-400 font-bold uppercase truncate max-w-[120px]">{log.user_name || '-'}</td>
+                                                    {user?.role?.toUpperCase() === 'ADMIN' && (
+                                                        <td className="p-4 text-center no-print">
+                                                            <button
+                                                                onClick={() => handleDeleteLog(log.id, log.hn, log.patient_name)}
+                                                                className="text-red-500 hover:text-red-400 p-1.5 rounded-lg hover:bg-red-500/10 transition-all active:scale-95 cursor-pointer flex items-center justify-center mx-auto"
+                                                                title="ลบรายการบันทึกประวัตินี้"
+                                                            >
+                                                                <Trash2 size={16} />
+                                                            </button>
+                                                        </td>
+                                                    )}
                                                 </tr>
                                             ))
                                         ) : (
                                             <tr>
-                                                <td colSpan="9" className="p-8 text-center text-slate-500 font-bold italic">
+                                                <td colSpan={user?.role?.toUpperCase() === 'ADMIN' ? 10 : 9} className="p-8 text-center text-slate-500 font-bold italic">
                                                     ไม่พบประวัติการคำนวณที่ตรงกับการค้นหา
                                                 </td>
                                             </tr>

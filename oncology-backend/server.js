@@ -249,6 +249,17 @@ app.post('/api/login', (expressAppReq, expressAppRes) => {
     });
 });
 
+// 🔑 API Route 0.5: Logout Log
+app.post('/api/logout', (req, res) => {
+    const { employee_id } = req.body;
+    if (employee_id) {
+        logActivity(employee_id, 'LOGOUT', 'ออกจากระบบสำเร็จ');
+        res.json({ success: true });
+    } else {
+        res.status(400).json({ success: false, message: 'Missing employee_id' });
+    }
+});
+
 // 📥 API Route 1: รับข้อมูลคำนวณจากหน้าเว็บเข้าไปเก็บใน MySQL
 app.post('/api/logs', (expressAppReq, expressAppRes) => {
     console.log('📥 Received Log Data:', expressAppReq.body);
@@ -334,12 +345,35 @@ app.get('/api/logs', (expressAppReq, expressAppRes) => {
     });
 });
 
-// Activity logs endpoint (admin‑only)
-app.get('/api/admin/activities', requireAdmin, (req, res) => {
-    const query = `SELECT id, timestamp, employee_id, username, action_type, details FROM activity_logs ORDER BY id DESC`;
+// 🔑 Login/Logout history endpoint (admin‑only) — ประวัติการเข้า/ออกใช้งาน
+app.get('/api/admin/logins', requireAdmin, (req, res) => {
+    const query = `
+        SELECT a.id, a.timestamp, a.employee_id, a.username, a.action_type,
+               COALESCE(l.role, 'unknown') as role
+        FROM activity_logs a
+        LEFT JOIN login l ON a.employee_id = l.employee_id
+        WHERE a.action_type IN ('LOGIN', 'LOGOUT')
+        ORDER BY a.id DESC`;
     db.query(query, (err, results) => {
         if (err) {
-            console.error('❌ Database fetch error Details:', {
+            console.error('❌ Database fetch error (logins):', {
+                code: err.code,
+                errno: err.errno,
+                sqlState: err.sqlState,
+                message: err.message
+            });
+            return res.status(500).json({ success: false, message: 'Database Fetch Error: ' + err.message });
+        }
+        res.json({ success: true, logins: results });
+    });
+});
+
+// 📝 Modification history endpoint (admin‑only) — เฉพาะประวัติการแก้ไขข้อมูล (ไม่รวม LOGIN)
+app.get('/api/admin/activities', requireAdmin, (req, res) => {
+    const query = `SELECT id, timestamp, employee_id, username, action_type, details FROM activity_logs WHERE action_type != 'LOGIN' ORDER BY id DESC`;
+    db.query(query, (err, results) => {
+        if (err) {
+            console.error('❌ Database fetch error (activities):', {
                 code: err.code,
                 errno: err.errno,
                 sqlState: err.sqlState,
@@ -365,6 +399,7 @@ app.get('/api/admin/users', requireAdmin, (req, res) => {
 
 app.post('/api/admin/users', requireAdmin, (req, res) => {
     const { username, employee_id, password, role } = req.body;
+    const employeeId = req.headers['x-employee-id'];
     if (!username || !employee_id || !password || !role) {
         return res.status(400).json({ success: false, message: 'กรุณากรอกข้อมูลให้ครบถ้วน' });
     }
@@ -377,6 +412,8 @@ app.post('/api/admin/users', requireAdmin, (req, res) => {
             }
             return res.status(500).json({ success: false, message: 'Database Error: ' + err.message });
         }
+        // Log creation activity
+        logActivity(employeeId, 'CREATE_USER', `สร้างผู้ใช้ ${username} (${employee_id}) role=${role}`);
         res.json({ success: true, insertedId: result.insertId });
     });
 });
@@ -384,6 +421,7 @@ app.post('/api/admin/users', requireAdmin, (req, res) => {
 app.put('/api/admin/users/:id', requireAdmin, (req, res) => {
     const userId = req.params.id;
     const { username, employee_id, password, role } = req.body;
+    const employeeId = req.headers['x-employee-id'];
     if (!username || !employee_id || !role) {
         return res.status(400).json({ success: false, message: 'กรุณากรอกข้อมูลให้ครบถ้วน' });
     }
@@ -405,7 +443,9 @@ app.put('/api/admin/users/:id', requireAdmin, (req, res) => {
             }
             return res.status(500).json({ success: false, message: 'Database Error: ' + err.message });
         }
-        res.json({ success: true });
+        // Log update activity
+logActivity(employeeId, 'UPDATE_USER', `แก้ไขผู้ใช้ ID ${userId}: username=${username}, employee_id=${employee_id}, role=${role}`);
+res.json({ success: true });
     });
 });
 
@@ -425,6 +465,8 @@ app.delete('/api/admin/users/:id', requireAdmin, (req, res) => {
                 console.error('❌ Delete user error:', err);
                 return res.status(500).json({ success: false, message: 'Database Error: ' + err.message });
             }
+            // Log delete activity
+            logActivity(employeeId, 'DELETE_USER', `ลบผู้ใช้ ID ${userId}`);
             res.json({ success: true });
         });
     });
@@ -432,12 +474,15 @@ app.delete('/api/admin/users/:id', requireAdmin, (req, res) => {
 
 app.delete('/api/admin/logs/:id', requireAdmin, (req, res) => {
     const logId = req.params.id;
+    const employeeId = req.headers['x-employee-id'];
     const query = `DELETE FROM dosage_logs WHERE id = ?`;
     db.query(query, [logId], (err, result) => {
         if (err) {
             console.error('❌ Delete log error:', err);
             return res.status(500).json({ success: false, message: 'Database Error: ' + err.message });
         }
+        // Log delete log activity
+        logActivity(employeeId, 'DELETE_LOG', `ลบบันทึกการคำนวณ ID ${logId}`);
         res.json({ success: true });
     });
 });

@@ -1,6 +1,6 @@
 @echo off
 title Clinical API Bridge - oncology-backend
-cd /d "d:\patien-system\oncology-backend"
+cd /d "%~dp0oncology-backend"
 
 :loop
 echo 🚀 Starting Clinical API Bridge (Port 5004)...

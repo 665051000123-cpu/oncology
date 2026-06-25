@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { ArrowLeft, UserPlus, Edit2, Trash2, Shield, User, Lock, Save, X, Eye, EyeOff, History, Search, FileText } from 'lucide-react';
+import { ArrowLeft, UserPlus, Edit2, Trash2, Shield, User, Lock, Save, X, Eye, EyeOff, Search, FileText, LogIn, PenLine } from 'lucide-react';
 import axios from 'axios';
 
 const API_BASE = '/api';
@@ -67,15 +67,15 @@ const AdminUsers = ({ currentUser, setCurrentUser, onBack, showNotification, the
     const fetchLogs = async () => {
         setLogsLoading(true);
         try {
-            const res = await axios.get(`${API_BASE}/admin/logs`, {
+            const res = await axios.get(`${API_BASE}/admin/logins`, {
                 headers: { 'x-employee-id': currentUser.employee_id }
             });
             if (res.data.success) {
-                setLogs(res.data.logs);
+                setLogs(res.data.logins);
             }
         } catch (err) {
-            console.error("Fetch logs failed:", err);
-            showNotification(`ไม่สามารถดึงข้อมูลประวัติการคำนวณได้: ${err.response?.data?.message || err.message}`, "error");
+            console.error("Fetch login history failed:", err);
+            showNotification(`ไม่สามารถดึงข้อมูลประวัติการเข้าใช้งานได้: ${err.response?.data?.message || err.message}`, "error");
         } finally {
             setLogsLoading(false);
         }
@@ -195,31 +195,13 @@ const AdminUsers = ({ currentUser, setCurrentUser, onBack, showNotification, the
         }
     };
 
-    const handleDeleteLog = async (logId, patientName, timestamp) => {
-        if (window.confirm(`คุณแน่ใจหรือไม่ที่จะลบประวัติการคำนวณของ "${patientName}" เมื่อวันที่ ${timestamp} ?`)) {
-            try {
-                const res = await axios.delete(`${API_BASE}/admin/logs/${logId}`, {
-                    headers: { 'x-employee-id': currentUser.employee_id }
-                });
-                if (res.data.success) {
-                    showNotification("ลบประวัติการคำนวณสำเร็จ", "success");
-                    fetchLogs();
-                }
-            } catch (err) {
-                console.error("Delete log failed:", err);
-                showNotification(`ไม่สามารถลบประวัติการคำนวณได้: ${err.response?.data?.message || err.message}`, "error");
-            }
-        }
-    };
-
     const filteredLogs = useMemo(() => {
         if (!logSearchQuery.trim()) return logs;
         const q = logSearchQuery.toLowerCase();
         return logs.filter(log =>
-            (log.hn && log.hn.toLowerCase().includes(q)) ||
-            (log.patient_name && log.patient_name.toLowerCase().includes(q)) ||
-            (log.user_name && log.user_name.toLowerCase().includes(q)) ||
-            (log.formula_used && log.formula_used.toLowerCase().includes(q))
+            (log.employee_id && log.employee_id.toLowerCase().includes(q)) ||
+            (log.username && log.username.toLowerCase().includes(q)) ||
+            (log.role && log.role.toLowerCase().includes(q))
         );
     }, [logs, logSearchQuery]);
     // Filter activities based on search query
@@ -249,7 +231,7 @@ const AdminUsers = ({ currentUser, setCurrentUser, onBack, showNotification, the
                     </button>
                     <div>
                         <h2 className="text-xl font-black">การจัดการระบบหลังบ้าน (Admin Control Panel)</h2>
-                        <p className="text-xs opacity-70">สำหรับผู้ดูแลระบบ (Admin Only) เพื่อจัดการบัญชีผู้ใช้และประวัติการคำนวณ</p>
+                        <p className="text-xs opacity-70">สำหรับผู้ดูแลระบบ (Admin Only) เพื่อจัดการบัญชีผู้ใช้และตรวจสอบประวัติการใช้งานระบบ</p>
                     </div>
                 </div>
             </div>
@@ -280,7 +262,7 @@ const AdminUsers = ({ currentUser, setCurrentUser, onBack, showNotification, the
                                 : 'bg-white border-slate-200 text-slate-600 hover:text-slate-900 shadow-sm')
                         }`}
                 >
-                    <History size={16} /> ประวัติการคำนวณ (Calculation Logs)
+                    <LogIn size={16} /> ประวัติการเข้าใช้งาน (Login History)
                 </button>
                 <button
                     onClick={() => setActiveTab('activities')}
@@ -293,7 +275,7 @@ const AdminUsers = ({ currentUser, setCurrentUser, onBack, showNotification, the
                                 : 'bg-white border-slate-200 text-slate-600 hover:text-slate-900 shadow-sm')
                         }`}
                 >
-                    <FileText size={16} /> บันทึกกิจกรรมระบบ (Activity Logs)
+                    <PenLine size={16} /> ประวัติการแก้ไขข้อมูล (Modification Logs)
                 </button>
             </div>
 
@@ -468,17 +450,17 @@ const AdminUsers = ({ currentUser, setCurrentUser, onBack, showNotification, the
                     </div>
                 </div>
             ) : activeTab === 'logs' ? (
-                /* Calculation Logs View */
+                /* Login History View — ประวัติการเข้าใช้งาน */
                 <div className="premium-card p-6 flex flex-col">
                     <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-5">
                         <h3 className="font-black uppercase tracking-wider text-sm flex items-center gap-2 opacity-90">
-                            <FileText size={18} className="text-sky-500 dark:text-sky-400" />
-                            รายงานประวัติการคำนวณของระบบทั้งหมด
+                            <LogIn size={18} className="text-emerald-500 dark:text-emerald-400" />
+                            ประวัติการเข้าใช้งานระบบ ({filteredLogs.length} รายการ)
                         </h3>
                         <div className="relative w-full md:w-[320px]">
                             <input
                                 type="text"
-                                placeholder="ค้นหา HN / ชื่อคนไข้ / ผู้บันทึก..."
+                                placeholder="ค้นหา รหัสพนักงาน / ชื่อผู้ใช้ / บทบาท ..."
                                 value={logSearchQuery}
                                 onChange={e => setLogSearchQuery(e.target.value)}
                                 className="form-control py-2.5 pl-10 pr-4 text-sm rounded-xl font-bold"
@@ -491,59 +473,56 @@ const AdminUsers = ({ currentUser, setCurrentUser, onBack, showNotification, the
                         <table className="w-full text-left text-sm">
                             <thead className="sticky top-0 z-10 font-bold" style={{ backgroundColor: 'var(--table-header-bg)' }}>
                                 <tr className="bg-sky-600/10 border-b border-slate-700/20 opacity-60">
-                                    <th className="p-4 font-black uppercase tracking-wider text-[11px] w-[15%]">วันที่บันทึก</th>
-                                    <th className="p-4 font-black uppercase tracking-wider text-[11px] w-[10%]">HN</th>
-                                    <th className="p-4 font-black uppercase tracking-wider text-[11px] w-[18%]">ชื่อผู้ป่วย</th>
-                                    <th className="p-4 font-black uppercase tracking-wider text-[11px] w-[8%] text-center">เพศ</th>
-                                    <th className="p-4 font-black uppercase tracking-wider text-[11px] w-[8%] text-center">อายุ</th>
-                                    <th className="p-4 font-black uppercase tracking-wider text-[11px] w-[8%] text-center">BSA (m²)</th>
-                                    <th className="p-4 font-black uppercase tracking-wider text-[11px] w-[18%]">สูตรคำนวณ</th>
-                                    <th className="p-4 font-black uppercase tracking-wider text-[11px] w-[12%] text-right">Dose</th>
-                                    <th className="p-4 font-black uppercase tracking-wider text-[11px] w-[11%] text-center">ผู้บันทึก</th>
-                                    <th className="p-4 font-black uppercase tracking-wider text-[11px] w-[5%] text-center">จัดการ</th>
+                                    <th className="p-4 font-black uppercase tracking-wider text-[11px] w-[25%]">วันที่/เวลา</th>
+                                    <th className="p-4 font-black uppercase tracking-wider text-[11px] w-[15%]">รหัสพนักงาน</th>
+                                    <th className="p-4 font-black uppercase tracking-wider text-[11px] w-[25%]">ชื่อผู้ใช้</th>
+                                    <th className="p-4 font-black uppercase tracking-wider text-[11px] w-[15%] text-center">บทบาท (Role)</th>
+                                    <th className="p-4 font-black uppercase tracking-wider text-[11px] w-[20%] text-center">กิจกรรม</th>
                                 </tr>
                             </thead>
                             <tbody>
                                 {logsLoading ? (
                                     <tr>
-                                        <td colSpan="10" className="p-8 text-center text-slate-500 font-bold italic">
-                                            กำลังโหลดประวัติการคำนวณ...
+                                        <td colSpan="5" className="p-8 text-center text-slate-500 font-bold italic">
+                                            กำลังโหลดประวัติการเข้าใช้งาน...
                                         </td>
                                     </tr>
                                 ) : filteredLogs.length > 0 ? (
                                     filteredLogs.map(log => (
                                         <tr key={log.id} className="border-b border-slate-700/10 hover:bg-sky-600/5 transition-colors">
                                             <td className="p-4 font-mono opacity-70 whitespace-nowrap">{log.timestamp}</td>
-                                            <td className="p-4 font-bold whitespace-nowrap">{log.hn}</td>
-                                            <td className="p-4 font-bold uppercase">{log.patient_name}</td>
-                                            <td className="p-4 text-center font-bold whitespace-nowrap">
-                                                {log.gender === 'female' ? 'หญิง' : log.gender === 'male' ? 'ชาย' : '-'}
-                                            </td>
-                                            <td className="p-4 text-center font-bold whitespace-nowrap">
-                                                {log.age ? `${log.age} ปี` : '-'}
-                                            </td>
-                                            <td className="p-4 text-center text-emerald-500 font-bold whitespace-nowrap">{log.calculated_bsa}</td>
-                                            <td className="p-4 text-slate-400 font-bold uppercase leading-snug">{log.formula_used}</td>
-                                            <td className="p-4 text-right text-amber-500 font-black whitespace-nowrap">{log.prescribed_dose}</td>
-                                            <td className="p-4 text-center text-sky-400 font-bold uppercase truncate max-w-[100px]">{log.user_name || '-'}</td>
+                                            <td className="p-4 font-mono font-bold whitespace-nowrap">{log.employee_id}</td>
+                                            <td className="p-4 font-bold">{log.username}</td>
                                             <td className="p-4 text-center">
-                                                <button
-                                                    onClick={() => handleDeleteLog(log.id, log.patient_name, log.timestamp)}
-                                                    className={`p-2 rounded-lg border transition-all active:scale-95 cursor-pointer ${isDark
-                                                            ? 'bg-rose-950/30 hover:bg-rose-900/40 text-rose-400 hover:text-rose-300 border-rose-900/50'
-                                                            : 'bg-rose-50 hover:bg-rose-100 text-rose-600 hover:text-rose-700 border-rose-200 shadow-sm'
-                                                        }`}
-                                                    title="ลบรายการบันทึกนี้"
-                                                >
-                                                    <Trash2 size={13} />
-                                                </button>
+                                                <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-black border uppercase tracking-wider ${log.role?.toUpperCase() === 'ADMIN'
+                                                        ? (isDark
+                                                            ? 'bg-rose-950/30 text-rose-400 border-rose-900/30'
+                                                            : 'bg-rose-50 text-rose-600 border-rose-200')
+                                                        : (isDark
+                                                            ? 'bg-sky-950/30 text-sky-400 border-sky-900/30'
+                                                            : 'bg-sky-50 text-sky-600 border-sky-200')
+                                                    }`}>
+                                                    {log.role || 'unknown'}
+                                                </span>
+                                            </td>
+                                            <td className="p-4 text-center">
+                                                <span className={`inline-block px-2.5 py-0.5 rounded-full text-xs font-black border tracking-wider uppercase ${log.action_type === 'LOGIN' || !log.action_type
+                                                        ? (isDark
+                                                            ? 'bg-emerald-950/30 text-emerald-400 border-emerald-900/30'
+                                                            : 'bg-emerald-50 text-emerald-600 border-emerald-200')
+                                                        : (isDark
+                                                            ? 'bg-slate-800/40 text-slate-400 border-slate-700/30'
+                                                            : 'bg-slate-100 text-slate-600 border-slate-200')
+                                                    }`}>
+                                                    {log.action_type || 'LOGIN'}
+                                                </span>
                                             </td>
                                         </tr>
                                     ))
                                 ) : (
                                     <tr>
-                                        <td colSpan="10" className="p-8 text-center text-slate-500 font-bold italic">
-                                            ไม่พบประวัติการคำนวณในระบบ
+                                        <td colSpan="5" className="p-8 text-center text-slate-500 font-bold italic">
+                                            ไม่พบประวัติการเข้าใช้งานในระบบ
                                         </td>
                                     </tr>
                                 )}
@@ -552,16 +531,17 @@ const AdminUsers = ({ currentUser, setCurrentUser, onBack, showNotification, the
                     </div>
                 </div>
             ) : activeTab === 'activities' ? (
+    /* Modification History View — ประวัติการแก้ไขข้อมูล */
     <div className="premium-card p-6 flex flex-col">
         <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-5">
             <h3 className="font-black uppercase tracking-wider text-sm flex items-center gap-2 opacity-90">
-                <FileText size={18} className="text-sky-500 dark:text-sky-400" />
-                บันทึกกิจกรรมระบบ (Activity Logs)
+                <PenLine size={18} className="text-amber-500 dark:text-amber-400" />
+                ประวัติการแก้ไขข้อมูลในระบบ ({filteredActivities.length} รายการ)
             </h3>
             <div className="relative w-full md:w-[320px]">
                 <input
                     type="text"
-                    placeholder="ค้นหากิจกรรม..."
+                    placeholder="ค้นหา ผู้ใช้ / ประเภท / รายละเอียด ..."
                     value={activitySearchQuery}
                     onChange={e => setActivitySearchQuery(e.target.value)}
                     className="form-control py-2.5 pl-10 pr-4 text-sm rounded-xl font-bold"
@@ -573,27 +553,45 @@ const AdminUsers = ({ currentUser, setCurrentUser, onBack, showNotification, the
             <table className="w-full text-left text-sm">
                 <thead className="sticky top-0 z-10 font-bold" style={{ backgroundColor: 'var(--table-header-bg)' }}>
                     <tr className="bg-sky-600/10 border-b border-slate-700/20 opacity-60">
-                        <th className="p-4 font-black uppercase tracking-wider text-[11px] w-[15%]">วันที่บันทึก</th>
-                        <th className="p-4 font-black uppercase tracking-wider text-[11px] w-[15%]">ผู้ใช้</th>
-                        <th className="p-4 font-black uppercase tracking-wider text-[11px] w-[50%]">กิจกรรม</th>
+                        <th className="p-4 font-black uppercase tracking-wider text-[11px] w-[18%]">วันที่</th>
+                        <th className="p-4 font-black uppercase tracking-wider text-[11px] w-[12%]">รหัสพนักงาน</th>
+                        <th className="p-4 font-black uppercase tracking-wider text-[11px] w-[15%]">ผู้ดำเนินการ</th>
+                        <th className="p-4 font-black uppercase tracking-wider text-[11px] w-[18%] text-center">ประเภทการแก้ไข</th>
+                        <th className="p-4 font-black uppercase tracking-wider text-[11px] w-[37%]">รายละเอียด</th>
                     </tr>
                 </thead>
                 <tbody>
                     {activitiesLoading ? (
                         <tr>
-                            <td colSpan="3" className="p-8 text-center text-slate-500 font-bold italic">กำลังโหลดกิจกรรม...</td>
+                            <td colSpan="5" className="p-8 text-center text-slate-500 font-bold italic">กำลังโหลดประวัติการแก้ไข...</td>
                         </tr>
-                    ) : activities.length > 0 ? (
-                        activities.map(act => (
-                            <tr key={act.id} className="border-b border-slate-700/10 hover:bg-sky-600/5 transition-colors">
-                                <td className="p-4 font-mono opacity-70">{act.timestamp}</td>
-                                <td className="p-4 font-bold">{act.username}</td>
-                                <td className="p-4">{act.action_type}: {act.details}</td>
-                            </tr>
-                        ))
+                    ) : filteredActivities.length > 0 ? (
+                        filteredActivities.map(act => {
+                            const actionBadge = {
+                                'SAVE_CALCULATION': { label: 'บันทึกการคำนวณ', dark: 'bg-emerald-950/30 text-emerald-400 border-emerald-900/30', light: 'bg-emerald-50 text-emerald-600 border-emerald-200' },
+                                'CREATE_USER': { label: 'สร้างผู้ใช้', dark: 'bg-sky-950/30 text-sky-400 border-sky-900/30', light: 'bg-sky-50 text-sky-600 border-sky-200' },
+                                'UPDATE_USER': { label: 'แก้ไขผู้ใช้', dark: 'bg-amber-950/30 text-amber-400 border-amber-900/30', light: 'bg-amber-50 text-amber-600 border-amber-200' },
+                                'DELETE_USER': { label: 'ลบผู้ใช้', dark: 'bg-rose-950/30 text-rose-400 border-rose-900/30', light: 'bg-rose-50 text-rose-600 border-rose-200' },
+                                'DELETE_LOG': { label: 'ลบบันทึก', dark: 'bg-orange-950/30 text-orange-400 border-orange-900/30', light: 'bg-orange-50 text-orange-600 border-orange-200' },
+                            };
+                            const badge = actionBadge[act.action_type] || { label: act.action_type, dark: 'bg-slate-800/30 text-slate-400 border-slate-700/30', light: 'bg-slate-100 text-slate-600 border-slate-200' };
+                            return (
+                                <tr key={act.id} className="border-b border-slate-700/10 hover:bg-sky-600/5 transition-colors">
+                                    <td className="p-4 font-mono opacity-70 whitespace-nowrap">{act.timestamp}</td>
+                                    <td className="p-4 font-mono font-bold whitespace-nowrap">{act.employee_id}</td>
+                                    <td className="p-4 font-bold">{act.username}</td>
+                                    <td className="p-4 text-center">
+                                        <span className={`inline-block px-2.5 py-1 rounded-full text-[11px] font-black border tracking-wider whitespace-nowrap ${isDark ? badge.dark : badge.light}`}>
+                                            {badge.label}
+                                        </span>
+                                    </td>
+                                    <td className="p-4 text-sm opacity-80">{act.details}</td>
+                                </tr>
+                            );
+                        })
                     ) : (
                         <tr>
-                            <td colSpan="3" className="p-8 text-center text-slate-500 font-bold italic">ไม่พบกิจกรรมในระบบ</td>
+                            <td colSpan="5" className="p-8 text-center text-slate-500 font-bold italic">ไม่พบประวัติการแก้ไขข้อมูลในระบบ</td>
                         </tr>
                     )}
                 </tbody>

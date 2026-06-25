@@ -6,6 +6,9 @@ export default {
     ],
     theme: {
         extend: {
+            fontFamily: {
+                sans: ['"Noto Sans Thai"', 'sans-serif'],
+            },
             animation: {
                 'pop': 'popIn 0.4s ease-out forwards',
                 'row-in': 'rowSlideIn 0.5s ease-out forwards',
