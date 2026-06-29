@@ -339,7 +339,8 @@ const AdminUsers = ({ currentUser, setCurrentUser, onBack, showNotification, the
                 { headers: { 'x-employee-id': currentUser.employee_id } }
             );
             if (res.data.success) {
-                showNotification(res.data.message || `เปลี่ยนสถานะเป็น ${statusText} สำเร็จ`, "success");
+                const notificationType = newStatus === 0 ? "error" : "success";
+                showNotification(res.data.message || `เปลี่ยนสถานะเป็น ${statusText} สำเร็จ`, notificationType);
                 fetchUsers();
             }
         } catch (err) {
