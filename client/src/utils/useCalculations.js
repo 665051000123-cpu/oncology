@@ -42,11 +42,11 @@ export const useCalculations = () => {
                 // If GFR is empty or invalid, return NaN to signal incomplete data
                 if (isNaN(usedGfr)) {
                     dose = NaN;
-                    note = 'Waiting for GFR value...';
+                    note = 'Waiting for eGFR value...';
                 } else {
                     if (usedGfr > 125) {
                         usedGfr = 125;
-                        note = 'GFR capped at 125 ml/min';
+                        note = 'eGFR capped at 125 ml/min';
                     }
                     dose = auc * (usedGfr + 25);
                 }

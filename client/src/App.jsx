@@ -80,7 +80,7 @@ function App() {
             id: 'carboplatin',
             name: 'CARBOPLATIN',
             desc: 'คำนวณผ่าน Calvert Formula',
-            details: 'Dose = Target AUC × (GFR + 25) (จำกัดค่า GFR สูงสุดไม่เกิน 125 ml/min เพื่อป้องกันภาวะเป็นพิษจากยา)',
+            details: 'Dose = Target AUC × (eGFR + 25) (จำกัดค่า eGFR สูงสุดไม่เกิน 125 ml/min เพื่อป้องกันภาวะเป็นพิษจากยา)',
             color: 'amber'
         },
         {
@@ -842,8 +842,8 @@ function App() {
                                                     <div className="mt-3 p-3 rounded-lg bg-white/60 dark:bg-black/30 border border-slate-200 dark:border-white/5">
                                                         <p className="text-xs font-semibold text-slate-700 dark:text-slate-200 leading-relaxed">
                                                             {selectedRegimen === 'cv'
-                                                                ? 'Carboplatin คำนวณตาม Calvert Formula (Target AUC × (GFR + 25)) และ Vincristine คำนวณตามพื้นที่ผิว (BSA × 1.4 mg/m² พร้อม Dose Cap 2.0 mg)'
-                                                                : 'Bleomycin ถูกคำนวณตามขนาดยาคงที่ (Fixed Dose 30 units) และ Carboplatin คำนวณตาม Calvert Formula (Target AUC × (GFR + 25))'}
+                                                                ? 'Carboplatin คำนวณตาม Calvert Formula (Target AUC × (eGFR + 25)) และ Vincristine คำนวณตามพื้นที่ผิว (BSA × 1.4 mg/m² พร้อม Dose Cap 2.0 mg)'
+                                                                : 'Bleomycin ถูกคำนวณตามขนาดยาคงที่ (Fixed Dose 30 units) และ Carboplatin คำนวณตาม Calvert Formula (Target AUC × (eGFR + 25))'}
                                                         </p>
                                                     </div>
                                                 </div>
@@ -885,7 +885,7 @@ function App() {
                                                                     : 'text-slate-600 hover:text-slate-900'
                                                                 }`}
                                                         >
-                                                            กรอก GFR เอง (Manual GFR)
+                                                            กรอก eGFR เอง (Manual eGFR)
                                                         </button>
                                                         <button
                                                             type="button"
@@ -897,7 +897,7 @@ function App() {
                                                                     : 'text-slate-600 hover:text-slate-900'
                                                                 }`}
                                                         >
-                                                            คำนวณอัตโนมัติ (Auto GFR)
+                                                            คำนวณอัตโนมัติ (Auto eGFR)
                                                         </button>
                                                     </div>
                                                 </div>
@@ -966,7 +966,7 @@ function App() {
                                                         </div>
                                                     </div>
                                                     <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg flex flex-col items-center justify-center gap-1 text-center">
-                                                        <span className={`text-xs font-bold ${theme === 'dark' ? 'text-emerald-400' : 'text-emerald-700'}`}>ผลการคำนวณ GFR (Calculated GFR)</span>
+                                                        <span className={`text-xs font-bold ${theme === 'dark' ? 'text-emerald-400' : 'text-emerald-700'}`}>ผลการคำนวณ eGFR (Calculated eGFR)</span>
                                                         <span className={`text-base font-black ${theme === 'dark' ? 'text-emerald-400' : 'text-emerald-700'}`}>
                                                             {autoGfrValue !== null ? `${autoGfrValue} ml/min` : 'รอข้อมูลครบถ้วน... (Awaiting Data...)'}
                                                         </span>
