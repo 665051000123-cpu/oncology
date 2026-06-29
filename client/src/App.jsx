@@ -975,9 +975,9 @@ function App() {
                                                             />
                                                         </div>
                                                     </div>
-                                                    <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg flex justify-between items-center">
-                                                        <span className={`text-xs font-bold ${theme === 'dark' ? 'text-emerald-400' : 'text-emerald-700'}`}>ผลการคำนวณ GFR (Calculated GFR):</span>
-                                                        <span className={`text-lg font-black ${theme === 'dark' ? 'text-emerald-400' : 'text-emerald-700'}`}>
+                                                    <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg flex flex-col items-center justify-center gap-1 text-center">
+                                                        <span className={`text-xs font-bold ${theme === 'dark' ? 'text-emerald-400' : 'text-emerald-700'}`}>ผลการคำนวณ GFR (Calculated GFR)</span>
+                                                        <span className={`text-base font-black ${theme === 'dark' ? 'text-emerald-400' : 'text-emerald-700'}`}>
                                                             {autoGfrValue !== null ? `${autoGfrValue} ml/min` : 'รอข้อมูลครบถ้วน... (Awaiting Data...)'}
                                                         </span>
                                                     </div>
