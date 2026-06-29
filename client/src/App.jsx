@@ -15,7 +15,7 @@ function App() {
     const [step, setStep] = useState('auth'); // 'auth', 'login' (patient check-in), 'workspace'
     const [user, setUser] = useState(null);
     const [loginData, setLoginData] = useState({ username: '', password: '' });
-    const [patient, setPatient] = useState({ hn: '', name: '', height: '', weight: '', gender: '', age: '' });
+    const [patient, setPatient] = useState({ hn: 'H.N.', name: '', height: '', weight: '', gender: '', age: '' });
     const [logs, setLogs] = useState([]);
     const [notification, setNotification] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
@@ -326,8 +326,8 @@ function App() {
     };
 
     const handlePatientCheckIn = () => {
-        if (!patient.hn || !patient.height || !patient.weight) {
-            showNotification("กรุณากรอกข้อมูลที่จำเป็นให้ครบถ้วน", "error");
+        if (!patient.hn || patient.hn.trim() === "H.N." || !patient.height || !patient.weight) {
+            showNotification("กรุณากรอกข้อมูลที่จำเป็นให้ครบถ้วน (รหัส H.N. ผู้ป่วย, ส่วนสูง, น้ำหนัก)", "error");
             return;
         }
         const h = parseFloat(patient.height);
@@ -589,7 +589,24 @@ function App() {
                             </div>
                         </div>
                         <div className="space-y-4">
-                            <input type="text" placeholder="H.N. ผู้ป่วย" required className="form-control" onChange={e => setPatient({ ...patient, hn: e.target.value })} />
+                            <input 
+                                type="text" 
+                                placeholder="H.N. ผู้ป่วย" 
+                                required 
+                                className="form-control" 
+                                value={patient.hn}
+                                onChange={e => {
+                                    let val = e.target.value;
+                                    if (!val.startsWith("H.N.")) {
+                                        if (val === "" || val.length < 4) {
+                                            val = "H.N.";
+                                        } else {
+                                            val = "H.N." + val.replace(/^H\.N\./, "");
+                                        }
+                                    }
+                                    setPatient({ ...patient, hn: val });
+                                }}
+                            />
                             <div className="grid grid-cols-4 gap-4">
                                 <div className="col-span-3">
                                     <input type="text" placeholder="ชื่อ-นามสกุล" className="form-control" onChange={e => setPatient({ ...patient, name: e.target.value })} />
@@ -634,7 +651,7 @@ function App() {
                                 <p className="text-slate-400">H: {patient.height} cm | W: {patient.weight} kg | อายุ: {patient.age ? `${patient.age} ปี` : '-'} | เพศ: {patient.gender === 'female' ? 'หญิง (Female)' : patient.gender === 'male' ? 'ชาย (Male)' : '-'}</p>
                             </div>
                             <button onClick={() => {
-                                setPatient({ hn: '', name: '', height: '', weight: '', gender: '', age: '' });
+                                setPatient({ hn: 'H.N.', name: '', height: '', weight: '', gender: '', age: '' });
                                 setPatientScr('');
                                 setUseAutoGfr(false);
                                 setAmputation('none');
