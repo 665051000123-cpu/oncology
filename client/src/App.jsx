@@ -895,7 +895,7 @@ function App() {
                                                                     : 'text-slate-600 hover:text-slate-900'
                                                                 }`}
                                                         >
-                                                            กรอก GFR เอง
+                                                            กรอก GFR เอง (Manual GFR)
                                                         </button>
                                                         <button
                                                             type="button"
@@ -907,7 +907,7 @@ function App() {
                                                                     : 'text-slate-600 hover:text-slate-900'
                                                                 }`}
                                                         >
-                                                            คำนวณอัตโนมัติ
+                                                            คำนวณอัตโนมัติ (Auto GFR)
                                                         </button>
                                                     </div>
                                                 </div>
@@ -946,9 +946,9 @@ function App() {
                                                     }`}>
                                                     <div className="space-y-1.5">
                                                         <div className="grid grid-cols-3 gap-3 items-end">
-                                                            <label className="block text-xs font-bold text-slate-400 ml-1">อายุ (ปี)</label>
+                                                            <label className="block text-xs font-bold text-slate-400 ml-1">อายุ (ปี) (Age)</label>
                                                             <label className="block text-xs font-bold text-slate-400 ml-1">ครีอะตินีนในเลือด (Scr, mg/dL)</label>
-                                                            <label className="block text-xs font-bold text-slate-400 ml-1">เพศ</label>
+                                                            <label className="block text-xs font-bold text-slate-400 ml-1">เพศ (Gender)</label>
                                                         </div>
                                                         <div className="grid grid-cols-3 gap-3">
                                                             <input
@@ -976,9 +976,9 @@ function App() {
                                                         </div>
                                                     </div>
                                                     <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg flex justify-between items-center">
-                                                        <span className={`text-xs font-bold ${theme === 'dark' ? 'text-emerald-400' : 'text-emerald-700'}`}>ผลการคำนวณ GFR:</span>
+                                                        <span className={`text-xs font-bold ${theme === 'dark' ? 'text-emerald-400' : 'text-emerald-700'}`}>ผลการคำนวณ GFR (Calculated GFR):</span>
                                                         <span className={`text-lg font-black ${theme === 'dark' ? 'text-emerald-400' : 'text-emerald-700'}`}>
-                                                            {autoGfrValue !== null ? `${autoGfrValue} ml/min` : 'รอข้อมูลครบถ้วน...'}
+                                                            {autoGfrValue !== null ? `${autoGfrValue} ml/min` : 'รอข้อมูลครบถ้วน... (Awaiting Data...)'}
                                                         </span>
                                                     </div>
                                                     {autoGfrValue > 125 && (
