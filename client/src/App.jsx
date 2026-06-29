@@ -944,9 +944,13 @@ function App() {
                                                     ? 'bg-slate-800/40 border-slate-700/50'
                                                     : 'bg-white border-slate-200 shadow-sm'
                                                     }`}>
-                                                    <div className="grid grid-cols-3 gap-3">
-                                                        <div>
-                                                            <label className="block text-xs font-bold text-slate-400 mb-1">อายุ (ปี)</label>
+                                                    <div className="space-y-1.5">
+                                                        <div className="grid grid-cols-3 gap-3 items-end">
+                                                            <label className="block text-xs font-bold text-slate-400 ml-1">อายุ (ปี)</label>
+                                                            <label className="block text-xs font-bold text-slate-400 ml-1">ครีอะตินีนในเลือด (Scr, mg/dL)</label>
+                                                            <label className="block text-xs font-bold text-slate-400 ml-1">เพศ</label>
+                                                        </div>
+                                                        <div className="grid grid-cols-3 gap-3">
                                                             <input
                                                                 type="number"
                                                                 placeholder="Age"
@@ -954,9 +958,6 @@ function App() {
                                                                 className="form-control text-sm"
                                                                 onChange={e => setPatient({ ...patient, age: e.target.value })}
                                                             />
-                                                        </div>
-                                                        <div>
-                                                            <label className="block text-xs font-bold text-slate-400 mb-1">ครีอะตินีนในเลือด (Scr, mg/dL)</label>
                                                             <input
                                                                 type="number"
                                                                 placeholder="ระบุค่า Scr"
@@ -965,9 +966,6 @@ function App() {
                                                                 className="form-control text-sm"
                                                                 onChange={e => setPatientScr(e.target.value)}
                                                             />
-                                                        </div>
-                                                        <div>
-                                                            <label className="block text-xs font-bold text-slate-400 mb-1">เพศ</label>
                                                             <input
                                                                 type="text"
                                                                 readOnly
