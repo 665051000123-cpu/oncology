@@ -1143,7 +1143,7 @@ const AdminUsers = ({ currentUser, setCurrentUser, onBack, showNotification, the
                             : 'bg-slate-50 border-slate-200 shadow-inner'
                             }`}>
                             <div>
-                                <label className="block text-[10px] font-black text-slate-400 mb-1.5 uppercase">วันที่เริ่มต้น (Start Date)</label>
+                                <label className="block text-xs font-black text-slate-400 mb-1.5 uppercase">วันที่เริ่มต้น (Start Date)</label>
                                 <input
                                     type="text"
                                     placeholder="วว/ดด/ปปปป (เช่น 24/06/2569)"
@@ -1153,7 +1153,7 @@ const AdminUsers = ({ currentUser, setCurrentUser, onBack, showNotification, the
                                 />
                             </div>
                             <div>
-                                <label className="block text-[10px] font-black text-slate-400 mb-1.5 uppercase">วันที่สิ้นสุด (End Date)</label>
+                                <label className="block text-xs font-black text-slate-400 mb-1.5 uppercase">วันที่สิ้นสุด (End Date)</label>
                                 <input
                                     type="text"
                                     placeholder="วว/ดด/ปปปป (เช่น 24/06/2569)"
@@ -1163,7 +1163,7 @@ const AdminUsers = ({ currentUser, setCurrentUser, onBack, showNotification, the
                                 />
                             </div>
                             <div>
-                                <label className="block text-[10px] font-black text-slate-400 mb-1.5 uppercase">บทบาท (Role)</label>
+                                <label className="block text-xs font-black text-slate-400 mb-1.5 uppercase">บทบาท (Role)</label>
                                 <select
                                     value={logRoleFilter}
                                     onChange={e => setLogRoleFilter(e.target.value)}
@@ -1175,7 +1175,7 @@ const AdminUsers = ({ currentUser, setCurrentUser, onBack, showNotification, the
                                 </select>
                             </div>
                             <div>
-                                <label className="block text-[10px] font-black text-slate-400 mb-1.5 uppercase">ประเภทกิจกรรม</label>
+                                <label className="block text-xs font-black text-slate-400 mb-1.5 uppercase">ประเภทกิจกรรม</label>
                                 <select
                                     value={logActionFilter}
                                     onChange={e => setLogActionFilter(e.target.value)}
@@ -1308,7 +1308,7 @@ const AdminUsers = ({ currentUser, setCurrentUser, onBack, showNotification, the
                 : 'bg-slate-50 border-slate-200 shadow-inner'
                 }`}>
                 <div>
-                    <label className="block text-[10px] font-black text-slate-400 mb-1.5 uppercase">วันที่เริ่มต้น (Start Date)</label>
+                    <label className="block text-xs font-black text-slate-400 mb-1.5 uppercase">วันที่เริ่มต้น (Start Date)</label>
                     <input
                         type="text"
                         placeholder="วว/ดด/ปปปป (เช่น 24/06/2569)"
@@ -1318,7 +1318,7 @@ const AdminUsers = ({ currentUser, setCurrentUser, onBack, showNotification, the
                     />
                 </div>
                 <div>
-                    <label className="block text-[10px] font-black text-slate-400 mb-1.5 uppercase">วันที่สิ้นสุด (End Date)</label>
+                    <label className="block text-xs font-black text-slate-400 mb-1.5 uppercase">วันที่สิ้นสุด (End Date)</label>
                     <input
                         type="text"
                         placeholder="วว/ดด/ปปปป (เช่น 24/06/2569)"
@@ -1328,7 +1328,7 @@ const AdminUsers = ({ currentUser, setCurrentUser, onBack, showNotification, the
                     />
                 </div>
                 <div>
-                    <label className="block text-[10px] font-black text-slate-400 mb-1.5 uppercase">ประเภทการแก้ไข</label>
+                    <label className="block text-xs font-black text-slate-400 mb-1.5 uppercase">ประเภทการแก้ไข</label>
                     <select
                         value={activityActionFilter}
                         onChange={e => setActivityActionFilter(e.target.value)}

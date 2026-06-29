@@ -946,7 +946,7 @@ function App() {
                                                     }`}>
                                                     <div className="grid grid-cols-3 gap-3">
                                                         <div>
-                                                            <label className="block text-[10px] font-bold text-slate-400 mb-1">อายุ (ปี)</label>
+                                                            <label className="block text-xs font-bold text-slate-400 mb-1">อายุ (ปี)</label>
                                                             <input
                                                                 type="number"
                                                                 placeholder="Age"
@@ -956,7 +956,7 @@ function App() {
                                                             />
                                                         </div>
                                                         <div>
-                                                            <label className="block text-[10px] font-bold text-slate-400 mb-1">ครีอะตินีนในเลือด (Scr, mg/dL)</label>
+                                                            <label className="block text-xs font-bold text-slate-400 mb-1">ครีอะตินีนในเลือด (Scr, mg/dL)</label>
                                                             <input
                                                                 type="number"
                                                                 placeholder="ระบุค่า Scr"
@@ -967,7 +967,7 @@ function App() {
                                                             />
                                                         </div>
                                                         <div>
-                                                            <label className="block text-[10px] font-bold text-slate-400 mb-1">เพศ</label>
+                                                            <label className="block text-xs font-bold text-slate-400 mb-1">เพศ</label>
                                                             <input
                                                                 type="text"
                                                                 readOnly
@@ -978,8 +978,8 @@ function App() {
                                                         </div>
                                                     </div>
                                                     <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg flex justify-between items-center">
-                                                        <span className="text-xs font-bold text-emerald-400">ผลการคำนวณ GFR:</span>
-                                                        <span className="text-lg font-black text-emerald-400">
+                                                        <span className={`text-xs font-bold ${theme === 'dark' ? 'text-emerald-400' : 'text-emerald-700'}`}>ผลการคำนวณ GFR:</span>
+                                                        <span className={`text-lg font-black ${theme === 'dark' ? 'text-emerald-400' : 'text-emerald-700'}`}>
                                                             {autoGfrValue !== null ? `${autoGfrValue} ml/min` : 'รอข้อมูลครบถ้วน...'}
                                                         </span>
                                                     </div>
@@ -1102,7 +1102,7 @@ function App() {
                                     : 'bg-slate-50 border-slate-200 shadow-inner'
                                     }`}>
                                     <div>
-                                        <label className="block text-[10px] font-black text-slate-400 mb-1.5 uppercase">วันที่เริ่มต้น (Start Date)</label>
+                                        <label className="block text-xs font-black text-slate-400 mb-1.5 uppercase">วันที่เริ่มต้น (Start Date)</label>
                                         <input
                                             type="text"
                                             placeholder="วว/ดด/ปปปป (เช่น 24/06/2569)"
@@ -1112,7 +1112,7 @@ function App() {
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-[10px] font-black text-slate-400 mb-1.5 uppercase">วันที่สิ้นสุด (End Date)</label>
+                                        <label className="block text-xs font-black text-slate-400 mb-1.5 uppercase">วันที่สิ้นสุด (End Date)</label>
                                         <input
                                             type="text"
                                             placeholder="วว/ดด/ปปปป (เช่น 24/06/2569)"
@@ -1122,7 +1122,7 @@ function App() {
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-[10px] font-black text-slate-400 mb-1.5 uppercase">สูตรคำนวณ (Formula)</label>
+                                        <label className="block text-xs font-black text-slate-400 mb-1.5 uppercase">สูตรคำนวณ (Formula)</label>
                                         <select
                                             value={formulaFilter}
                                             onChange={e => setFormulaFilter(e.target.value)}
@@ -1135,7 +1135,7 @@ function App() {
                                         </select>
                                     </div>
                                     <div>
-                                        <label className="block text-[10px] font-black text-slate-400 mb-1.5 uppercase">ผู้บันทึก (Pharmacist)</label>
+                                        <label className="block text-xs font-black text-slate-400 mb-1.5 uppercase">ผู้บันทึก (Pharmacist)</label>
                                         <select
                                             value={pharmacistFilter}
                                             onChange={e => setPharmacistFilter(e.target.value)}
