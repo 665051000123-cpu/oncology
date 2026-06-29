@@ -303,7 +303,7 @@ const DrugsInfo = ({ currentUser, onBack, showNotification, theme }) => {
                                     <th className="p-4 text-[11px] font-black uppercase tracking-wider opacity-60 w-[12%]">ขนาดยามาตรฐาน</th>
                                     <th className="p-4 text-[11px] font-black uppercase tracking-wider opacity-60 w-[10%]">หน่วย</th>
                                     <th className="p-4 text-[11px] font-black uppercase tracking-wider opacity-60 w-[10%] text-center">Dose Cap</th>
-                                    <th className="p-4 text-[11px] font-black uppercase tracking-wider opacity-60 w-[10%] text-center">eGFR Cap</th>
+                                    <th className="p-4 text-[11px] font-black tracking-wider opacity-60 w-[10%] text-center">eGFR CAP</th>
                                     <th className="p-4 text-[11px] font-black uppercase tracking-wider opacity-60 w-[10%] text-center">น้ำหนักที่ใช้</th>
                                     <th className="p-4 text-[11px] font-black uppercase tracking-wider opacity-60 w-[8%] text-center">สถานะ</th>
                                     {isAdmin && (
@@ -516,7 +516,7 @@ const DrugsInfo = ({ currentUser, onBack, showNotification, theme }) => {
                                     />
                                 </div>
                                 <div>
-                                    <label className="block text-xs font-black opacity-70 mb-1.5 uppercase ml-1">Max eGFR Cap (ml/min)</label>
+                                    <label className="block text-xs font-black opacity-70 mb-1.5 ml-1">MAX eGFR CAP (ml/min)</label>
                                     <input
                                         type="number"
                                         placeholder="เช่น 125"
@@ -638,7 +638,7 @@ const DrugsInfo = ({ currentUser, onBack, showNotification, theme }) => {
                                         {drug.max_dose_cap !== null && <p className="text-[10px] font-bold opacity-50">mg</p>}
                                     </div>
                                     <div className="text-center">
-                                        <p className="text-[9px] font-bold uppercase opacity-50 mb-0.5">eGFR Cap</p>
+                                        <p className="text-[9px] font-bold opacity-50 mb-0.5">eGFR CAP</p>
                                         <p className={`font-black text-lg ${drug.max_gfr_cap ? (isDark ? 'text-amber-400' : 'text-amber-600') : 'opacity-30'}`}>
                                             {drug.max_gfr_cap !== null && drug.max_gfr_cap !== undefined ? drug.max_gfr_cap : '-'}
                                         </p>
