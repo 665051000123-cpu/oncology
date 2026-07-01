@@ -64,7 +64,7 @@ export const useCalculations = () => {
                 dose = 0;
         }
 
-        const finalDoseValue = isNaN(dose) ? 'NaN' : dose.toFixed(2);
+        const finalDoseValue = isNaN(dose) ? 'ว่าง' : dose.toFixed(2);
         return { dose: finalDoseValue, note };
     }, []);
 

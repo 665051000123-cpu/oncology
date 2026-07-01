@@ -249,7 +249,12 @@
                 <div class="layer-header">ผู้ใช้งาน (Users)</div>
                 <div class="user-node">
                     <i class="fa-solid fa-user-md"></i>
-                    <div>เภสัชกร / แพทย์</div>
+                    <div>หัวหน้าเภสัชกร</div>
+                </div>
+		<div class="user-node-divider"></div>
+                <div class="user-node">
+                    <i class="fa-solid fa-prescription-bottle-medical"></i>
+                    <div>เภสัชกร</div>
                 </div>
                 <div class="user-node-divider"></div>
                 <div class="user-node">
@@ -297,6 +302,12 @@
                         <h4>Clinical Warning</h4>
                         <p>เตือนเมื่อ eGFR &lt; 15 / Capped eGFR 125</p>
                     </div>
+			<div class="module-item">
+                        <i class="fa-solid fa-capsules"></i>
+                        <h4>Stock</h4>
+                        <p>สามาเพิ่มยาลงในคลังได้</p>
+                    </div>
+
                 </div>
 
                 <div class="tech-sub-layer">
@@ -331,6 +342,7 @@
                         <li><i class="fa-solid fa-table"></i> users (สิทธิ์ผู้ใช้ + Hashed)</li>
                         <li><i class="fa-solid fa-table"></i> dosage_logs (ประวัติคำนวณ)</li>
                         <li><i class="fa-solid fa-table"></i> activity_logs (Audit Trail)</li>
+			<li><i class="fa-solid fa-table"></i> drugs (เวชภัณฑ์)</li>
                     </ul>
                 </div>
 

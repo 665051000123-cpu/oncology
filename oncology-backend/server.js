@@ -123,6 +123,10 @@ const Drug = sequelize.define('Drug', {
         primaryKey: true,
         autoIncrement: true
     },
+    drug_code: {
+        type: DataTypes.STRING(50),
+        allowNull: true
+    },
     drug_name: {
         type: DataTypes.STRING(100),
         allowNull: false,
@@ -329,6 +333,24 @@ async function requireAdmin(req, res, next) {
         const user = await User.findOne({ where: { employee_id: employeeId } });
         if (!user || user.role.toUpperCase() !== 'ADMIN') {
             return res.status(403).json({ success: false, message: 'Admin access required' });
+        }
+        next();
+    } catch (err) {
+        console.error('❌ Role check error:', err);
+        res.status(500).json({ success: false, message: 'Database error during role check' });
+    }
+}
+
+// Middleware to verify admin or chief role based on employee_id header
+async function requireChiefOrAdmin(req, res, next) {
+    try {
+        const employeeId = req.headers['x-employee-id'];
+        if (!employeeId) {
+            return res.status(401).json({ success: false, message: 'Missing employee ID header' });
+        }
+        const user = await User.findOne({ where: { employee_id: employeeId } });
+        if (!user || (user.role.toUpperCase() !== 'ADMIN' && user.role.toUpperCase() !== 'CHIEF')) {
+            return res.status(403).json({ success: false, message: 'Admin or Chief Pharmacist access required' });
         }
         next();
     } catch (err) {
@@ -705,9 +727,9 @@ app.get('/api/drugs', async (req, res) => {
 });
 
 // 👥 Admin Drug Management APIs
-app.post('/api/admin/drugs', requireAdmin, async (req, res) => {
+app.post('/api/admin/drugs', requireChiefOrAdmin, async (req, res) => {
     try {
-        const { drug_name, calculation_type, default_weight_type, standard_dose_value, standard_dose_unit, max_dose_cap, max_bsa_cap, max_gfr_cap, is_active } = req.body;
+        const { drug_code, drug_name, calculation_type, default_weight_type, standard_dose_value, standard_dose_unit, max_dose_cap, max_bsa_cap, max_gfr_cap, is_active } = req.body;
         const employeeId = req.headers['x-employee-id'];
         
         if (!drug_name || !calculation_type) {
@@ -715,6 +737,7 @@ app.post('/api/admin/drugs', requireAdmin, async (req, res) => {
         }
 
         const newDrug = await Drug.create({
+            drug_code: drug_code || null,
             drug_name,
             calculation_type,
             default_weight_type: default_weight_type || 'ACTUAL',
@@ -737,10 +760,10 @@ app.post('/api/admin/drugs', requireAdmin, async (req, res) => {
     }
 });
 
-app.put('/api/admin/drugs/:id', requireAdmin, async (req, res) => {
+app.put('/api/admin/drugs/:id', requireChiefOrAdmin, async (req, res) => {
     try {
         const drugId = req.params.id;
-        const { drug_name, calculation_type, default_weight_type, standard_dose_value, standard_dose_unit, max_dose_cap, max_bsa_cap, max_gfr_cap, is_active } = req.body;
+        const { drug_code, drug_name, calculation_type, default_weight_type, standard_dose_value, standard_dose_unit, max_dose_cap, max_bsa_cap, max_gfr_cap, is_active } = req.body;
         const employeeId = req.headers['x-employee-id'];
 
         if (!drug_name || !calculation_type) {
@@ -748,6 +771,7 @@ app.put('/api/admin/drugs/:id', requireAdmin, async (req, res) => {
         }
 
         await Drug.update({
+            drug_code: drug_code || null,
             drug_name,
             calculation_type,
             default_weight_type,
@@ -770,7 +794,7 @@ app.put('/api/admin/drugs/:id', requireAdmin, async (req, res) => {
     }
 });
 
-app.delete('/api/admin/drugs/:id', requireAdmin, async (req, res) => {
+app.delete('/api/admin/drugs/:id', requireChiefOrAdmin, async (req, res) => {
     try {
         const drugId = req.params.id;
         const employeeId = req.headers['x-employee-id'];

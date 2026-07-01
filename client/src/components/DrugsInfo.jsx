@@ -9,12 +9,13 @@ const DrugsInfo = ({ currentUser, onBack, showNotification, theme }) => {
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const isDark = theme === 'dark';
-    const isAdmin = currentUser?.role?.toUpperCase() === 'ADMIN';
+    const isAdmin = currentUser?.role?.toUpperCase() === 'ADMIN' || currentUser?.role?.toUpperCase() === 'CHIEF';
 
     // Form Modal states
     const [showFormModal, setShowFormModal] = useState(false);
     const [editingDrug, setEditingDrug] = useState(null);
     const [drugForm, setDrugForm] = useState({
+        drug_code: '',
         drug_name: '',
         calculation_type: 'BSA',
         default_weight_type: 'ACTUAL',
@@ -49,6 +50,7 @@ const DrugsInfo = ({ currentUser, onBack, showNotification, theme }) => {
     const handleOpenAddModal = () => {
         setEditingDrug(null);
         setDrugForm({
+            drug_code: '',
             drug_name: '',
             calculation_type: 'BSA',
             default_weight_type: 'ACTUAL',
@@ -65,6 +67,7 @@ const DrugsInfo = ({ currentUser, onBack, showNotification, theme }) => {
     const handleOpenEditModal = (drug) => {
         setEditingDrug(drug);
         setDrugForm({
+            drug_code: drug.drug_code || '',
             drug_name: drug.drug_name || '',
             calculation_type: drug.calculation_type || 'BSA',
             default_weight_type: drug.default_weight_type || 'ACTUAL',
@@ -87,6 +90,7 @@ const DrugsInfo = ({ currentUser, onBack, showNotification, theme }) => {
 
         const payload = {
             ...drugForm,
+            drug_code: drugForm.drug_code.toUpperCase().trim() || null,
             drug_name: drugForm.drug_name.toUpperCase().trim(),
             standard_dose_value: drugForm.standard_dose_value === '' ? null : parseFloat(drugForm.standard_dose_value),
             max_dose_cap: drugForm.max_dose_cap === '' ? null : parseFloat(drugForm.max_dose_cap),
@@ -148,6 +152,7 @@ const DrugsInfo = ({ currentUser, onBack, showNotification, theme }) => {
         if (!searchQuery.trim()) return true;
         const q = searchQuery.toLowerCase();
         return (
+            d.drug_code?.toLowerCase().includes(q) ||
             d.drug_name?.toLowerCase().includes(q) ||
             d.calculation_type?.toLowerCase().includes(q) ||
             d.standard_dose_unit?.toLowerCase().includes(q)
@@ -156,10 +161,10 @@ const DrugsInfo = ({ currentUser, onBack, showNotification, theme }) => {
 
     const getCalcTypeLabel = (type) => {
         switch (type) {
-            case 'BSA': return 'คำนวณตาม BSA';
-            case 'CALVERT_FORMULA': return 'Calvert Formula';
-            case 'FIXED_DOSE': return 'ขนาดคงที่ (Fixed)';
-            case 'WEIGHT_BASED': return 'คำนวณตามน้ำหนัก';
+            case 'BSA': return 'BSA';
+            case 'CALVERT_FORMULA': return 'Calvert';
+            case 'FIXED_DOSE': return 'Fixed Dose';
+            case 'WEIGHT_BASED': return 'ตามน้ำหนัก';
             default: return type;
         }
     };
@@ -297,17 +302,18 @@ const DrugsInfo = ({ currentUser, onBack, showNotification, theme }) => {
                         <table className="w-full text-left text-sm">
                             <thead>
                                 <tr className={`border-b ${isDark ? 'bg-slate-800/60 border-slate-700/50' : 'bg-slate-50 border-slate-200'}`}>
-                                    <th className="p-4 text-[11px] font-black uppercase tracking-wider opacity-60 w-[5%]">#</th>
-                                    <th className="p-4 text-[11px] font-black uppercase tracking-wider opacity-60 w-[20%]">ชื่อยา</th>
-                                    <th className="p-4 text-[11px] font-black uppercase tracking-wider opacity-60 w-[15%]">ประเภทการคำนวณ</th>
-                                    <th className="p-4 text-[11px] font-black uppercase tracking-wider opacity-60 w-[12%]">ขนาดยามาตรฐาน</th>
-                                    <th className="p-4 text-[11px] font-black uppercase tracking-wider opacity-60 w-[10%]">หน่วย</th>
-                                    <th className="p-4 text-[11px] font-black uppercase tracking-wider opacity-60 w-[10%] text-center">Dose Cap</th>
-                                    <th className="p-4 text-[11px] font-black tracking-wider opacity-60 w-[10%] text-center">eGFR CAP</th>
-                                    <th className="p-4 text-[11px] font-black uppercase tracking-wider opacity-60 w-[10%] text-center">น้ำหนักที่ใช้</th>
-                                    <th className="p-4 text-[11px] font-black uppercase tracking-wider opacity-60 w-[8%] text-center">สถานะ</th>
+                                    <th className="px-2.5 py-3 text-[11px] font-black uppercase tracking-wider opacity-60 w-[3%]">#</th>
+                                    <th className="px-2.5 py-3 text-[11px] font-black uppercase tracking-wider opacity-60 w-[10%]">CODE</th>
+                                    <th className="px-2.5 py-3 text-[11px] font-black uppercase tracking-wider opacity-60 w-[15%]">ชื่อยา</th>
+                                    <th className="px-2.5 py-3 text-[11px] font-black uppercase tracking-wider opacity-60 w-[13%]">ประเภทการคำนวณ</th>
+                                    <th className="px-2.5 py-3 text-[11px] font-black uppercase tracking-wider opacity-60 w-[10%]">ขนาดยามาตรฐาน</th>
+                                    <th className="px-2.5 py-3 text-[11px] font-black uppercase tracking-wider opacity-60 w-[7%]">หน่วย</th>
+                                    <th className="px-2.5 py-3 text-[11px] font-black uppercase tracking-wider opacity-60 w-[9%] text-center">Dose Cap</th>
+                                    <th className="px-2.5 py-3 text-[11px] font-black tracking-wider opacity-60 w-[9%] text-center">eGFR CAP</th>
+                                    <th className="px-2.5 py-3 text-[11px] font-black uppercase tracking-wider opacity-60 w-[9%] text-center">น้ำหนักที่ใช้</th>
+                                    <th className="px-2.5 py-3 text-[11px] font-black uppercase tracking-wider opacity-60 w-[7%] text-center">สถานะ</th>
                                     {isAdmin && (
-                                        <th className="p-4 text-[11px] font-black uppercase tracking-wider opacity-60 w-[10%] text-center">การจัดการ</th>
+                                        <th className="px-2.5 py-3 text-[11px] font-black uppercase tracking-wider opacity-60 w-[8%] text-center">การจัดการ</th>
                                     )}
                                 </tr>
                             </thead>
@@ -320,38 +326,41 @@ const DrugsInfo = ({ currentUser, onBack, showNotification, theme }) => {
                                             : 'border-slate-100 hover:bg-sky-50/50'
                                         }`}
                                     >
-                                        <td className="p-4 font-mono text-xs opacity-50">{idx + 1}</td>
-                                        <td className="p-4">
-                                            <div className="flex items-center gap-3">
-                                                <div className={`w-9 h-9 rounded-xl flex items-center justify-center font-black text-xs shrink-0 ${
+                                        <td className="px-2.5 py-3 font-mono text-xs opacity-50">{idx + 1}</td>
+                                        <td className="px-2.5 py-3 font-bold text-xs text-sky-500 dark:text-sky-400">
+                                            {drug.drug_code || <span className="opacity-45 font-normal italic">ไม่มีโค้ด</span>}
+                                        </td>
+                                        <td className="px-2.5 py-3">
+                                            <div className="flex items-center gap-2">
+                                                <div className={`w-7.5 h-7.5 rounded-lg flex items-center justify-center font-black text-xs shrink-0 ${
                                                     drug.calculation_type === 'BSA' ? (isDark ? 'bg-sky-950/60 text-sky-400' : 'bg-sky-100 text-sky-600')
                                                     : drug.calculation_type === 'CALVERT_FORMULA' ? (isDark ? 'bg-amber-950/60 text-amber-400' : 'bg-amber-100 text-amber-600')
                                                     : drug.calculation_type === 'FIXED_DOSE' ? (isDark ? 'bg-purple-950/60 text-purple-400' : 'bg-purple-100 text-purple-600')
                                                     : (isDark ? 'bg-emerald-950/60 text-emerald-400' : 'bg-emerald-100 text-emerald-600')
                                                 }`}>
-                                                    <Pill size={16} />
+                                                    <Pill size={14} />
                                                 </div>
                                                 <div>
                                                     <p className="font-black text-sm uppercase tracking-wide">{drug.drug_name}</p>
                                                 </div>
                                             </div>
                                         </td>
-                                        <td className="p-4">
-                                            <span className={`px-2.5 py-1 rounded-lg text-[10px] font-black border whitespace-nowrap ${getCalcTypeColor(drug.calculation_type)}`}>
+                                        <td className="px-2.5 py-3">
+                                            <span className={`px-2 py-0.5 rounded-lg text-[10px] font-black border whitespace-nowrap ${getCalcTypeColor(drug.calculation_type)}`}>
                                                 {getCalcTypeLabel(drug.calculation_type)}
                                             </span>
                                         </td>
-                                        <td className="p-4">
-                                            <span className="font-black text-base">
+                                        <td className="px-2.5 py-3">
+                                            <span className="font-black text-sm">
                                                 {drug.standard_dose_value !== null ? parseFloat(drug.standard_dose_value).toFixed(2) : '-'}
                                             </span>
                                         </td>
-                                        <td className="p-4">
+                                        <td className="px-2.5 py-3">
                                             <span className="font-bold text-xs opacity-70">{drug.standard_dose_unit || '-'}</span>
                                         </td>
-                                        <td className="p-4 text-center">
+                                        <td className="px-2.5 py-3 text-center">
                                             {drug.max_dose_cap !== null && drug.max_dose_cap !== undefined ? (
-                                                <span className={`px-2.5 py-1 rounded-lg text-xs font-black border whitespace-nowrap ${
+                                                <span className={`px-2 py-0.5 rounded-lg text-xs font-black border whitespace-nowrap ${
                                                     isDark ? 'bg-rose-950/40 text-rose-400 border-rose-800/40' : 'bg-rose-50 text-rose-600 border-rose-200'
                                                 }`}>
                                                     {parseFloat(drug.max_dose_cap).toFixed(2)} mg
@@ -360,9 +369,9 @@ const DrugsInfo = ({ currentUser, onBack, showNotification, theme }) => {
                                                 <span className="text-xs opacity-40 font-bold">ไม่มี</span>
                                             )}
                                         </td>
-                                        <td className="p-4 text-center">
+                                        <td className="px-2.5 py-3 text-center">
                                             {drug.max_gfr_cap !== null && drug.max_gfr_cap !== undefined ? (
-                                                <span className={`px-2.5 py-1 rounded-lg text-xs font-black border whitespace-nowrap ${
+                                                <span className={`px-2 py-0.5 rounded-lg text-xs font-black border whitespace-nowrap ${
                                                     isDark ? 'bg-amber-950/40 text-amber-400 border-amber-800/40' : 'bg-amber-50 text-amber-600 border-amber-200'
                                                 }`}>
                                                     {drug.max_gfr_cap} ml/min
@@ -371,18 +380,18 @@ const DrugsInfo = ({ currentUser, onBack, showNotification, theme }) => {
                                                 <span className="text-xs opacity-40 font-bold">ไม่มี</span>
                                             )}
                                         </td>
-                                        <td className="p-4 text-center">
+                                        <td className="px-2.5 py-3 text-center">
                                             <span className="text-xs font-bold opacity-70">{drug.default_weight_type || '-'}</span>
                                         </td>
-                                        <td className="p-4 text-center">
+                                        <td className="px-2.5 py-3 text-center">
                                             {getStatusBadge(drug.is_active)}
                                         </td>
                                         {isAdmin && (
-                                            <td className="p-4 text-center">
-                                                <div className="flex justify-center gap-2">
+                                            <td className="px-2.5 py-3 text-center">
+                                                <div className="flex justify-center gap-1.5">
                                                     <button
                                                         onClick={() => handleOpenEditModal(drug)}
-                                                        className={`p-2 rounded-lg border transition-all active:scale-95 cursor-pointer ${isDark
+                                                        className={`p-1.5 rounded-lg border transition-all active:scale-95 cursor-pointer ${isDark
                                                             ? 'bg-sky-950/30 hover:bg-sky-900/40 text-sky-400 hover:text-sky-300 border-sky-900/50'
                                                             : 'bg-sky-50 hover:bg-sky-100 text-sky-600 hover:text-sky-700 border-sky-200 shadow-sm'
                                                         }`}
@@ -392,7 +401,7 @@ const DrugsInfo = ({ currentUser, onBack, showNotification, theme }) => {
                                                     </button>
                                                     <button
                                                         onClick={() => handleDeleteClick(drug)}
-                                                        className={`p-2 rounded-lg border transition-all active:scale-95 cursor-pointer ${isDark
+                                                        className={`p-1.5 rounded-lg border transition-all active:scale-95 cursor-pointer ${isDark
                                                             ? 'bg-rose-950/30 hover:bg-rose-900/40 text-rose-400 hover:text-rose-300 border-rose-900/50'
                                                             : 'bg-rose-50 hover:bg-rose-100 text-rose-600 hover:text-rose-700 border-rose-200 shadow-sm'
                                                         }`}
@@ -428,7 +437,17 @@ const DrugsInfo = ({ currentUser, onBack, showNotification, theme }) => {
                         </h3>
 
                         <form onSubmit={handleFormSubmit} className="space-y-4">
-                            <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                                <div>
+                                    <label className="block text-xs font-black opacity-70 mb-1.5 uppercase ml-1">CODE (Drug Code)</label>
+                                    <input
+                                        type="text"
+                                        placeholder="ตัวอย่างเช่น H0201208"
+                                        className="form-control text-sm uppercase"
+                                        value={drugForm.drug_code}
+                                        onChange={e => setDrugForm({ ...drugForm, drug_code: e.target.value })}
+                                    />
+                                </div>
                                 <div>
                                     <label className="block text-xs font-black opacity-70 mb-1.5 uppercase ml-1">ชื่อยา (Generic / Trade Name) *</label>
                                     <input

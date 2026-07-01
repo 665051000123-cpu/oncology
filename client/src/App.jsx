@@ -10,6 +10,18 @@ import DrugsInfo from './components/DrugsInfo';
 
 const API_BASE = '/api';
 
+const sanitizeNaN = (val) => {
+    if (val === null || val === undefined) return 'ว่าง';
+    const str = String(val);
+    if (str.toUpperCase() === 'NAN') return 'ว่าง';
+    return str.replace(/NaN/g, 'ว่าง');
+};
+
+const formatBsa = (val) => {
+    if (val === null || val === undefined || isNaN(val)) return 'ว่าง';
+    return val.toFixed(4);
+};
+
 function App() {
     const [theme, setTheme] = useState(localStorage.getItem('appThemeMode') || 'light');
     const [step, setStep] = useState('auth'); // 'auth', 'login' (patient check-in), 'workspace'
@@ -56,6 +68,7 @@ function App() {
     const [ampDetails, setAmpDetails] = useState({ level: 'below_knee', method: 'weight_method' });
     const [showDrugInfo, setShowDrugInfo] = useState(false);
     const [showBsaInfo, setShowBsaInfo] = useState(false);
+    const [showAmpInfo, setShowAmpInfo] = useState(false);
     const [calcMode, setCalcMode] = useState('single'); // 'single', 'regimen'
     const [selectedRegimen, setSelectedRegimen] = useState('cv'); // 'cv', 'bc'
     const [useAutoGfr, setUseAutoGfr] = useState(false);
@@ -223,9 +236,9 @@ function App() {
             timestamp: getFormattedThaiTimestamp(),
             hn: patient.hn,
             patientName: patient.name || 'ไม่ระบุชื่อ',
-            calculatedBsaM2: bsa.toFixed(4),
-            formulaUsed: `${calculationDetails.formulaUsed} | ${calculationDetails.amputation}`,
-            prescribedDose: doseText,
+            calculatedBsaM2: formatBsa(bsa),
+            formulaUsed: sanitizeNaN(`${calculationDetails.formulaUsed} | ${calculationDetails.amputation}`),
+            prescribedDose: sanitizeNaN(doseText),
             userName: user.name || user.username,
             gender: patient.gender,
             age: patient.age
@@ -391,6 +404,12 @@ function App() {
         const minutes = String(now.getMinutes()).padStart(2, '0');
         const seconds = String(now.getSeconds()).padStart(2, '0');
         return `${day}/${month}/${year} ${hours}:${minutes}:${seconds}`;
+    };
+
+    const isIncompleteDose = (val) => {
+        if (!val) return true;
+        const str = String(val);
+        return str === 'NaN' || str === 'ว่าง' || str.includes('NaN') || str.includes('ว่าง');
     };
 
     const renderTableHeader = (label, widthClass, alignClass = '') => {
@@ -703,16 +722,25 @@ function App() {
                                 </div>
 
                                 <div className="premium-card p-6">
-                                    <div className="flex items-center gap-3 mb-4">
-                                        <div className="w-8 h-8 rounded-full bg-sky-600 text-white flex items-center justify-center font-black text-xs">03</div>
-                                        <h2 className="text-lg font-black uppercase">ตรวจสอบสถานะการสูญเสียอวัยวะ</h2>
+                                    <div className="flex items-center justify-between mb-4">
+                                        <div className="flex items-center gap-3">
+                                            <div className="w-8 h-8 rounded-full bg-sky-600 text-white flex items-center justify-center font-black text-xs">03</div>
+                                            <h2 className="text-lg font-black uppercase">ตรวจสอบสถานะการสูญเสียอวัยวะ</h2>
+                                        </div>
+                                        <button
+                                            type="button"
+                                            onClick={() => setShowAmpInfo(!showAmpInfo)}
+                                            className="flex items-center gap-2 text-xs font-black text-sky-500 hover:text-sky-400 p-2 bg-sky-600/5 rounded-lg border border-sky-500/20 transition-all no-print"
+                                        >
+                                            <Info size={14} /> ข้อมูลสูตร
+                                        </button>
                                     </div>
                                     <div className="grid grid-cols-2 gap-4 mb-4">
                                         <button onClick={() => setAmputation('none')} className={`p-4 rounded-lg border-2 font-black transition-all ${amputation === 'none' ? 'bg-sky-600 border-sky-400 text-white' : 'bg-transparent border-slate-700/30 text-slate-500'}`}>ปกติ (None)</button>
                                         <button onClick={() => setAmputation('amputee')} className={`p-4 rounded-lg border-2 font-black transition-all ${amputation === 'amputee' ? 'bg-sky-600 border-sky-400 text-white' : 'bg-transparent border-slate-700/30 text-slate-500'}`}>มีประวัติตัดแขนขา (Amputee)</button>
                                     </div>
                                     {amputation === 'amputee' && (
-                                        <div className="grid grid-cols-2 gap-4 p-4 bg-sky-600/5 rounded-lg">
+                                        <div className="grid grid-cols-2 gap-4 p-4 bg-sky-600/5 rounded-lg mb-4">
                                             <select className="form-control" value={ampDetails.level} onChange={e => setAmpDetails({ ...ampDetails, level: e.target.value })}>
                                                 <option value="below_knee">ตัดขาใต้เข่า (Below Knee)</option>
                                                 <option value="above_knee">ตัดขาเหนือเข่า (Above Knee)</option>
@@ -723,6 +751,35 @@ function App() {
                                             </select>
                                         </div>
                                     )}
+                                    {showAmpInfo && (
+                                        <div className="animate-pop mt-4 p-5 rounded-2xl border-2 bg-sky-50 dark:bg-sky-950/40 border-sky-400 dark:border-sky-500/50 shadow-md">
+                                            <h3 className="font-bold text-sky-700 dark:text-sky-300 mb-3 text-sm flex items-center gap-2">
+                                                <Info size={16} /> รายละเอียดการปรับคำนวณกรณีสูญเสียอวัยวะ (Amputation)
+                                            </h3>
+                                            <div className="space-y-4 text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
+                                                <div className="border-b border-sky-200/60 dark:border-sky-800/40 pb-3">
+                                                    <span className="font-bold text-sky-600 dark:text-sky-400 text-[13px]">1. ปรับตามน้ำหนัก (Weight Method)</span>
+                                                    <p className="mt-1 font-mono text-[11px] bg-slate-100 dark:bg-slate-900/60 p-2.5 rounded-lg text-slate-800 dark:text-slate-200">
+                                                        น้ำหนักสุทธิ = น้ำหนักตัวจริง × (1 - สัดส่วนน้ำหนักอวัยวะ)
+                                                    </p>
+                                                    <ul className="mt-1.5 list-disc pl-5 text-[11px] text-slate-500 dark:text-slate-400 space-y-1">
+                                                        <li>ตัดขาใต้เข่า (Below Knee): หักออก 6% ของน้ำหนักตัว (คิดเป็น 94% ของน้ำหนักจริง) แล้วนำไปคำนวณ BSA ต่อ</li>
+                                                        <li>ตัดขาเหนือเข่า (Above Knee): หักออก 15% ของน้ำหนักตัว (คิดเป็น 85% ของน้ำหนักจริง) แล้วนำไปคำนวณ BSA ต่อ</li>
+                                                    </ul>
+                                                </div>
+                                                <div>
+                                                    <span className="font-bold text-sky-600 dark:text-sky-400 text-[13px]">2. ปรับตามพื้นที่ผิว (BSA Method)</span>
+                                                    <p className="mt-1 font-mono text-[11px] bg-slate-100 dark:bg-slate-900/60 p-2.5 rounded-lg text-slate-800 dark:text-slate-200">
+                                                        BSA สุทธิ = BSA ปกติ × (1 - สัดส่วนพื้นที่ผิวอวัยวะ)
+                                                    </p>
+                                                    <ul className="mt-1.5 list-disc pl-5 text-[11px] text-slate-500 dark:text-slate-400 space-y-1">
+                                                        <li>ตัดขาใต้เข่า (Below Knee): ปรับลดค่า BSA ลง 9%</li>
+                                                        <li>ตัดขาเหนือเข่า (Above Knee): ปรับลดค่า BSA ลง 18%</li>
+                                                     </ul>
+                                                 </div>
+                                             </div>
+                                         </div>
+                                     )}
                                 </div>
 
                                 <div className="premium-card p-6">
@@ -968,7 +1025,7 @@ function App() {
                                                     <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg flex flex-col items-center justify-center gap-1 text-center">
                                                         <span className={`text-xs font-bold ${theme === 'dark' ? 'text-emerald-400' : 'text-emerald-700'}`}>ผลการคำนวณ eGFR (Calculated eGFR)</span>
                                                         <span className={`text-base font-black ${theme === 'dark' ? 'text-emerald-400' : 'text-emerald-700'}`}>
-                                                            {autoGfrValue !== null ? `${autoGfrValue} ml/min` : 'รอข้อมูลครบถ้วน... (Awaiting Data...)'}
+                                                            {autoGfrValue !== null ? (isNaN(autoGfrValue) ? 'ว่าง' : `${autoGfrValue} ml/min`) : 'รอข้อมูลครบถ้วน... (Awaiting Data...)'}
                                                         </span>
                                                     </div>
                                                     {autoGfrValue > 125 && (
@@ -996,13 +1053,13 @@ function App() {
                                     <div className="space-y-4 bg-sky-600/5 p-4 rounded-xl border border-sky-500/20">
                                         <div className="text-center">
                                             <span className="text-xs uppercase text-slate-500 font-black">BSA</span>
-                                            <div className="text-3xl font-black text-emerald-500">{bsa.toFixed(4)} <span className="text-sm">m²</span></div>
+                                            <div className="text-3xl font-black text-emerald-500">{formatBsa(bsa)} <span className="text-sm">m²</span></div>
                                         </div>
                                         {calcMode === 'single' ? (
                                             <div className="text-center border-t border-slate-700/20 pt-4">
                                                 <span className="text-xs uppercase text-slate-500 font-black">Dose</span>
                                                 <div className="text-3xl font-black text-amber-500">
-                                                    {finalDose} <span className="text-sm">{drug === 'bleomycin' ? 'units' : 'mg'}</span>
+                                                    {sanitizeNaN(finalDose)} <span className="text-sm">{drug === 'bleomycin' ? 'units' : 'mg'}</span>
                                                 </div>
                                             </div>
                                         ) : (
@@ -1012,7 +1069,7 @@ function App() {
                                                     <div key={item.id} className="flex justify-between items-center bg-slate-100 dark:bg-slate-800/40 p-2.5 rounded-lg border border-slate-200 dark:border-slate-700/30">
                                                         <span className="text-xs font-black text-slate-700 dark:text-slate-300">{item.name}</span>
                                                         <span className="text-sm font-black text-amber-600 dark:text-amber-500">
-                                                            {item.dose} <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">{item.id === 'bleomycin' ? 'units' : 'mg'}</span>
+                                                            {sanitizeNaN(item.dose)} <span className="text-[10px] font-bold text-slate-500 dark:text-slate-400">{item.id === 'bleomycin' ? 'units' : 'mg'}</span>
                                                         </span>
                                                     </div>
                                                 ))}
@@ -1023,12 +1080,12 @@ function App() {
                                     <div className="space-y-2 mt-4">
                                         {(bsa > 3.0 || (bsa < 0.5 && bsa > 0)) && (
                                             <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-red-500 text-[11px] font-bold leading-normal text-center">
-                                                ⚠️ ค่า BSA ({bsa.toFixed(4)} m²) นอกช่วงปกติ (0.5 - 3.0 m²) โปรดตรวจสอบ ส่วนสูง / น้ำหนัก!
+                                                ⚠️ ค่า BSA ({formatBsa(bsa)} m²) นอกช่วงปกติ (0.5 - 3.0 m²) โปรดตรวจสอบ ส่วนสูง / น้ำหนัก!
                                             </div>
                                         )}
-                                        {(finalDose === 'NaN' || (typeof finalDose === 'string' && finalDose.includes('NaN'))) && (
+                                        {isIncompleteDose(finalDose) && (
                                             <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-lg text-rose-500 text-[11px] font-bold leading-normal text-center">
-                                                ⚠️ ขนาดยายังไม่สมบูรณ์ (พบค่า NaN) โปรดระบุค่า GFR หรือ Creatinine เพื่อคำนวณยาให้สมบูรณ์
+                                                ⚠️ ขนาดยายังไม่สมบูรณ์ (ว่าง) โปรดระบุค่า GFR หรือ Creatinine เพื่อคำนวณยาให้สมบูรณ์
                                             </div>
                                         )}
                                     </div>
@@ -1036,11 +1093,11 @@ function App() {
                                     <div className="flex gap-2 mt-4 no-print">
                                         <button
                                             onClick={handleVerify}
-                                            className={`w-full btn-primary ${finalDose === 'NaN' || (typeof finalDose === 'string' && finalDose.includes('NaN')) || bsa > 4.5 || bsa < 0.3
+                                            className={`w-full btn-primary ${isIncompleteDose(finalDose) || bsa > 4.5 || bsa < 0.3
                                                 ? 'opacity-50 cursor-not-allowed grayscale'
                                                 : ''
                                                 }`}
-                                            disabled={finalDose === 'NaN' || (typeof finalDose === 'string' && finalDose.includes('NaN')) || bsa > 4.5 || bsa < 0.3}
+                                            disabled={isIncompleteDose(finalDose) || bsa > 4.5 || bsa < 0.3}
                                         >
                                             บันทึก ➔
                                         </button>
@@ -1185,9 +1242,9 @@ function App() {
                                                     <td className="p-4 text-center font-bold whitespace-nowrap">
                                                         {log.age ? `${log.age} ปี` : '-'}
                                                     </td>
-                                                    <td className="p-4 text-center text-emerald-500 font-bold whitespace-nowrap">{log.calculated_bsa}</td>
-                                                    <td className="p-4 text-slate-400 font-bold uppercase leading-snug">{log.formula_used}</td>
-                                                    <td className="p-4 text-right text-amber-500 font-black whitespace-nowrap">{log.prescribed_dose}</td>
+                                                    <td className="p-4 text-center text-emerald-500 font-bold whitespace-nowrap">{sanitizeNaN(log.calculated_bsa)}</td>
+                                                    <td className="p-4 text-slate-400 font-bold uppercase leading-snug">{sanitizeNaN(log.formula_used)}</td>
+                                                    <td className="p-4 text-right text-amber-500 font-black whitespace-nowrap">{sanitizeNaN(log.prescribed_dose)}</td>
                                                     <td className="p-4 text-center text-sky-400 font-bold uppercase truncate max-w-[120px]">{log.user_name || '-'}</td>
                                                     {user?.role?.toUpperCase() === 'ADMIN' && (
                                                         <td className="p-4 text-center no-print">

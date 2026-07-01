@@ -1,0 +1,160 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>10. Checklist ก่อนขึ้น Production</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+</head>
+<body class="bg-slate-100 font-sans min-h-screen p-4 md:p-8">
+
+    <div class="max-w-7xl mx-auto bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200">
+        
+        <div class="bg-indigo-900 text-white p-6 relative">
+            <div class="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
+                <div>
+                    <span class="bg-amber-500 text-indigo-950 font-bold px-3 py-1 rounded-full text-sm uppercase tracking-wider">10. Checklist ก่อนขึ้น Production</span>
+                    <h1 class="text-2xl md:text-3xl font-extrabold mt-2">รายการตรวจสอบก่อนนำระบบใช้งานจริง</h1>
+                    <p class="text-indigo-200 text-sm mt-1"><i class="fa-solid fa-cubes mr-1"></i> ระบบจองห้องประชุม (Meeting Room Booking Blueprint)</p>
+                </div>
+                <div class="text-right text-xs md:text-sm text-indigo-300 border-t md:border-t-0 md:border-l border-indigo-700 pt-4 md:pt-0 md:pl-6">
+                    <p>ผู้พัฒนา: <span class="text-white font-semibold">BUGpairoj</span></p>
+                    <p>หน้า: 10 / 10</p>
+                </div>
+            </div>
+        </div>
+
+        <div class="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
+            
+            <div class="bg-slate-50 rounded-xl p-5 border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="bg-blue-100 text-blue-700 w-10 h-10 rounded-lg flex items-center justify-center font-bold text-lg">01</div>
+                    <h2 class="font-bold text-slate-800 text-lg">Functional</h2>
+                </div>
+                <ul class="space-y-2.5 text-slate-600">
+                    <li class="flex items-start gap-2.5"><input type="checkbox" class="mt-1 w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300"> <span>ทดสอบการจอง</span></li>
+                    <li class="flex items-start gap-2.5"><input type="checkbox" class="mt-1 w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300"> <span>อนุมัติ</span></li>
+                    <li class="flex items-start gap-2.5"><input type="checkbox" class="mt-1 w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300"> <span>ยกเลิก</span></li>
+                    <li class="flex items-start gap-2.5"><input type="checkbox" class="mt-1 w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300"> <span>ตรวจสอบเวลาซ้อน</span></li>
+                    <li class="flex items-start gap-2.5"><input type="checkbox" class="mt-1 w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300"> <span>แจ้งเตือน</span></li>
+                    <li class="flex items-start gap-2.5"><input type="checkbox" class="mt-1 w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300"> <span>export</span></li>
+                </ul>
+            </div>
+
+            <div class="bg-slate-50 rounded-xl p-5 border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="bg-purple-100 text-purple-700 w-10 h-10 rounded-lg flex items-center justify-center font-bold text-lg">02</div>
+                    <h2 class="font-bold text-slate-800 text-lg">Security</h2>
+                </div>
+                <ul class="space-y-2.5 text-slate-600">
+                    <li class="flex items-start gap-2.5"><input type="checkbox" class="mt-1 w-4 h-4 rounded text-purple-600 focus:ring-purple-500 border-slate-300"> <span class="font-mono text-sm">HTTPS</span></li>
+                    <li class="flex items-start gap-2.5"><input type="checkbox" class="mt-1 w-4 h-4 rounded text-purple-600 focus:ring-purple-500 border-slate-300"> <span class="font-mono text-sm">CSRF</span></li>
+                    <li class="flex items-start gap-2.5"><input type="checkbox" class="mt-1 w-4 h-4 rounded text-purple-600 focus:ring-purple-500 border-slate-300"> <span class="font-mono text-sm">RBAC</span></li>
+                    <li class="flex items-start gap-2.5"><input type="checkbox" class="mt-1 w-4 h-4 rounded text-purple-600 focus:ring-purple-500 border-slate-300"> <span>password hashing</span></li>
+                    <li class="flex items-start gap-2.5"><input type="checkbox" class="mt-1 w-4 h-4 rounded text-purple-600 focus:ring-purple-500 border-slate-300"> <span>input validation</span></li>
+                    <li class="flex items-start gap-2.5"><input type="checkbox" class="mt-1 w-4 h-4 rounded text-purple-600 focus:ring-purple-500 border-slate-300"> <span>prepared statements</span></li>
+                    <li class="flex items-start gap-2.5"><input type="checkbox" class="mt-1 w-4 h-4 rounded text-purple-600 focus:ring-purple-500 border-slate-300"> <span>session timeout</span></li>
+                </ul>
+            </div>
+
+            <div class="bg-slate-50 rounded-xl p-5 border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="bg-teal-100 text-teal-700 w-10 h-10 rounded-lg flex items-center justify-center font-bold text-lg">03</div>
+                    <h2 class="font-bold text-slate-800 text-lg">Database</h2>
+                </div>
+                <ul class="space-y-2.5 text-slate-600">
+                    <li class="flex items-start gap-2.5"><input type="checkbox" class="mt-1 w-4 h-4 rounded text-teal-600 focus:ring-teal-500 border-slate-300"> <span>backup</span></li>
+                    <li class="flex items-start gap-2.5"><input type="checkbox" class="mt-1 w-4 h-4 rounded text-teal-600 focus:ring-teal-500 border-slate-300"> <span>restore test</span></li>
+                    <li class="flex items-start gap-2.5"><input type="checkbox" class="mt-1 w-4 h-4 rounded text-teal-600 focus:ring-teal-500 border-slate-300"> <span>index สำคัญ</span></li>
+                    <li class="flex items-start gap-2.5"><input type="checkbox" class="mt-1 w-4 h-4 rounded text-teal-600 focus:ring-teal-500 border-slate-300"> <span>foreign keys</span></li>
+                    <li class="flex items-start gap-2.5"><input type="checkbox" class="mt-1 w-4 h-4 rounded text-teal-600 focus:ring-teal-500 border-slate-300"> <span>timezone</span></li>
+                </ul>
+            </div>
+
+            <div class="bg-slate-50 rounded-xl p-5 border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="bg-emerald-100 text-emerald-700 w-10 h-10 rounded-lg flex items-center justify-center font-bold text-lg">04</div>
+                    <h2 class="font-bold text-slate-800 text-lg">Performance</h2>
+                </div>
+                <ul class="space-y-2.5 text-slate-600">
+                    <li class="flex items-start gap-2.5"><input type="checkbox" class="mt-1 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300"> <span>pagination</span></li>
+                    <li class="flex items-start gap-2.5"><input type="checkbox" class="mt-1 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300"> <span>query optimization</span></li>
+                    <li class="flex items-start gap-2.5"><input type="checkbox" class="mt-1 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300"> <span>asset minify</span></li>
+                    <li class="flex items-start gap-2.5"><input type="checkbox" class="mt-1 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300"> <span>cache</span></li>
+                    <li class="flex items-start gap-2.5"><input type="checkbox" class="mt-1 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300"> <span>image optimization</span></li>
+                </ul>
+            </div>
+
+            <div class="bg-slate-50 rounded-xl p-5 border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="bg-cyan-100 text-cyan-700 w-10 h-10 rounded-lg flex items-center justify-center font-bold text-lg">05</div>
+                    <h2 class="font-bold text-slate-800 text-lg">Operations</h2>
+                </div>
+                <ul class="space-y-2.5 text-slate-600">
+                    <li class="flex items-start gap-2.5"><input type="checkbox" class="mt-1 w-4 h-4 rounded text-cyan-600 focus:ring-cyan-500 border-slate-300"> <span>cron job</span></li>
+                    <li class="flex items-start gap-2.5"><input type="checkbox" class="mt-1 w-4 h-4 rounded text-cyan-600 focus:ring-cyan-500 border-slate-300"> <span>log monitoring</span></li>
+                    <li class="flex items-start gap-2.5"><input type="checkbox" class="mt-1 w-4 h-4 rounded text-cyan-600 focus:ring-cyan-500 border-slate-300"> <span>error log</span></li>
+                    <li class="flex items-start gap-2.5"><input type="checkbox" class="mt-1 w-4 h-4 rounded text-cyan-600 focus:ring-cyan-500 border-slate-300"> <span>disk space</span></li>
+                    <li class="flex items-start gap-2.5"><input type="checkbox" class="mt-1 w-4 h-4 rounded text-cyan-600 focus:ring-cyan-500 border-slate-300"> <span>email/LINE config</span></li>
+                </ul>
+            </div>
+
+            <div class="bg-slate-50 rounded-xl p-5 border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="bg-orange-100 text-orange-700 w-10 h-10 rounded-lg flex items-center justify-center font-bold text-lg">06</div>
+                    <h2 class="font-bold text-slate-800 text-lg">Deployment</h2>
+                </div>
+                <ul class="space-y-2.5 text-slate-600">
+                    <li class="flex items-start gap-2.5"><input type="checkbox" class="mt-1 w-4 h-4 rounded text-orange-600 focus:ring-orange-500 border-slate-300"> <span class="font-mono text-sm">.env ถูกต้อง</span></li>
+                    <li class="flex items-start gap-2.5"><input type="checkbox" class="mt-1 w-4 h-4 rounded text-orange-600 focus:ring-orange-500 border-slate-300"> <span class="font-mono text-sm">APP_URL</span></li>
+                    <li class="flex items-start gap-2.5"><input type="checkbox" class="mt-1 w-4 h-4 rounded text-orange-600 focus:ring-orange-500 border-slate-300"> <span>writable folders</span></li>
+                    <li class="flex items-start gap-2.5"><input type="checkbox" class="mt-1 w-4 h-4 rounded text-orange-600 focus:ring-orange-500 border-slate-300"> <span>file permissions</span></li>
+                    <li class="flex items-start gap-2.5"><input type="checkbox" class="mt-1 w-4 h-4 rounded text-orange-600 focus:ring-orange-500 border-slate-300"> <span>production mode</span></li>
+                </ul>
+            </div>
+
+            <div class="bg-slate-50 rounded-xl p-5 border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
+                <div class="flex items-center gap-3 mb-4">
+                    <div class="bg-indigo-100 text-indigo-700 w-10 h-10 rounded-lg flex items-center justify-center font-bold text-lg">07</div>
+                    <h2 class="font-bold text-slate-800 text-lg">User readiness</h2>
+                </div>
+                <ul class="space-y-2.5 text-slate-600">
+                    <li class="flex items-start gap-2.5"><input type="checkbox" class="mt-1 w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300"> <span>คู่มือใช้งาน</span></li>
+                    <li class="flex items-start gap-2.5"><input type="checkbox" class="mt-1 w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300"> <span>admin training</span></li>
+                    <li class="flex items-start gap-2.5"><input type="checkbox" class="mt-1 w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300"> <span class="font-mono text-sm">UAT sign-off</span></li>
+                    <li class="flex items-start gap-2.5"><input type="checkbox" class="mt-1 w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300"> <span>support contact</span></li>
+                </ul>
+            </div>
+
+        </div>
+
+        <div class="bg-amber-50 border-t border-amber-200 p-6">
+            <div class="flex items-center gap-3 mb-4">
+                <span class="text-2xl text-amber-500">⭐</span>
+                <h3 class="text-lg font-bold text-amber-900">Go-Live พร้อมเมื่อ</h3>
+            </div>
+            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+                <label class="flex items-center gap-3 bg-white p-4 rounded-xl border border-amber-200 text-slate-700 font-medium text-sm shadow-sm hover:bg-amber-100/50 cursor-pointer transition-colors">
+                    <input type="checkbox" class="w-4 h-4 text-amber-600 focus:ring-amber-500 border-slate-300 rounded-full">
+                    <span>ผ่าน UAT</span>
+                </label>
+                <label class="flex items-center gap-3 bg-white p-4 rounded-xl border border-amber-200 text-slate-700 font-medium text-sm shadow-sm hover:bg-amber-100/50 cursor-pointer transition-colors">
+                    <input type="checkbox" class="w-4 h-4 text-amber-600 focus:ring-amber-500 border-slate-300 rounded-full">
+                    <span>ผ่าน security review</span>
+                </label>
+                <label class="flex items-center gap-3 bg-white p-4 rounded-xl border border-amber-200 text-slate-700 font-medium text-sm shadow-sm hover:bg-amber-100/50 cursor-pointer transition-colors">
+                    <input type="checkbox" class="w-4 h-4 text-amber-600 focus:ring-amber-500 border-slate-300 rounded-full">
+                    <span>backup ใช้งานได้</span>
+                </label>
+                <label class="flex items-center gap-3 bg-white p-4 rounded-xl border border-amber-200 text-slate-700 font-medium text-sm shadow-sm hover:bg-amber-100/50 cursor-pointer transition-colors">
+                    <input type="checkbox" class="w-4 h-4 text-amber-600 focus:ring-amber-500 border-slate-300 rounded-full">
+                    <span>monitoring พร้อม</span>
+                </label>
+            </div>
+        </div>
+
+    </div>
+
+</body>
+</html>

@@ -1,0 +1,471 @@
+<!DOCTYPE html>
+<html lang="th">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clinical Data Ecosystem - Workflow Blueprint (16:9 Wide 80%)</title>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css">
+    
+    <style>
+        :root {
+            --bg-main: #f0f4f8;
+            --bg-canvas: #ffffff;
+            --border-color: #cbd5e1;
+            
+            --color-text-main: #0f172a;
+            --color-text-muted: #64748b;
+            
+            --theme-purple: #5c3bc6;
+            --theme-blue: #1d5ec9;
+            --theme-cyan: #0284c7;
+            
+            --flow-box-bg: #f8fafc;
+            --flow-box-border: #475569;
+            --line-success: #10b981;
+            --line-fail: #ef4444;
+            --line-next: #475569;
+        }
+
+        * {
+            box-sizing: border-box;
+            font-family: 'Sarabun', sans-serif;
+        }
+
+        body {
+            background-color: var(--bg-main);
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            min-height: 100vh;
+            color: var(--color-text-main);
+        }
+
+        /* ล็อกมิติหน้าจอเป็นสัดส่วนแนวนอน 16:9 (1280px x 720px) */
+        .blueprint-canvas {
+            width: 1280px;
+            height: 720px;
+            background-color: var(--bg-canvas);
+            border-radius: 24px;
+            border: 1px solid var(--border-color);
+            box-shadow: 0 15px 50px rgba(0, 0, 0, 0.05);
+            position: relative;
+            overflow: hidden;
+            padding: 20px 30px; 
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+        }
+
+        /* --- HEADER SECTION --- */
+        .header-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-start;
+            z-index: 10;
+        }
+
+        .header-title-group {
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .number-badge {
+            background: var(--theme-purple);
+            color: #ffffff;
+            font-size: 28px;
+            font-weight: 700;
+            width: 48px;
+            height: 48px;
+            border-radius: 14px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        .title-text h1 {
+            font-size: 23px;
+            font-weight: 700;
+            color: #1e293b;
+            margin: 0;
+        }
+
+        .title-text p {
+            font-size: 13px;
+            color: var(--theme-purple);
+            margin: 3px 0 0 0;
+            font-weight: 600;
+        }
+
+        .header-meta {
+            display: flex;
+            flex-direction: column;
+            align-items: flex-end;
+            gap: 6px;
+        }
+
+        .system-badge {
+            background: #eef2ff;
+            border: 1px solid #c7d2fe;
+            color: #4338ca;
+            padding: 5px 12px;
+            border-radius: 10px;
+            font-size: 11.5px;
+            font-weight: 600;
+            display: flex;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .page-badge {
+            background: var(--theme-purple);
+            color: #ffffff;
+            padding: 3px 10px;
+            border-radius: 6px;
+            font-size: 10.5px;
+            font-weight: 700;
+        }
+
+        /* --- DIAGRAM WORKSPACE (FLOWCHART LAYER ขยายเป็น 80% ของพื้นที่บอดี้) --- */
+        .diagram-workspace {
+            flex-grow: 1;
+            position: relative;
+            margin-top: 5px;
+            margin-bottom: 5px;
+            height: calc(100% - 110px); /* จัดพื้นที่ 80% ให้แผนผังลอยตัวกว้างขวางขึ้น */
+        }
+
+        .flow-node {
+            position: absolute;
+            background: var(--flow-box-bg);
+            border: 1.5px solid var(--flow-box-border);
+            border-radius: 6px;
+            padding: 5px 12px;
+            text-align: center;
+            font-size: 10.5px;
+            font-weight: 600;
+            color: #1e293b;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.01);
+            z-index: 10;
+        }
+
+        /* กล่องเงื่อนไขข้าวหลามตัดสัดส่วนคงที่ */
+        .flow-decision {
+            position: absolute;
+            width: 64px;
+            height: 64px;
+            background: var(--flow-box-bg);
+            border: 1.5px solid var(--flow-box-border);
+            transform: rotate(45deg);
+            z-index: 10;
+        }
+
+        .decision-text {
+            position: absolute;
+            width: 105px;
+            text-align: center;
+            font-size: 10px;
+            font-weight: 700;
+            color: #1e293b;
+            transform: translate(-50%, -50%);
+            z-index: 12;
+            line-height: 1.2;
+        }
+
+        /* สัญลักษณ์ฐานข้อมูล */
+        .flow-database {
+            position: absolute;
+            width: 130px;
+            height: 42px;
+            background: #f1f5f9;
+            border: 1.5px solid var(--flow-box-border);
+            border-radius: 50% / 10px;
+            text-align: center;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 10px;
+            font-weight: 700;
+            z-index: 10;
+            padding-top: 6px;
+        }
+        .flow-database::before {
+            content: "";
+            position: absolute;
+            top: -1px;
+            left: -1.5px;
+            width: 127px;
+            height: 10px;
+            border: 1.5px solid var(--flow-box-border);
+            border-radius: 50%;
+            background: #e2e8f0;
+        }
+
+        /* ตัวอักษรกำกับเส้นทางตัดสินใจ (Yes/No) */
+        .path-text {
+            position: absolute;
+            font-size: 9.5px;
+            font-weight: 700;
+            color: #475569;
+            background: #ffffff;
+            padding: 1px 3px;
+            border-radius: 2px;
+            z-index: 15;
+            transform: translate(-50%, -50%);
+        }
+
+        /* SVG สำหรับลากเส้นโครงสร้าง */
+        .svg-canvas {
+            position: absolute;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            pointer-events: none;
+            z-index: 1;
+        }
+
+        .flow-line {
+            fill: none;
+            stroke-width: 1.5;
+            marker-end: url(#arrow);
+        }
+        .line-next { stroke: var(--line-next); }
+        .line-success { stroke: var(--line-success); }
+        .line-fail { stroke: var(--line-fail); }
+        .line-dash { stroke: var(--line-next); stroke-dasharray: 4 3; }
+
+        /* --- LOWER PANELS (LEGEND & NOTES) --- */
+        .lower-panels {
+            display: flex;
+            justify-content: space-between;
+            align-items: flex-end;
+            border-top: 1px solid var(--border-color);
+            padding-top: 10px;
+            z-index: 10;
+        }
+
+        .legend-section {
+            display: flex;
+            align-items: center;
+            gap: 20px;
+        }
+
+        .legend-title {
+            font-size: 11.5px;
+            font-weight: 700;
+            color: var(--color-text-main);
+        }
+
+        .legend-group {
+            display: flex;
+            align-items: center;
+            gap: 12px;
+        }
+
+        .legend-item {
+            display: flex;
+            align-items: center;
+            gap: 5px;
+            font-size: 10.5px;
+            color: var(--color-text-muted);
+        }
+
+        .box-sample {
+            width: 32px;
+            height: 16px;
+            border: 1.5px solid var(--flow-box-border);
+            border-radius: 3px;
+            background: var(--flow-box-bg);
+        }
+        .diamond-sample {
+            width: 14px;
+            height: 14px;
+            border: 1.5px solid var(--flow-box-border);
+            background: var(--flow-box-bg);
+            transform: rotate(45deg);
+        }
+        .line-sample {
+            width: 25px;
+            height: 0px;
+            border-top: 2px solid;
+        }
+
+        .note-section {
+            width: 450px;
+            font-size: 10.5px;
+            color: var(--color-text-muted);
+            line-height: 1.3;
+            text-align: right;
+        }
+
+        .footer-bar {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            border-top: 1px solid var(--border-color);
+            padding-top: 8px;
+            color: var(--color-text-muted);
+            font-size: 11px;
+            font-weight: 500;
+            z-index: 10;
+        }
+
+        .footer-left {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-weight: 600;
+        }
+
+        .footer-right {
+            font-weight: 700;
+            color: #334155;
+        }
+    </style>
+</head>
+<body>
+
+    <div class="blueprint-canvas">
+        
+        <div class="header-section">
+            <div class="header-title-group">
+                <div class="number-badge">6.</div>
+                <div class="title-text">
+                    <h1>6. Workflow</h1>
+                    <p>แผนผังการทำงานทั้งระบบ (System Flowchart) และการประมวลผลสิทธิ์ระดับคลินิก</p>
+                </div>
+            </div>
+            <div class="header-meta">
+                <div class="system-badge">
+                    <i class="fa-solid fa-network-wired"></i> oncology-dose-system
+                </div>
+                <div class="page-badge">หน้า 6 / 10</div>
+            </div>
+        </div>
+
+        <div class="diagram-workspace" id="workspace">
+            
+            <svg class="svg-canvas">
+                <defs>
+                    <marker id="arrow" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+                        <path d="M 0 1 L 10 5 L 0 9 z" fill="#475569" />
+                    </marker>
+                    <marker id="arrow-success" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+                        <path d="M 0 1 L 10 5 L 0 9 z" fill="#10b981" />
+                    </marker>
+                    <marker id="arrow-fail" viewBox="0 0 10 10" refX="6" refY="5" markerWidth="5" markerHeight="5" orient="auto-start-reverse">
+                        <path d="M 0 1 L 10 5 L 0 9 z" fill="#ef4444" />
+                    </marker>
+                </defs>
+
+                <path class="flow-line line-next" d="M 610 33 L 610 50"></path>
+                <path class="flow-line line-next" d="M 578 82 L 470 82 L 470 115"></path> 
+                <path class="flow-line line-next" d="M 642 82 L 740 82 L 740 170 L 610 170 L 610 180"></path> 
+                <path class="flow-line line-next" d="M 470 148 L 470 160 L 610 160 L 610 180"></path> 
+                
+                <path class="flow-line line-next" d="M 610 213 L 610 225 L 320 225 L 320 245"></path>
+                <path class="flow-line line-dash" d="M 610 213 L 610 225 L 900 225 L 900 245"></path>
+                
+                <path class="flow-line line-next" d="M 320 278 L 320 305"></path>
+                
+                <path class="flow-line line-next" d="M 320 338 L 320 350 L 115 350 L 115 375"></path>
+                <path class="flow-line line-next" d="M 320 350 L 290 350 L 290 375"></path>
+                <path class="flow-line line-next" d="M 320 350 L 450 350 L 450 375"></path>
+                <path class="flow-line line-dash" d="M 320 350 L 610 350 L 610 375"></path>
+                
+                <path class="flow-line line-next" d="M 115 408 L 115 430 L 195 430 L 195 445"></path>
+                <path class="flow-line line-fail" d="M 163 477 L 95 478 L 95 540" style="marker-end: url(#arrow-fail);"></path> 
+                <path class="flow-line line-success" d="M 227 477 L 295 478 L 295 540" style="marker-end: url(#arrow-success);"></path> 
+                
+                <path class="flow-line line-next" d="M 450 408 L 450 540"></path>
+                
+                <path class="flow-line line-next" d="M 610 408 L 610 445"></path>
+                <path class="flow-line line-success" d="M 578 477 L 500 478 L 500 540" style="marker-end: url(#arrow-success);"></path>
+                <path class="flow-line line-fail" d="M 642 477 L 715 478 L 715 540" style="marker-end: url(#arrow-fail);"></path>
+                
+                <path class="flow-line line-next" d="M 900 278 L 900 310"></path>
+                <path class="flow-line line-success" d="M 868 342 L 830 343 L 830 420" style="marker-end: url(#arrow-success);"></path>
+                <path class="flow-line line-fail" d="M 932 342 L 970 343 L 970 420" style="marker-end: url(#arrow-fail);"></path>
+            </svg>
+
+            <div class="path-text" style="top: 82px; left: 515px;">ใช่</div>
+            <div class="path-text" style="top: 82px; left: 695px;">ไม่ใช่</div>
+            <div class="path-text" style="top: 477px; left: 125px;">ใช่</div>
+            <div class="path-text" style="top: 477px; left: 265px;">ไม่ใช่</div>
+            <div class="path-text" style="top: 342px; left: 845px;">Admin</div>
+            <div class="path-text" style="top: 342px; left: 955px;">Staff</div>
+            <div class="path-text" style="top: 477px; left: 535px;">Admin / Chief</div>
+            <div class="path-text" style="top: 477px; left: 685px;">Pharmacist</div>
+
+            <div class="flow-node" style="top: 2px; left: 540px; width: 140px;">เข้าสู่ระบบ / Login</div>
+
+            <div class="flow-decision" style="top: 50px; left: 578px;"></div>
+            <div class="decision-text" style="top: 82px; left: 610px;">เข้าระบบครั้งแรก?</div>
+            <div class="flow-node" style="top: 115px; left: 395px; width: 150px;">เปลี่ยนรหัสผ่านเพื่อความปลอดภัย</div>
+
+            <div class="flow-node" style="top: 180px; left: 520px; width: 180px; border-color: var(--theme-purple);">ลงทะเบียนผู้ป่วย / Patient Check-in</div>
+
+            <div class="flow-node" style="top: 245px; left: 210px; width: 220px;">ป้อนข้อมูล: H.N., ส่วนสูง (cm), น้ำหนัก (kg)</div>
+            <div class="flow-node" style="top: 245px; left: 790px; width: 220px;">เมนูจัดการหลังบ้าน (Admin Panel)</div>
+
+            <div class="flow-node" style="top: 305px; left: 210px; width: 220px; border-color: var(--theme-blue);">หน้าคำนวณขนาดยา / Calculator</div>
+            
+            <div class="flow-decision" style="top: 310px; left: 868px;"></div>
+            <div class="decision-text" style="top: 342px; left: 900px;">ตรวจสอบบทบาท (Role)?</div>
+
+            <div class="flow-node" style="top: 375px; left: 30px; width: 170px;">แสดงผลลัพธ์: BSA, GFR, ขนาดยา</div>
+            <div class="flow-node" style="top: 375px; left: 215px; width: 120px;">คลิกปุ่ม "ข้อมูลสูตรยา"</div>
+            <div class="flow-node" style="top: 375px; left: 350px; width: 190px;">กดยืนยันตรวจเช็กขนาดยา / Verify</div>
+            <div class="flow-node" style="top: 375px; left: 555px; width: 110px;">เมนูข้อมูลยา (Drugs)</div>
+
+            <div class="flow-node" style="top: 420px; left: 755px; width: 140px;">จัดการผู้ใช้งาน / ดูประวัติระบบ</div>
+            <div class="flow-node" style="top: 420px; left: 910px; width: 135px; color: var(--line-fail);">ถูกซ่อนและไม่มีสิทธิ์เข้าถึง</div>
+
+            <div class="flow-decision" style="top: 445px; left: 163px;"></div>
+            <div class="decision-text" style="top: 477px; left: 201px;">มีค่าว่าง/คำนวณไม่ได้ (NaN)?</div>
+
+            <div class="flow-database" style="top: 540px; left: 385px;">บันทึกประวัติลงฐานข้อมูล</div>
+
+            <div class="flow-decision" style="top: 445px; left: 578px;"></div>
+            <div class="decision-text" style="top: 477px; left: 616px;">ตรวจสอบบทบาท (Role)?</div>
+
+            <div class="flow-node" style="top: 540px; left: 35px; width: 110px; color: var(--line-fail);">แสดงผลเป็น "ว่าง"</div>
+            <div class="flow-node" style="top: 540px; left: 160px; width: 135px; color: var(--line-success);">แสดงผลเป็นตัวเลขปกติ</div>
+
+            <div class="flow-node" style="top: 540px; left: 530px; width: 160px;">สิทธิ์จัดการ (จัดการ CODE, เพิ่ม/ลบ)</div>
+            <div class="flow-node" style="top: 540px; left: 705px; width: 165px;">ดูข้อมูลยาได้อย่างเดียว (Read-Only)</div>
+
+        </div>
+
+        <div class="lower-panels">
+            
+            <div class="legend-section">
+                <div class="legend-title">สัญลักษณ์ (Legend)</div>
+                <div class="legend-group">
+                    <div class="legend-item"><div class="box-sample"></div> ขั้นตอน (Process)</div>
+                    <div class="legend-item"><div class="diamond-sample"></div> การตัดสินใจ (Decision)</div>
+                    <div class="legend-item"><div class="line-sample" style="border-color: var(--line-success);"></div> เส้นทางสำเร็จ (Success)</div>
+                    <div class="legend-item"><div class="line-sample" style="border-color: var(--line-fail);"></div> เส้นทางไม่สำเร็จ (Failure)</div>
+                </div>
+            </div>
+
+            <div class="note-section">
+                <strong>หมายเหตุการปฏิบัติงาน:</strong><br>
+                • ขนาดยาเคมีบำบัดจะถูกประมวลผลตามดัชนีมวลกายเพื่อความปลอดภัยขั้นสูงสุดของผู้ป่วย<br>
+                • ทุกสัญญากิจกรรมการเข้าถึงคีย์สูตรยาจะถูกเก็บบันทึกลงในระบบตรวจสอบประวัติ (Audit Log) เสมอ
+            </div>
+
+        </div>
+
+              </div>
+
+    </div>
+
+</body>
+</html>

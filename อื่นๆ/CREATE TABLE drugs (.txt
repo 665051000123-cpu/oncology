@@ -1,0 +1,11 @@
+CREATE TABLE drugs (
+    drug_id INT AUTO_INCREMENT PRIMARY KEY,
+    drug_name VARCHAR(100) NOT NULL COMMENT 'ชื่อยา (Generic name / Trade name)',
+    calculation_type ENUM('BSA', 'WEIGHT_BASED', 'FIXED_DOSE', 'CALVERT_FORMULA') NOT NULL COMMENT 'ประเภทการคำนวณ',
+    default_weight_type ENUM('ACTUAL', 'IDEAL', 'ADJUSTED') DEFAULT 'ACTUAL' COMMENT 'ประเภทน้ำหนักที่แนะนำให้ใช้',
+    standard_dose_unit VARCHAR(20) COMMENT 'หน่วยของขนาดยามาตรฐาน เช่น mg/m2, mg/kg, mg, Target AUC',
+    max_dose_per_cycle DECIMAL(10, 2) NULL COMMENT 'ขนาดยาสูงสุดที่ห้ามเกินต่อรอบ (ถ้ามี)',
+    max_bsa_cap DECIMAL(4, 2) NULL COMMENT 'ค่า BSA สูงสุดที่ยอมให้ใช้คำนวณ เช่น 2.0 (ถ้ามี)',
+    is_active TINYINT(1) DEFAULT 1 COMMENT 'สถานะการใช้งาน 1 = เปิด, 0 = ปิด',
+    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
+);
