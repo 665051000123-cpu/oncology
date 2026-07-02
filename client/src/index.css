@@ -246,8 +246,8 @@ body:not(.light-mode) .gender-text-highlight {
   /* White/Light Slate in Dark Mode */
 }
 
-/* Sizing optimization for 1024x768 screen resolution */
-@media screen and (max-width: 1024px) or (max-height: 768px) {
+/* Sizing optimization for 1240x1024 screen resolution */
+@media screen and (max-width: 1240px) or (max-height: 1024px) {
   :root {
     --card-padding: 1rem;
   }

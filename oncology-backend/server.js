@@ -94,7 +94,9 @@ const DosageLog = sequelize.define('DosageLog', {
     prescribed_dose: DataTypes.STRING(50),
     user_name: DataTypes.STRING(255),
     gender: DataTypes.STRING(20),
-    age: DataTypes.STRING(20)
+    age: DataTypes.STRING(20),
+    height: DataTypes.STRING(20),
+    weight: DataTypes.STRING(20)
 }, {
     tableName: 'dosage_logs',
     timestamps: false
@@ -132,6 +134,11 @@ const Drug = sequelize.define('Drug', {
         allowNull: false,
         unique: true
     },
+    drug_category: {
+        type: DataTypes.ENUM('CHEMOTHERAPY', 'TARGETED_THERAPY', 'IMMUNOTHERAPY'),
+        defaultValue: 'CHEMOTHERAPY',
+        allowNull: false
+    },
     calculation_type: {
         type: DataTypes.ENUM('BSA', 'WEIGHT_BASED', 'FIXED_DOSE', 'CALVERT_FORMULA'),
         allowNull: false
@@ -155,6 +162,30 @@ const Drug = sequelize.define('Drug', {
     timestamps: false
 });
 
+// 👤 Patient Model — maps to 'patients' table
+const Patient = sequelize.define('Patient', {
+    hn: {
+        type: DataTypes.STRING(20),
+        primaryKey: true,
+        allowNull: false
+    },
+    title: {
+        type: DataTypes.STRING(50),
+        allowNull: true
+    },
+    name: {
+        type: DataTypes.STRING(255),
+        allowNull: false
+    },
+    gender: DataTypes.STRING(20),
+    age: DataTypes.STRING(20),
+    height: DataTypes.STRING(20),
+    weight: DataTypes.STRING(20)
+}, {
+    tableName: 'patients',
+    timestamps: false
+});
+
 // Associations
 ActivityLog.belongsTo(User, { foreignKey: 'employee_id', targetKey: 'employee_id', as: 'user', constraints: false });
 
@@ -163,10 +194,59 @@ async function initializeDatabase() {
     try {
         await sequelize.authenticate();
         console.log('🚀 Connected to MySQL Database (Sequelize).');
-        
+
+        // Check if drug_category column exists in drugs table, if not add it
+        const queryInterface = sequelize.getQueryInterface();
+        const tableInfo = await queryInterface.describeTable('drugs');
+        if (!tableInfo.drug_category) {
+            console.log('Adding drug_category column to drugs table...');
+            await queryInterface.addColumn('drugs', 'drug_category', {
+                type: DataTypes.ENUM('CHEMOTHERAPY', 'TARGETED_THERAPY', 'IMMUNOTHERAPY'),
+                defaultValue: 'CHEMOTHERAPY',
+                allowNull: false
+            });
+            console.log('✅ Column drug_category added successfully.');
+        }
+
         // Sync models with DB (automatically creates tables if they do not exist)
         await sequelize.sync();
         console.log('✅ Database schema synchronized.');
+
+        // Check if title column exists in patients table, if not add it
+        const patientTableInfo = await queryInterface.describeTable('patients');
+        if (!patientTableInfo.title) {
+            console.log('Adding title column to patients table...');
+            await queryInterface.addColumn('patients', 'title', {
+                type: DataTypes.STRING(50),
+                allowNull: true
+            });
+            console.log('✅ Column title added successfully to patients table.');
+        }
+
+        // Seed unique patients from dosage_logs if patients table is empty
+        const patientCount = await Patient.count();
+        if (patientCount === 0) {
+            console.log('👤 Extracting patients from existing dosage_logs...');
+            const logs = await DosageLog.findAll({
+                order: [['id', 'ASC']]
+            });
+            const uniquePatients = {};
+            logs.forEach(log => {
+                if (log.hn) {
+                    uniquePatients[log.hn] = {
+                        hn: log.hn,
+                        name: log.patient_name || 'ไม่ระบุชื่อ',
+                        gender: log.gender || '',
+                        age: log.age || '',
+                        height: log.height || '',
+                        weight: log.weight || ''
+                    };
+                }
+            });
+            const insertPromises = Object.values(uniquePatients).map(p => Patient.create(p));
+            await Promise.all(insertPromises);
+            console.log(`✅ Extracted and inserted ${Object.keys(uniquePatients).length} patients into patients table.`);
+        }
 
         // Seed default admin if table is empty
         const userCount = await User.count();
@@ -292,7 +372,7 @@ app.post('/api/change-password', async (req, res) => {
 app.post('/api/logs', async (req, res) => {
     try {
         console.log('📥 Received Log Data:', req.body);
-        const { timestamp, hn, patientName, calculatedBsaM2, formulaUsed, prescribedDose, userName, gender, age, employee_id } = req.body;
+        const { timestamp, hn, patientName, calculatedBsaM2, formulaUsed, prescribedDose, userName, gender, age, height, weight, employee_id } = req.body;
 
         const newLog = await DosageLog.create({
             timestamp,
@@ -303,8 +383,31 @@ app.post('/api/logs', async (req, res) => {
             prescribed_dose: prescribedDose,
             user_name: userName,
             gender,
-            age
+            age,
+            height,
+            weight
         });
+
+        // Update or create patient record to keep stats updated
+        const existingPatient = await Patient.findByPk(hn);
+        if (existingPatient) {
+            await existingPatient.update({
+                name: patientName,
+                gender,
+                age,
+                height,
+                weight
+            });
+        } else {
+            await Patient.create({
+                hn,
+                name: patientName,
+                gender,
+                age,
+                height,
+                weight
+            });
+        }
 
         // บันทึกกิจกรรมการคำนวณและตรวจสอบโดสยา
         const empId = employee_id || '';
@@ -443,6 +546,26 @@ app.get('/api/admin/stats', requireAdmin, async (req, res) => {
         const year = now.getFullYear() + 543;
         const todayPrefix = `${day}/${month}/${year}%`;
 
+        // Helper to parse Thai Buddhist timestamp
+        const parseThaiTimestamp = (timestampStr) => {
+            if (!timestampStr) return null;
+            const parts = timestampStr.split(' ');
+            if (parts.length === 0) return null;
+            const dateParts = parts[0].split('/');
+            if (dateParts.length < 3) return null;
+
+            let dVal = parseInt(dateParts[0], 10);
+            let mVal = parseInt(dateParts[1], 10) - 1; // 0-indexed
+            let yVal = parseInt(dateParts[2], 10);
+
+            if (yVal > 2400) {
+                yVal -= 543;
+            }
+
+            const d = new Date(yVal, mVal, dVal);
+            return isNaN(d.getTime()) ? null : d;
+        };
+
         let dateWhere = {};
         let leaderboardWhere = {
             user_name: {
@@ -457,7 +580,7 @@ app.get('/api/admin/stats', requireAdmin, async (req, res) => {
             // Parse DD/MM/YYYY (Buddhist Era Year from front-end text inputs)
             const sParts = startDate.split('/');
             const eParts = endDate.split('/');
-            
+
             // Format to YYYY-MM-DD for standard database datetime comparison
             const dbStart = `${sParts[2]}-${sParts[1]}-${sParts[0]} 00:00:00`;
             const dbEnd = `${eParts[2]}-${eParts[1]}-${eParts[0]} 23:59:59`;
@@ -481,7 +604,8 @@ app.get('/api/admin/stats', requireAdmin, async (req, res) => {
             totalPatients,
             todayCalculations,
             formulaStatsResult,
-            leaderboardResult
+            leaderboardResult,
+            allLogs
         ] = await Promise.all([
             DosageLog.count({ where: dateWhere }),
             User.count(),
@@ -499,6 +623,11 @@ app.get('/api/admin/stats', requireAdmin, async (req, res) => {
                 group: ['user_name'],
                 order: [[sequelize.literal('count'), 'DESC']],
                 limit: 5,
+                raw: true
+            }),
+            DosageLog.findAll({
+                attributes: ['timestamp'],
+                where: dateWhere,
                 raw: true
             })
         ]);
@@ -545,6 +674,18 @@ app.get('/api/admin/stats', requireAdmin, async (req, res) => {
             }
         });
 
+        const weeklyTrend = [0, 0, 0, 0, 0, 0, 0]; // Mon, Tue, Wed, Thu, Fri, Sat, Sun
+        allLogs.forEach(log => {
+            const date = parseThaiTimestamp(log.timestamp);
+            if (date) {
+                const dayIndex = date.getDay(); // 0 = Sun, 1 = Mon, ..., 6 = Sat
+                const mappedIndex = dayIndex === 0 ? 6 : dayIndex - 1;
+                if (mappedIndex >= 0 && mappedIndex < 7) {
+                    weeklyTrend[mappedIndex]++;
+                }
+            }
+        });
+
         const leaderboard = leaderboardResult.map((row, index) => ({
             rank: index + 1,
             name: row.user_name,
@@ -559,7 +700,8 @@ app.get('/api/admin/stats', requireAdmin, async (req, res) => {
                 totalPatients,
                 todayCalculations,
                 drugCounts,
-                leaderboard
+                leaderboard,
+                weeklyTrend
             }
         });
     } catch (error) {
@@ -713,6 +855,80 @@ app.delete('/api/admin/logs/:id', requireAdmin, async (req, res) => {
     }
 });
 
+// 👤 API: ดึงข้อมูลคนไข้ทั้งหมด
+app.get('/api/patients', async (req, res) => {
+    try {
+        const { q } = req.query;
+        let where = {};
+        if (q) {
+            where = {
+                [Op.or]: [
+                    { hn: { [Op.like]: `%${q}%` } },
+                    { name: { [Op.like]: `%${q}%` } }
+                ]
+            };
+        }
+        const patients = await Patient.findAll({
+            where,
+            order: [['name', 'ASC']]
+        });
+        res.json({ success: true, patients });
+    } catch (err) {
+        console.error('❌ Patients fetch error:', err);
+        res.status(500).json({ success: false, message: 'Database Error: ' + err.message });
+    }
+});
+
+// 👤 API: เพิ่มหรืออัปเดตข้อมูลคนไข้ (บังคับ H.N. ไม่ซ้ำกันกับคนละชื่อ)
+app.post('/api/patients', async (req, res) => {
+    try {
+        const { hn, title, name, gender, age, height, weight } = req.body;
+        if (!hn || !name) {
+            return res.status(400).json({ success: false, message: 'กรุณากรอก H.N. และ ชื่อ-นามสกุล' });
+        }
+
+        const cleanedTitle = (title || '').trim();
+        let cleanedName = (name || '').trim();
+        if (cleanedTitle) {
+            while (cleanedName.startsWith(cleanedTitle)) {
+                cleanedName = cleanedName.substring(cleanedTitle.length).trim();
+            }
+        }
+
+        const existingPatient = await Patient.findByPk(hn);
+        if (existingPatient) {
+            // บังคับให้ H.N. ไม่ซ้ำกัน (ถ้าชื่อไม่ตรงกัน ถือเป็นคนละคน และห้ามใช้ H.N. ซ้ำ)
+            const existingNameCleaned = existingPatient.name.trim().toLowerCase();
+            const inputNameCleaned = cleanedName.toLowerCase();
+
+            // To make sure it doesn't fail for existing patients whose name contains title, we strip title from existing patient's name before comparing
+            let dbNameStripped = existingPatient.name.trim();
+            if (cleanedTitle) {
+                while (dbNameStripped.startsWith(cleanedTitle)) {
+                    dbNameStripped = dbNameStripped.substring(cleanedTitle.length).trim();
+                }
+            }
+
+            if (dbNameStripped.toLowerCase() !== inputNameCleaned && existingNameCleaned !== name.trim().toLowerCase()) {
+                return res.status(400).json({
+                    success: false,
+                    message: `H.N. นี้ถูกใช้งานแล้วโดยผู้ป่วยชื่อ "${existingPatient.name}" ไม่สามารถบันทึกซ้ำซ้อนได้`
+                });
+            }
+            // อัปเดตข้อมูลผู้ป่วยเดิม
+            await existingPatient.update({ title: cleanedTitle, name: cleanedName, gender, age, height, weight });
+            return res.json({ success: true, patient: existingPatient });
+        } else {
+            // สร้างผู้ป่วยรายใหม่
+            const newPatient = await Patient.create({ hn, title: cleanedTitle, name: cleanedName, gender, age, height, weight });
+            return res.json({ success: true, patient: newPatient });
+        }
+    } catch (err) {
+        console.error('❌ Patient save error:', err);
+        res.status(500).json({ success: false, message: 'Database Error: ' + err.message });
+    }
+});
+
 // 💊 API: ดึงข้อมูลยาทั้งหมดจากตาราง drugs
 app.get('/api/drugs', async (req, res) => {
     try {
@@ -729,9 +945,9 @@ app.get('/api/drugs', async (req, res) => {
 // 👥 Admin Drug Management APIs
 app.post('/api/admin/drugs', requireChiefOrAdmin, async (req, res) => {
     try {
-        const { drug_code, drug_name, calculation_type, default_weight_type, standard_dose_value, standard_dose_unit, max_dose_cap, max_bsa_cap, max_gfr_cap, is_active } = req.body;
+        const { drug_code, drug_name, drug_category, calculation_type, default_weight_type, standard_dose_value, standard_dose_unit, max_dose_cap, max_bsa_cap, max_gfr_cap, is_active } = req.body;
         const employeeId = req.headers['x-employee-id'];
-        
+
         if (!drug_name || !calculation_type) {
             return res.status(400).json({ success: false, message: 'กรุณากรอกข้อมูลที่จำเป็นให้ครบถ้วน (ชื่อยา และ ประเภทการคำนวณ)' });
         }
@@ -739,6 +955,7 @@ app.post('/api/admin/drugs', requireChiefOrAdmin, async (req, res) => {
         const newDrug = await Drug.create({
             drug_code: drug_code || null,
             drug_name,
+            drug_category: drug_category || 'CHEMOTHERAPY',
             calculation_type,
             default_weight_type: default_weight_type || 'ACTUAL',
             standard_dose_value: standard_dose_value === '' ? null : standard_dose_value,
@@ -763,7 +980,7 @@ app.post('/api/admin/drugs', requireChiefOrAdmin, async (req, res) => {
 app.put('/api/admin/drugs/:id', requireChiefOrAdmin, async (req, res) => {
     try {
         const drugId = req.params.id;
-        const { drug_code, drug_name, calculation_type, default_weight_type, standard_dose_value, standard_dose_unit, max_dose_cap, max_bsa_cap, max_gfr_cap, is_active } = req.body;
+        const { drug_code, drug_name, drug_category, calculation_type, default_weight_type, standard_dose_value, standard_dose_unit, max_dose_cap, max_bsa_cap, max_gfr_cap, is_active } = req.body;
         const employeeId = req.headers['x-employee-id'];
 
         if (!drug_name || !calculation_type) {
@@ -773,6 +990,7 @@ app.put('/api/admin/drugs/:id', requireChiefOrAdmin, async (req, res) => {
         await Drug.update({
             drug_code: drug_code || null,
             drug_name,
+            drug_category,
             calculation_type,
             default_weight_type,
             standard_dose_value: standard_dose_value === '' ? null : standard_dose_value,

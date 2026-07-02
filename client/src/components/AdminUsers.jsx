@@ -722,24 +722,20 @@ const AdminUsers = ({ currentUser, setCurrentUser, onBack, showNotification, the
                                             return items.map(([name, val]) => {
                                                 const pct = maxVal > 0 ? (val / maxVal) * 80 : 0; // max height is 80%
                                                 const bgGradient = drugColors[name] || 'from-indigo-500 to-purple-500';
-                                                return (
-                                                    <div key={name} className="flex flex-col items-center flex-1 group">
-                                                        <span className="text-[10px] font-black font-mono mb-2 opacity-0 group-hover:opacity-100 transition-opacity duration-300 transform -translate-y-1">
-                                                            {val} ครั้ง
-                                                        </span>
-                                                        <div 
-                                                            className={`w-10 sm:w-12 bg-gradient-to-t ${bgGradient} rounded-t-xl transition-all duration-500 group-hover:brightness-110 shadow-lg relative`}
-                                                            style={{ height: `${pct}%`, minHeight: val > 0 ? '8px' : '2px' }}
-                                                        >
-                                                            <span className="absolute -top-6 left-1/2 -translate-x-1/2 text-[9px] font-black font-mono opacity-85 group-hover:hidden">
+                                                    return (
+                                                        <div key={name} className="flex flex-col items-center justify-end flex-1 group h-full">
+                                                            <span className="text-[10px] font-black font-mono mb-1.5 opacity-90 text-slate-800 dark:text-white">
                                                                 {val}
                                                             </span>
+                                                            <div 
+                                                                className={`w-10 sm:w-12 bg-gradient-to-t ${bgGradient} rounded-t-xl transition-all duration-500 group-hover:brightness-110 shadow-lg relative`}
+                                                                style={{ height: `${pct}%`, minHeight: val > 0 ? '8px' : '2px' }}
+                                                            />
+                                                            <span className="text-[9px] font-black text-center mt-3 truncate w-full px-1 opacity-70 group-hover:opacity-100 transition-opacity">
+                                                                {name}
+                                                            </span>
                                                         </div>
-                                                        <span className="text-[9px] font-black text-center mt-3 truncate w-full px-1 opacity-70 group-hover:opacity-100 transition-opacity">
-                                                            {name}
-                                                        </span>
-                                                    </div>
-                                                );
+                                                    );
                                             });
                                         })()}
                                     </div>
@@ -833,7 +829,7 @@ const AdminUsers = ({ currentUser, setCurrentUser, onBack, showNotification, the
                             <div className="premium-card p-6">
                                 <h3 className="font-black mb-5 uppercase tracking-wider text-sm flex items-center gap-2 opacity-90">
                                     <Users size={18} className="text-emerald-500 dark:text-emerald-400" />
-                                    การใช้งานของเภสัชกรสูงสุด (Top Active)
+                                    การใช้งานของเภสัชกรสูงสุด (TOP ACTIVE)
                                 </h3>
                                 <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
                                     {stats.leaderboard && stats.leaderboard.length > 0 ? (

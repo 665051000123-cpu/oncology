@@ -1,810 +1,177 @@
-
-Gemini
-แชทใหม่
-ค้นหาแชท
-วิดีโอ
-คลัง
-Notebook ใหม่
-อยากได้แบบขอแบบละเอียดเหมือนเป๊ะๆ
-ความหมายของ Blueprint 10 อย่าง
-ทำรูปเล่ม
-เปลี่ยนธีมเป็นสีฟ้า
-การสร้างสไลด์นำเสนอ Dashboard
-สร้าง Dashboard สถิติการใช้ยา
-การออกแบบ Dashboard ห้องประชุม Chart.js
-รายชื่อ Gundam ในจักรวาล UC
-คืออะไร
-การสนทนากับ Gemini
-อยากได้แบบขอแบบละเอียดเหมือนเป๊ะๆ
-
-นี่คือรายละเอียดเนื้อหาที่สรุปถอดมาจากไฟล์รูปภาพพิมพ์เขียวระบบจองห้องประชุม (Meeting Room Booking Blueprint) ทั้ง 9 ไฟล์อย่างละเอียดและแม่นยำที่สุดครับ
-
-รูปภาพที่ 1: LINE_NOTE_260629_1.jpg (1. System Architecture)
-แสดงภาพรวมสถาปัตยกรรมระบบของระบบจองห้องประชุม แบ่งออกเป็นเลเยอร์ต่าง ๆ ดังนี้:
-
-ผู้ใช้งาน (Users):
-
-พนักงาน: ทำหน้าที่จองห้องประชุม ตรวจสอบสถานะ
-
-ผู้อนุมัติ: ทำหน้าที่พิจารณาคำขอและอนุมัติการจอง
-
-ผู้ดูแลระบบ (Admin): บริหารจัดการระบบและข้อมูลพื้นฐาน
-
-ช่องทางการเข้าถึง: ผ่าน Web Browser หรือ Mobile Browser (Browser / Mobile)
-
-Web Application (Meeting Room Booking System):ประกอบด้วยฟังก์ชันหลัก ได้แก่ Authentication & RBAC, Booking Management, Room Management, Approval Workflow, Calendar View, Notifications, Reports & Dashboard และ Audit Log
-
-เทคโนโลยีฝั่งแอปพลิเคชัน (Backend Layer):
-
-PHP 8, Bootstrap 5, jQuery/AJAX, Chart.js, FullCalendar
-
-ฐานข้อมูล (Data Layer): MySQL
-
-การเชื่อมต่อภายนอก (Integrations):
-
-Email (สำหรับส่งการแจ้งเตือน)
-
-LINE / Telegram (สำหรับแจ้งเตือนผ่านแอปพลิเคชันหลัก)
-
-Export CSV / Excel
-
-ความปลอดภัย (Security): CSRF Protection, Session Management, Input Validation, PDO Prepared Statements
-
-โครงสร้างพื้นฐาน / การปฏิบัติการ (Infrastructure / Operations):
-
-Apache / Nginx: Web Server / Static Files
-
-Scheduler / Cron Job: งานแจ้งเตือน, งานรายงาน, งานทำความสะอาดข้อมูล
-
-Backup: Database Backup, File Backup, Retention Policy
-
-SSL / HTTPS: เข้ารหัสการสื่อสารเพื่อความปลอดภัยของข้อมูล
-
-Logging: Application Log, Error Log, Access Log
-
-สัญลักษณ์การไหลของข้อมูล:
-
-ลูกศรเส้นทึบสีม่วง = การไหลของข้อมูลหลัก
-
-ลูกศรเส้นประสีม่วง = การไหลของข้อมูลสองทิศทาง
-
-ลูกศรจุดสีม่วง = การเชื่อมต่อ / งานอัตโนมัติ
-
-รูปภาพที่ 2: LINE_NOTE_260629_2.jpg (2. Database Schema)
-แสดงโครงสร้างฐานข้อมูล (ER Diagram) และความสัมพันธ์ของตารางทั้งหมด (สัญลักษณ์: PK = Primary Key, FK = Foreign Key, 1 = One, ∞ = Many)
-
-departments (ตารางแผนก)
-
-id (INT, PK)
-
-department_name (VARCHAR(100))
-
-ความสัมพันธ์: 1 แผนก ไปยัง หลาย users (1:∞)
-
-roles (ตารางสิทธิ์/บทบาท)
-
-id (INT, PK)
-
-role_name (VARCHAR(50))
-
-ความสัมพันธ์: 1 บทบาท ไปยัง หลาย users (1:∞)
-
-users (ตารางผู้ใช้งาน)
-
-id (INT, PK), department_id (INT, FK), role_id (INT, FK)
-
-full_name (VARCHAR(100)), email (VARCHAR(150)), phone (VARCHAR(20)), password_hash (VARCHAR(255)), status (VARCHAR(20)), created_at (DATETIME)
-
-ความสัมพันธ์: 1 user ไปยัง หลาย bookings, หลาย notifications, หลาย audit_logs, และ หลาย booking_approvals
-
-rooms (ตารางห้องประชุม)
-
-id (INT, PK)
-
-room_name (VARCHAR(100)), location (VARCHAR(100)), capacity (INT), floor (VARCHAR(20)), equipment_summary (TEXT), status (VARCHAR(20))
-
-ความสัมพันธ์: 1 room ไปยัง หลาย bookings และ หลาย room_feature_map
-
-room_features (ตารางสิ่งอำนวยความสะดวกในห้อง)
-
-id (INT, PK)
-
-feature_name (VARCHAR(100))
-
-room_feature_map (ตารางจับคู่ห้องกับสิ่งอำนวยความสะดวก)
-
-id (INT, PK), room_id (INT, FK), feature_id (INT, FK)
-
-bookings (ตารางการจองห้อง)
-
-id (INT, PK), room_id (INT, FK), user_id (INT, FK)
-
-title (VARCHAR(200)), meeting_date (DATE), start_time (TIME), end_time (TIME), attendee_count (INT), agenda (TEXT), approval_status (VARCHAR(20)), booking_status (VARCHAR(20)), created_at (DATETIME)
-
-ความสัมพันธ์: 1 การจอง ไปยัง หลาย booking_attendees, หลาย booking_approvals, และ หลาย notifications
-
-booking_attendees (ตารางรายชื่อผู้เข้าร่วมประชุม)
-
-id (INT, PK), booking_id (INT, FK)
-
-attendee_name (VARCHAR(100)), attendee_email (VARCHAR(150))
-
-booking_approvals (ตารางการอนุมัติการจอง)
-
-id (INT, PK), booking_id (INT, FK), approver_id (INT, FK)
-
-action (VARCHAR(20)), action_note (TEXT), action_at (DATETIME)
-
-notifications (ตารางแจ้งเตือน)
-
-id (INT, PK), user_id (INT, FK), booking_id (INT, FK)
-
-channel (VARCHAR(20)), message (TEXT), sent_at (DATETIME), status (VARCHAR(20))
-
-audit_logs (ตารางบันทึกการใช้งานระบบ)
-
-id (INT, PK), user_id (INT, FK)
-
-module (VARCHAR(50)), action (VARCHAR(50)), reference_id (VARCHAR(100)), log_time (DATETIME), ip_address (VARCHAR(45))
-
-รูปภาพที่ 3: LINE_NOTE_260629_3.jpg (3. Folder Structure)
-แสดงโครงสร้างโฟลเดอร์ของโปรเจกต์ meeting-room-booking/ พัฒนาด้วย PHP 8 + MySQL
-
-โครงสร้างไดเรกทอรีหลัก:
-
-app/
-
-controllers/ (เก็บไฟล์ควบคุม เช่น AuthController.php, BookingController.php, RoomController.php, ApprovalController.php, DashboardController.php)
-
-models/ (เก็บโมเดลข้อมูล เช่น User.php, Room.php, Booking.php, Approval.php, Report.php)
-
-views/ (โฟลเดอร์เก็บเทมเพลตหน้าจอแยกตามโฟลเดอร์ย่อย: auth/, dashboard/, bookings/, rooms/, approvals/, reports/, settings/)
-
-services/ (เก็บไฟล์บริการประมวลผลทางธุรกิจ: NotificationService.php, BookingService.php)
-
-middleware/ (ตัวกรองสิทธิ์: AuthMiddleware.php, RoleMiddleware.php)
-
-config/ (ไฟล์ตั้งค่าระบบ: app.php, database.php)
-
-routes/ (ไฟล์กำหนดเส้นทาง URL: web.php, api.php)
-
-database/ (ระบบฐานข้อมูล: migrations/, seeders/, schema.sql)
-
-public/ (โฟลเดอร์ที่ภายนอกเข้าถึงได้ / Web Root)
-
-index.php (ไฟล์หลัก)
-
-assets/ (เก็บโฟลเดอร์ย่อย css/style.css, js/app.js)
-
-images/
-
-storage/ (สำหรับเก็บไฟล์ภายในระบบ)
-
-uploads/ (ไฟล์อัปโหลด)
-
-logs/ (ไฟล์ Log ชั่วคราว)
-
-cache/ (ไฟล์แคช)
-
-vendor/ (โฟลเดอร์ไลบรารีจาก Composer)
-
-.env (ไฟล์ตั้งค่าความลับ/สภาพแวดล้อม)
-
-composer.json (ไฟล์จัดการ Dependencies)
-
-README.md (ไฟล์อธิบายโปรเจกต์)
-
-หลักการจัดโครงสร้าง (แถบขวามือ):
-
-แยก Controller/Model/View: เพื่อความเป็นระเบียบและบำรุงรักษาง่าย
-
-เก็บ config แยก: ตั้งค่าระบบและฐานข้อมูลให้รวมอยู่ในที่เดียว
-
-ซ่อน .env: ไม่ควรเปิดเผยต่อสาธารณะ
-
-logs อยู่ใน storage: เก็บไฟล์ชั่วคราวและ log นอกโฟลเดอร์ public
-
-public เป็น web root: มีเพียงไฟล์ที่เข้าถึงจากเว็บได้เท่านั้นที่อยู่ในโฟลเดอร์นี้
-
-รูปภาพที่ 4: LINE_NOTE_260629_4.jpg (4. UI Page List)
-รายการหน้าใช้งานระบบแบ่งตามกลุ่มผู้ใช้งาน 3 กลุ่ม:
-
-ผู้ใช้งานทั่วไป (Users) - สำหรับจอง ตรวจสอบ และติดตามสถานะ
-
-1 Login / Register: เข้าสู่ระบบด้วยอีเมล/รหัสผ่าน, ลงทะเบียนผู้ใช้ใหม่, รีเซ็ตรหัสผ่าน
-
-2 Dashboard: ภาพรวมการจองของตนเอง, การแจ้งเตือนประกาศ, สถิติการใช้งานห้องประชุม
-
-3 Calendar Booking View: มุมมองปฏิทินด้วย FullCalendar, ดูการจองรายวัน/สัปดาห์/เดือน, คลิกดูรายละเอียดการจอง
-
-4 Search Available Room: ค้นหาห้องว่างตามวันที่/เวลา, กรองตามอุปกรณ์/ความจุ/ชั้น, แสดงรายการห้องที่ว่าง
-
-5 New Booking Form: กรอกข้อมูลการจองห้อง, เลือกอุปกรณ์/ผู้เข้าร่วม, ส่งคำขอการจอง
-
-6 My Bookings: รายการการจองของฉันทั้งหมด, ดู/แก้ไข/ยกเลิกการจอง, ติดตามสถานะการจอง
-
-7 Booking Detail: รายละเอียดการจองทั้งหมด, ผู้เข้าร่วมและอุปกรณ์, ประวัติการดำเนินการ
-
-8 Approval Queue: รายการรอการอนุมัติ (แสดงสถานะ)
-
-ผู้อนุมัติ (Approver) - พิจารณาคำขอและอนุมัติการจอง
-
-8 Approval Queue: รายการรอการอนุมัติ, พิจารณาและอนุมัติ/ปฏิเสธ, แสดงเหตุผล/หมายเหตุ
-
-7 Booking Detail: ดูรายละเอียดก่อนอนุมัติ
-
-11 Reports & Export: รายงานการจองและการใช้งาน
-
-12 Notifications Center: การแจ้งเตือนและประกาศ, สถานะการจองและอนุมัติ, ทำเครื่องหมายว่าอ่านแล้ว
-
-ผู้ดูแลระบบ (Admin) - บริหารจัดการระบบและข้อมูลพื้นฐาน
-
-9 Room Management: จัดการข้อมูลห้องประชุม, ความจุ ชั้น และรูปภาพ, สถานะห้อง (ใช้งาน/ปิดปรับปรุง)
-
-10 Equipment / Facilities Management: จัดการอุปกรณ์และสิ่งอำนวยความสะดวก, หมวดหมู่/สภาพ/จำนวน, ตรวจสอบการใช้งาน
-
-11 Reports & Export: รายงานการจองและการใช้งานห้อง, กรองตามช่วงเวลา/แผนก/ห้อง, ส่งออกข้อมูล (Excel/CSV/PDF)
-
-13 User Management: จัดการผู้ใช้และบทบาท (Admin, Approver, User), กำหนดสิทธิ์การเข้าถึง, เปิดใช้งาน/ระงับบัญชีผู้ใช้
-
-14 Settings: ตั้งค่าระบบและนโยบายการจอง, ตั้งค่าการแจ้งเตือน, ตั้งค่าการอนุมัติและอื่นๆ
-
-15 Audit Log: บันทึกการใช้งานระบบ, ผู้กระทำการ/กิจกรรม, ค้นหาและกรองประวัติ
-
-องค์ประกอบ UI ที่สำคัญด้านล่าง: FullCalendar, Filter / Search Bar, Modal Popup, Status Badge (แสดงสถานะด้วยสี), Action Buttons (ปุ่มดำเนินการหลัก)
-
-รูปภาพที่ 5: LINE_NOTE_260629_5.jpg (5. API Flow)
-แสดงลำดับขั้นตอนการทำงานของ API ตั้งแต่หน้าเว็บจนถึงฐานข้อมูล (10 ลำดับ):
-
-ตัวอย่าง API Endpoints (ฝั่งซ้าย):
-
-GET /api/rooms (ดึงข้อมูลห้อง)
-
-GET /api/rooms/available?... (ค้นหาห้องว่าง)
-
-POST /api/bookings (สร้างคำขอจอง)
-
-GET /api/bookings/my (ดึงข้อมูลการจองของตนเอง)
-
-GET /api/bookings/{id} (ดูรายละเอียดการจอง)
-
-POST /api/bookings/{id}/approve (อนุมัติการจอง)
-
-POST /api/bookings/{id}/reject (ปฏิเสธคำขอ)
-
-POST /api/bookings/{id}/cancel (ยกเลิกคำขอ)
-
-GET /api/dashboard/stats (ดึงข้อมูลสถิติหน้า Dashboard)
-
-GET /api/reports/usage (ดึงข้อมูลรายงาน)
-
-ผังการไหลข้อมูล 10 ขั้นตอน:
-
-User Interface: หน้าเว็บ/มือถือ ส่งคำขอจากผู้ใช้
-
-Route: กำหนดเส้นทาง URL (Routing)
-
-Middleware: ตรวจสอบสิทธิ์ (Auth, RBAC, CSRF Protection, Validation)
-
-Controller: รับ Request ตรวจสอบข้อมูล และจัดการคำขอ
-
-Service Layer: ตรวจสอบความพร้อม (Availability Check), ป้องกันจองซ้ำ (Overlap Prevention), กฎการอนุมัติ (Approval Rule), ส่งการแจ้งเตือน (Notification Sending)
-
-Model: จัดการข้อมูล (Data Access) ผ่าน Model
-
-MySQL Database: ทำการบันทึกข้อมูลหลัก (Write: INSERT/UPDATE/DELETE) หรือดึงข้อมูล (Read: SELECT)
-
-Notification Service (บริการเสริม): ส่งอีเมล, LINE/Telegram หรือแจ้งเตือนในระบบ (In-App)
-
-Audit Log (บริการเสริม): บันทึกการกระทำ (Action, User, Timestamp, Details)
-
-Response JSON / HTML: ส่งผลลัพธ์กลับในรูปแบบ JSON หรือ HTML ประกอบด้วยสถานะ (Status Code), ข้อมูล (Data), และข้อความ (Message) กลับไปยังหน้า UI
-
-รูปภาพที่ 6: LINE_NOTE_260629_6.jpg (6. Workflow)
-ขั้นตอนการทำงานของระบบจองห้องประชุม ตั้งแต่ต้นจนเสร็จสิ้น (13 ขั้นตอนหลัก):
-
-ผู้ใช้ค้นหาห้องว่าง: ค้นหาตามวันที่, เวลา/อาคาร/ชั้น, ความจุ/อุปกรณ์
-
-เลือกวัน เวลา และห้องประชุม: เลือกวันและเวลา, เลือกห้องประชุม
-
-กรอกข้อมูลการจอง: หัวข้อประชุม, จำนวนผู้เข้าร่วม, อุปกรณ์ที่ต้องการ
-
-ระบบตรวจสอบ: ตรวจสอบเวลาซ้ำ (Overlap), ตรวจสอบความพร้อมของห้องและอุปกรณ์
-
-กรณีห้องไม่ว่าง: แจ้งเตือนให้เลือกช่วงเวลาใหม่ (แสดงช่วงเวลาที่ว่างให้เลือกใหม่)
-
-กรณีห้องว่าง: ส่งคำขอจอง: สร้างคำขอจองสถานะเป็น Pending
-
-ระบบพิจารณาว่าต้องอนุมัติหรือไม่:
-
-ถ้าไม่ต้องอนุมัติ: ข้ามไปขั้นตอนที่ 10 (ระบบส่งผลลัพธ์กลับไปยังผู้จอง) และอัปเดตสถานะการจอง
-
-ถ้าต้องอนุมัติ: ส่งให้ผู้อนุมัติพิจารณาตามลำดับชั้น (ขั้นตอนที่ 8)
-
-ส่งให้ผู้อนุมัติ
-
-ผู้อนุมัติอนุมัติหรือปฏิเสธ:
-
-ถ้าอนุมัติ: ไปขั้นตอนที่ 10 (สถานะเป็น Approved)
-
-ถ้าปฏิเสธ: ส่งผลกลับแจ้งผู้จอง (สถานะเป็น Rejected) และย้อนกลับไปให้เลือกเวลาใหม่ได้
-
-ระบบส่งผลลัพธ์กลับไปยังผู้จอง
-
-บันทึกลงปฏิทินและแจ้งเตือน: บันทึกลงปฏิทินผู้จอง, แจ้งเตือนก่อนการประชุม (Email / LINE)
-
-วันที่ใช้งาน สามารถ Check-in ได้: Check-in ด้วย QR Code หรือระบบ, บันทึกเวลาเข้าใช้งาน
-
-หลังใช้งานเปลี่ยนสถานะเป็น Completed และเก็บ Audit Log: เปลี่ยนสถานะ, บันทึกประวัติการจอง การใช้ และการแก้ไข
-
-สถานะการจอง (Status): Pending (รอตรวจสอบ), Approved (อนุมัติแล้ว), Rejected (ปฏิเสธ), Cancelled (ยกเลิก), Completed (เสร็จสิ้นการใช้งาน)
-
-รูปภาพที่ 7: LINE_NOTE_260629_7.jpg (7. ตัวอย่าง SQL CREATE TABLE)
-แสดงตัวอย่างโครงสร้างคำสั่ง SQL สำหรับสร้างตารางหลัก 2 ตาราง:
-
-ตาราง rooms (ข้อมูลห้องประชุม)
-
-SQL
-CREATE TABLE rooms (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    room_name VARCHAR(100) NOT NULL,
-    location VARCHAR(150),
-    floor VARCHAR(50),
-    capacity INT DEFAULT 0,
-    equipment_summary TEXT,
-    status ENUM('active','inactive','maintenance') DEFAULT 'active',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);
-คำอธิบายฟีลด์: id (รหัสห้อง PK), room_name (ชื่อห้อง), location/floor (สถานที่/ชั้น), capacity (ความจุสูงสุด), equipment_summary (สรุปอุปกรณ์), status (สถานะการใช้งาน), created_at (วันที่สร้างข้อมูล)
-
-ตาราง bookings (ข้อมูลการจอง)
-
-SQL
-CREATE TABLE bookings (
-    id INT AUTO_INCREMENT PRIMARY KEY,
-    room_id INT NOT NULL,
-    user_id INT NOT NULL,
-    title VARCHAR(200) NOT NULL,
-    agenda TEXT,
-    meeting_date DATE NOT NULL,
-    start_time TIME NOT NULL,
-    end_time TIME NOT NULL,
-    attendee_count INT DEFAULT 0,
-    approval_status ENUM('pending','approved','rejected') DEFAULT 'pending',
-    booking_status ENUM('draft','confirmed','cancelled','completed') DEFAULT 'draft',
-    created_at TIMESTAMP DEFAULT CURRENT_TIMESTAMP,
-    CONSTRAINT fk_booking_room FOREIGN KEY (room_id) REFERENCES rooms(id),
-    CONSTRAINT fk_booking_user FOREIGN KEY (user_id) REFERENCES users(id)
-);
-คำอธิบายฟีลด์เพิ่มเติม: room_id/user_id (FK อ้างอิงตารางห้องและผู้ใช้), title (หัวข้อประชุม), meeting_date (วันที่ประชุม), start_time/end_time (เวลาเริ่ม/สิ้นสุด), attendee_count (จำนวนผู้เข้าประชุม), approval_status (สถานะการอนุมัติ), booking_status (สถานะการจอง)
-
-แนวทางปฏิบัติที่ดี (Best Practices ด้านขวา): ใช้ Foreign Key (FK), ตั้ง Index ที่ meeting_date / room_id, กันเวลาซ้อนด้วย Business Logic, ใช้ ENUM สำหรับควบคุมค่าสถานะ, เก็บ created_at สำหรับสืบย้อนข้อมูล
-
-รูปภาพที่ 8: LINE_NOTE_260629_8.jpg (8. ตัวอย่าง Code หน้า Booking Form)
-ตัวอย่างหน้าจอฝั่งซ้ายแบบฟอร์มเพิ่มรายการจอง และโค้ดฝั่งขวา (PHP + HTML ร่วมกับ Bootstrap 5):
-
-ฟอร์มหน้าจอประกอบด้วย: ห้องประชุม (Dropdown), วันที่, เวลาเริ่ม, เวลาสิ้นสุด, หัวข้อประชุม, ผู้เข้าร่วม (คน), รายละเอียด และปุ่ม "บันทึก"
-
-สิ่งที่ไม่ควรพลาดในการเช็ก (ด้านซ้ายล่าง): ต้องทำ Validate เวลา, ป้องกัน CSRF, ตรวจสอบห้องว่างก่อนบันทึก, Sanitize input, แจ้ง error แบบเข้าใจง่าย
-
-ตัวอย่างโค้ดโครงสร้างฟอร์ม:
-
-เปิดแท็กฟอร์มชี้ไปที่ action="booking_store.php" เมธอด POST
-
-มีการใส่ Input ซ่อนสำหรับเก็บ <input type="hidden" name="_token" value="<?php echo csrf_token(); ?>"> เพื่อป้องกันภัยคุมคามแบบ CSRF
-
-การทำตัวเลือกห้องประชุมจะใช้ลูป foreach ($rooms as $room) ในการดึงข้อมูล room_name ออกมาแสดงในแท็ก <option>
-
-รูปภาพที่ 9: LINE_NOTE_260629_9.jpg (9. ตัวอย่าง Dashboard ด้วย Chart.js)
-แสดงรูปแบบหน้าสถิติและภาพรวมการใช้งานห้องประชุม (Dashboard):
-
-การ์ดสรุปตัวเลขด้านบน:
-
-ห้องทั้งหมด: 18 ห้อง (Active พร้อมใช้งาน)
-
-การจองวันนี้: 24 รายการ (เพิ่มขึ้น 20% จากเมื่อวาน)
-
-รออนุมัติ: 7 รายการ (ต้องดำเนินการ)
-
-อัตราการใช้งาน: 76% (เฉลี่ย 7 วันล่าสุด)
-
-กราฟและสถิติหลัก:
-
-จำนวนการจองแยกตามห้อง (Bar Chart): แสดงจำนวนครั้งที่จองในแต่ละห้อง เช่น Room A (52 ครั้ง, 8 ที่นั่ง), Room B (38 ครั้ง, 12 ที่นั่ง), Room C (29 ครั้ง), Room D (22 ครั้ง), Room E (16 ครั้ง), Room F (9 ครั้ง)
-
-สถานะการจอง (Pie Chart): สัดส่วนรวมทั้งหมด 120 รายการ แบ่งเป็น อนุมัติแล้ว 45% (54 รายการ), รออนุมัติ 30% (36 รายการ), ปฏิเสธ 15% (18 รายการ), และยกเลิก 10% (12 รายการ)
-
-แนวโน้มการจองรายสัปดาห์ (Line Chart): แสดงจุดกราฟแนวโน้มจำนวนครั้งรายวันตั้งแต่ จ. ถึง อา. (เช่น ศุกร์มียอดสูงสุดที่ 52 ครั้ง)
-
-ตัวอย่างโค้ดด้านขวา: โค้ด JavaScript สำหรับสร้าง new Chart(ctx, { type: 'bar', ... }) ร่วมกับชุดคำสั่งกำหนดสีแบบ RGBA และตั้งค่าความโค้งมนของแท่งกราฟ (borderRadius: 6) พร้อมเปิดใช้งานตัวเลือกแสดงผลแบบยืดหยุ่นตามหน้าจอ (responsive: true)
-
-อยากให้เปลี่ยนเป็นข้อมู,จากโคดที่ส่งไปแทน หน้าสถิติเอาหน้านี้ไปใส่
-
-รับทราบครับ! เพื่อให้ข้อมูลชุดนี้ตรงกับโค้ดระบบจริงที่เป็น ระบบคำนวณและบันทึกข้อมูลการใช้ยาเคมีบำบัดสำหรับผู้ป่วยมะเร็ง (Oncology System) จากไฟล์ "665051000123-cpu/oncology" ผมได้ทำการปรับเปลี่ยนเนื้อหาในส่วนของ "หน้าสถิติและภาพรวม (Dashboard)" ใหม่ทั้งหมด โดยอ้างอิงรายละเอียดและตัวเลขจากหน้าจอ "image_ae0563.png" แบบละเอียดและแม่นยำที่สุดให้เรียบร้อยแล้วครับ  
-ZIP
-
-ปรับปรุงข้อที่ 9. ตัวอย่าง Dashboard ด้วย Chart.js (อ้างอิงจาก image_ae0563.png)
-แสดงรูปแบบหน้าสถิติและภาพรวมการบันทึกข้อมูลการใช้ยาเคมีบำบัดของระบบ:
-
-ตัวกรองข้อมูลด้านบน (Filter Bar):
-
-วันที่เริ่มต้น (START DATE): ช่องกรอกปฏิทิน รูปแบบ วว/ดด/ปปปป (เช่น 24/06/2569)
-
-วันที่สิ้นสุด (END DATE): ช่องกรอกปฏิทิน รูปแบบ วว/ดด/ปปปป (เช่น 29/06/2569)
-
-ปุ่มดำเนินการ: "กรองข้อมูล" (สีน้ำเงิน) และ "ล้างค่า" (สีขาว)
-
-การ์ดสรุปตัวเลขภาพรวม (Summary Cards):
-
-จำนวนการใช้ยา: 30 ครั้ง
-
-ผู้ใช้งานในระบบ: 3 ราย
-
-จำนวนผู้ป่วย (H.N. สะสม): 27 ราย
-
-สถิติและการแสดงผลกราฟ (Charts):
-
-จำนวนการใช้ยาแยกตามสูตร/ตัวยา (Bar Chart): แกนนอนแสดงรายชื่อสูตรยาและตัวยาเคมีบำบัด พร้อมตัวเลขระบุจำนวนครั้งที่เสาเดี่ยว:
-
-Vincristine: 4 ครั้ง
-
-Carboplatin: 19 ครั้ง
-
-Bleomycin: 2 ครั้ง
-
-CV Regimen: 2 ครั้ง
-
-BC Regimen: 3 ครั้ง
-
-Other: 0 ครั้ง
-
-สัดส่วนการใช้ยาเคมีบำบัด (Donut Chart): วงกลมแบบมีรูตรงกลาง ตรงกลางระบุคำว่า "ใช้ยาทั้งหมด 30 ครั้ง" พร้อมแบ่งแถบสีแสดงสัดส่วนเปอร์เซ็นต์ ดังนี้:
-
-Vincristine: 13%
-
-Carboplatin: 63%
-
-Bleomycin: 7%
-
-CV Regimen: 7%
-
-BC Regimen: 10%
-
-การใช้งานของเภสัชกรสูงสุด (TOP ACTIVE): แสดงการ์ดรายชื่อผู้ใช้งานที่เข้ามาบันทึกข้อมูลยามากที่สุดในระบบ:
-
-admin (เภสัชกรผู้บันทึก) : บันทึก 29 ครั้ง
-
-test2 (เภสัชกรผู้บันทึก) : บันทึก 1 ครั้ง
-
-การปรับข้อมูลในหน้านี้จะช่วยให้เอกสารพิมพ์เขียวระบบ (Blueprint) ของคุณสอดคล้องกับซอร์สโค้ดฝั่ง Client (React/Vite) และ Backend (Node.js/Express) ในไฟล์ "665051000123-cpu/oncology" ที่ใช้ประมวลผลข้อมูลคนไข้และการจ่ายยาเคมีบำบัดได้อย่างถูกต้องสมบูรณ์ครับ!
-
-อยากได้เป็น HTML ไม่ก็รูป
-
-ผมได้แปลงข้อมูลพิมพ์เขียวระบบและสถิติภาพรวมจากรูปหน้าจอแดชบอร์ดระบบเคมีบำบัดคนไข้มะเร็งที่คุณส่งมา ให้เป็นรูปแบบเอกสารสิ่งพิมพ์และโค้ดเรียบร้อยแล้วครับ โดยระบบได้สร้างไฟล์ไว้ให้คุณเลือกใช้งาน 2 รูปแบบดังนี้:
-
-ไฟล์เอกสารสรุปพิมพ์เขียว (รูปแบบ PDF คุณภาพสูงสำหรับพิมพ์รายงาน):
-ไอคอน PDF
-oncology_blueprint
- PDF 
-เปิดอยู่
-
-ไฟล์เว็บเพจพิมพ์เขียวระบบ (รูปแบบซอร์สโค้ด HTML):
-ไอคอน HTML
-oncology_blueprint
- HTML 
-เปิดอยู่
-
-รายละเอียดข้อมูลที่อัปเดตลงในโครงสร้างไฟล์ (ถอดจากโค้ดและรูปภาพจริง)
-การ์ดสรุปผลตัวเลขภาพรวม (Summary Cards):
-
-จำนวนการใช้ยาเคมีบำบัดทั้งหมด: 30 ครั้ง
-
-ผู้ใช้งานระบบทั้งหมด: 3 ราย
-
-จำนวนคนไข้สะสม (H.N.): 27 ราย
-
-สถิติการจ่ายยาแยกตามชื่อยาและสูตรยา (Bar & Donut Chart Data):
-
-Carboplatin: บันทึก 19 ครั้ง (63%)
-
-Vincristine: บันทึก 4 ครั้ง (13%)
-
-BC Regimen: บันทึก 3 ครั้ง (10%)
-
-Bleomycin: บันทึก 2 ครั้ง (7%)
-
-CV Regimen: บันทึก 2 ครั้ง (7%)
-
-อื่นๆ: 0 ครั้ง
-
-ตารางอันดับการใช้งานสูงสุด (Top Active Users):
-
-บัญชี admin บันทึกยอดสูงสุด 29 ครั้ง
-
-บัญชี test2 บันทึกรองลงมา 1 ครั้ง
-
-โครงสร้างทางเทคนิค (Technical Stack):
-
-เปลี่ยนข้อมูลฐานข้อมูลให้เป็นภาษาไทยตรงตามชุดคำสั่ง .sql (ตารางประวัติคนไข้, ข้อมูลยา, user) และปรับฟอร์มการประมวลผลให้เป็นการคำนวณค่าพื้นที่ผิวร่างกาย (BSA) และปริมาณขนาดตัวยาเคมีบำบัด (Calculated Dose) แทนระบบจองห้องประชุมเดิมครับ
-
-คุณสามารถคลิกดาวน์โหลดไฟล์เพื่อนำเอาโค้ดหรือรูปเล่มรายงานไปใช้งานต่อได้ทันทีครับ!
-
-
-
-
-Gemini เป็น AI และอาจทำผิดพลาดได้
-
-
 <!DOCTYPE html>
 <html lang="th">
 <head>
     <meta charset="UTF-8">
-    <title>พิมพ์เขียวระบบคำนวณและบันทึกข้อมูลยาเคมีบำบัด (Oncology System Blueprint)</title>
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Oncology System Dashboard</title>
+    <script src="https://cdn.jsdelivr.net/npm/@tailwindcss/browser@4"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Kanit:wght@300;400;500;600&display=swap" rel="stylesheet">
     <style>
-        @page {
-            size: A4;
-            margin: 15mm 12mm;
-            background-color: #f7fafc;
-        }
-        * {
-            box-sizing: border-box;
-        }
         body {
-            font-family: 'Helvetica Neue', Arial, sans-serif;
-            color: #2d3748;
-            margin: 0;
-            padding: 0;
-            font-size: 10pt;
-            line-height: 1.5;
-            background-color: #f7fafc;
-        }
-        .header-banner {
-            margin: -15mm -12mm 20px -12mm;
-            padding: 25px 12mm;
-            background: linear-gradient(135deg, #1a365d 0%, #2a4365 100%);
-            color: #ffffff;
-        }
-        .header-banner h1 {
-            margin: 0;
-            font-size: 18pt;
-            font-weight: bold;
-            letter-spacing: 0.5px;
-        }
-        .header-banner p {
-            margin: 5px 0 0 0;
-            font-size: 10pt;
-            color: #e2e8f0;
-        }
-        h2 {
-            font-size: 13pt;
-            color: #2b6cb0;
-            border-left: 4px solid #3182ce;
-            padding-left: 8px;
-            margin-top: 25px;
-            margin-bottom: 12px;
-            page-break-after: avoid;
-        }
-        h3 {
-            font-size: 11pt;
-            color: #2d3748;
-            margin-top: 15px;
-            margin-bottom: 8px;
-            page-break-after: avoid;
-        }
-        p {
-            margin: 0 0 10px 0;
-        }
-        ul, ol {
-            margin: 0 0 15px 0;
-            padding-left: 20px;
-        }
-        li {
-            margin-bottom: 4px;
-        }
-        .grid-table {
-            display: table;
-            width: 100%;
-            margin-bottom: 15px;
-            border-collapse: collapse;
-        }
-        .grid-row {
-            display: table-row;
-        }
-        .grid-cell {
-            display: table-cell;
-            padding: 8px;
-            border: 1px solid #e2e8f0;
-            vertical-align: top;
-        }
-        .grid-header {
-            background-color: #ebf8ff;
-            font-weight: bold;
-            color: #2c5282;
-        }
-        .stat-container {
-            display: table;
-            width: 100%;
-            margin-bottom: 15px;
-        }
-        .stat-card {
-            display: table-cell;
-            width: 33.33%;
-            background-color: #ffffff;
-            border: 1px solid #e2e8f0;
-            padding: 12px;
-            text-align: center;
-            border-radius: 4px;
-        }
-        .stat-card.middle {
-            border-left: none;
-            border-right: none;
-        }
-        .stat-val {
-            font-size: 16pt;
-            font-weight: bold;
-            color: #2b6cb0;
-        }
-        .stat-lbl {
-            font-size: 9pt;
-            color: #718096;
-            margin-top: 2px;
-        }
-        .code-block {
-            background-color: #1a202c;
-            color: #edf2f7;
-            font-family: 'Courier New', Courier, monospace;
-            padding: 12px;
-            border-radius: 4px;
-            font-size: 8.5pt;
-            white-space: pre-wrap;
-            margin-bottom: 15px;
-        }
-        .badge {
-            display: inline-block;
-            padding: 2px 6px;
-            font-size: 8pt;
-            font-weight: bold;
-            border-radius: 3px;
-            color: #ffffff;
-        }
-        .badge-active { background-color: #48bb78; }
-        .badge-pending { background-color: #ecc94b; color: #2d3748; }
-        .badge-maintenance { background-color: #ed8936; }
-        .math {
-            font-family: 'Times New Roman', serif;
-            font-style: italic;
-            font-weight: bold;
-            color: #2c5282;
-        }
-        .page-break {
-            page-break-before: always;
+            font-family: 'Kanit', sans-serif;
         }
     </style>
 </head>
-<body>
+<body class="bg-gray-100 p-6">
 
-    <div class="header-banner">
-        <h1>พิมพ์เขียวระบบคำนวณและบันทึกข้อมูลยาเคมีบำบัด (Oncology System)</h1>
-        <p>เอกสารโครงสร้างระบบและรายงานสถิติหน้าจอ Dashboard ของคนไข้โรคมะเร็ง</p>
+    <div class="max-w-7xl mx-auto bg-white rounded-xl shadow-md overflow-hidden border border-gray-200">
+        
+        <div class="bg-[#1e293b] text-white p-5 flex justify-between items-center border-b-4 border-blue-600">
+            <div>
+                <h1 class="text-xl font-bold tracking-wide">9. ตัวอย่าง Dashboard ด้วย Chart.js (ข้อมูลจากระบบ)</h1>
+                <p class="text-xs text-slate-300 mt-1">ระบบคำนวณและตรวจสอบขนาดยาเคมีบำบัด (Oncology Patient System)</p>
+            </div>
+            <div class="bg-[#0f172a] text-blue-400 border border-blue-800 px-4 py-2 rounded font-medium text-xs tracking-wider">
+                ONCOLOGY SYSTEM ACTIVE
+            </div>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-4 gap-4 p-5 bg-slate-50 border-b border-gray-200">
+            
+            <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center space-x-4">
+                <div class="p-3 bg-blue-50 text-blue-600 rounded-lg text-2xl">👤</div>
+                <div>
+                    <p class="text-xs text-gray-500 font-medium">ประวัติคนไข้ทั้งหมด</p>
+                    <p class="text-2xl font-bold text-slate-800 mt-0.5">184 <span class="text-xs font-normal text-gray-400">ราย</span></p>
+                    <span class="text-[10px] text-green-600 font-medium bg-green-50 px-1.5 py-0.5 rounded">● ข้อมูลพร้อมใช้งาน</span>
+                </div>
+            </div>
+
+            <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center space-x-4">
+                <div class="p-3 bg-green-50 text-green-600 rounded-lg text-2xl">💊</div>
+                <div>
+                    <p class="text-xs text-gray-500 font-medium">สูตรและข้อมูลยาทั้งหมด</p>
+                    <p class="text-2xl font-bold text-slate-800 mt-0.5">42 <span class="text-xs font-normal text-gray-400">รายการ</span></p>
+                    <span class="text-[10px] text-blue-600 font-medium bg-blue-50 px-1.5 py-0.5 rounded">สูตรเคมีบำบัดหลัก</span>
+                </div>
+            </div>
+
+            <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center space-x-4">
+                <div class="p-3 bg-amber-50 text-amber-600 rounded-lg text-2xl">🔑</div>
+                <div>
+                    <p class="text-xs text-gray-500 font-medium">บันทึกการใช้งานวันนี้</p>
+                    <p class="text-2xl font-bold text-slate-800 mt-0.5">18 <span class="text-xs font-normal text-gray-400">ครั้ง</span></p>
+                    <span class="text-[10px] text-amber-600 font-medium bg-amber-50 px-1.5 py-0.5 rounded">เจ้าหน้าที่ Login</span>
+                </div>
+            </div>
+
+            <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex items-center space-x-4">
+                <div class="p-3 bg-purple-50 text-purple-600 rounded-lg text-2xl">📝</div>
+                <div>
+                    <p class="text-xs text-gray-500 font-medium">การปรับปรุงสูตรยาล่าสุด</p>
+                    <p class="text-2xl font-bold text-slate-800 mt-0.5">7 <span class="text-xs font-normal text-gray-400">รายการ</span></p>
+                    <span class="text-[10px] text-purple-600 font-medium bg-purple-50 px-1.5 py-0.5 rounded">ในสัปดาห์นี้</span>
+                </div>
+            </div>
+
+        </div>
+
+        <div class="p-6 grid grid-cols-1 lg:grid-cols-3 gap-6 bg-white">
+            
+            <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex flex-col">
+                <h3 class="font-semibold text-gray-700 text-sm mb-4 flex items-center">
+                    <span class="w-2 h-4 bg-blue-500 rounded mr-2 inline-block"></span>
+                    จำนวนคนไข้แยกตามช่วงสูตรยา
+                </h3>
+                <div class="relative h-64 w-full">
+                    <canvas id="barChart"></canvas>
+                </div>
+            </div>
+
+            <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex flex-col">
+                <h3 class="font-semibold text-gray-700 text-sm mb-4 flex items-center">
+                    <span class="w-2 h-4 bg-emerald-500 rounded mr-2 inline-block"></span>
+                    สัดส่วนรูปแบบของตัวยาในคลัง
+                </h3>
+                <div class="relative h-64 w-full flex justify-center items-center">
+                    <canvas id="pieChart"></canvas>
+                </div>
+            </div>
+
+            <div class="bg-white p-4 rounded-xl border border-gray-200 shadow-sm flex flex-col">
+                <h3 class="font-semibold text-gray-700 text-sm mb-4 flex items-center">
+                    <span class="w-2 h-4 bg-indigo-900 rounded mr-2 inline-block"></span>
+                    แนวโน้มการบันทึกประวัติคนไข้รายเดือน
+                </h3>
+                <div class="relative h-64 w-full">
+                    <canvas id="lineChart"></canvas>
+                </div>
+            </div>
+
+        </div>
+
     </div>
 
-    <h2>1. สถาปัตยกรรมระบบ (System Architecture)</h2>
-    <p>โครงสร้างสถาปัตยกรรมของระบบประมวลผลและบันทึกข้อมูลการจ่ายยาเคมีบำบัดแบ่งออกเป็นส่วนหลัก ๆ ดังนี้:</p>
-    <ul>
-        <li><strong>ผู้ใช้งาน (Users):</strong> เภสัชกร (Pharmacist), แพทย์เจ้าของไข้ (Oncologist), และผู้ดูแลระบบ (Admin) เข้าใช้งานผ่านคอมพิวเตอร์และเบราว์เซอร์ภายในโรงพยาบาล</li>
-        <li><strong>ส่วนหน้าจอ (Frontend Layer):</strong> พัฒนาด้วย React และ Vite ตกแต่งด้วย Tailwind CSS เชื่อมต่อข้อมูลผ่าน Axios Client ไปยัง Backend API</li>
-        <li><strong>ส่วนควบคุม (Backend Layer):</strong> พัฒนาด้วย Node.js และ Express ทำหน้าที่ประมวลผลคำนวณขนาดพื้นผิวร่างกาย (<span class="math">BSA</span>) สูตรยา เคมีบำบัด และเก็บประวัติการบันทึก</li>
-        <li><strong>ฐานข้อมูล (Data Layer):</strong> ระบบฐานข้อมูลเชิงสัมพันธ์ MySQL สำหรับบันทึกประวัติคนไข้ ข้อมูลยา และบันทึกการแก้ไขระบบ (Audit Log)</li>
-    </ul>
+    <script>
+        // 1. กราฟแท่ง (Bar Chart)
+        const ctxBar = document.getElementById('barChart').getContext('2d');
+        new Chart(ctxBar, {
+            type: 'bar',
+            data: {
+                labels: ['สูตร A', 'สูตร B', 'สูตร C', 'สูตร D', 'สูตร E'],
+                datasets: [{
+                    label: 'จำนวนเคส (ราย)',
+                    data: [45, 32, 58, 24, 19],
+                    backgroundColor: 'rgba(54, 162, 235, 0.85)',
+                    borderColor: 'rgba(54, 162, 235, 1)',
+                    borderWidth: 1,
+                    borderRadius: 5
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: { y: { beginAtZero: true } }
+            }
+        });
 
-    <h2>2. โครงสร้างฐานข้อมูล (Database Schema)</h2>
-    <p>ตารางข้อมูลหลักที่ใช้ในระบบคำนวณเคมีบำบัดประกอบด้วยความสัมพันธ์แบบ <span class="math">1:&infin;</span> ดังนี้:</p>
-    
-    <div class="grid-table">
-        <div class="grid-row grid-header">
-            <div class="grid-cell" style="width: 25%;">ชื่อตาราง</div>
-            <div class="grid-cell" style="width: 40%;">ฟีลด์ข้อมูลหลัก (Fields)</div>
-            <div class="grid-cell" style="width: 35%;">ความสัมพันธ์ (Relationships)</div>
-        </div>
-        <div class="grid-row">
-            <div class="grid-cell"><strong>user</strong></div>
-            <div class="grid-cell">id, username, password, role, full_name, created_at</div>
-            <div class="grid-cell">1 User ไปยังหลายประวัติคนไข้</div>
-        </div>
-        <div class="grid-row">
-            <div class="grid-cell"><strong>ประวัติคนไข้</strong></div>
-            <div class="grid-cell">id, hn, patient_name, weight, height, bsa, regimen_name, drug_name, calculated_dose, recorder_id, recorded_at</div>
-            <div class="grid-cell">เชื่อมโยงกับ user(recorder_id)</div>
-        </div>
-        <div class="grid-row">
-            <div class="grid-cell"><strong>ข้อมูลยา</strong></div>
-            <div class="grid-cell">id, drug_name, standard_dose, unit, criteria, description</div>
-            <div class="grid-cell">ใช้ตรวจสอบเกณฑ์ขนาดคำนวณยา</div>
-        </div>
-    </div>
+        // 2. กราฟวงกลม (Pie Chart)
+        const ctxPie = document.getElementById('pieChart').getContext('2d');
+        new Chart(ctxPie, {
+            type: 'pie',
+            data: {
+                labels: ['ยาฉีด (IV)', 'ยาทาน (Oral)', 'ยาพ่น', 'อื่นๆ'],
+                datasets: [{
+                    data: [55, 30, 10, 5],
+                    backgroundColor: ['#10b981', '#f59e0b', '#ef4444', '#9ca3af'],
+                    borderWidth: 2
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: {
+                    legend: { position: 'bottom', labels: { boxWidth: 12, font: { size: 11 } } }
+                }
+            }
+        });
 
-    <h2>3. หน้าจอรายงานสถิติและภาพรวม (Dashboard Overview)</h2>
-    <p>สรุปข้อมูลแบบเรียลไทม์จากการดึงข้อมูลล่าสุดในระบบ (อ้างอิงข้อมูลจริงจากระบบบันทึกประวัติคนไข้):</p>
-
-    <div class="stat-container">
-        <div class="stat-card">
-            <div class="stat-val">30 ครั้ง</div>
-            <div class="stat-lbl">จำนวนการใช้ยาเคมีบำบัด</div>
-        </div>
-        <div class="stat-card middle">
-            <div class="stat-val">3 ราย</div>
-            <div class="stat-lbl">ผู้ใช้งานในระบบ (เภสัชกร/แอดมิน)</div>
-        </div>
-        <div class="stat-card">
-            <div class="stat-val">27 ราย</div>
-            <div class="stat-lbl">จำนวนผู้ป่วยสะสม (H.N.)</div>
-        </div>
-    </div>
-
-    <h3>สถิติจำนวนการบันทึกใช้ยาเคมีบำบัด แยกตามสูตรและตัวยา (Bar Chart & Donut Chart)</h3>
-    <div class="grid-table">
-        <div class="grid-row grid-header">
-            <div class="grid-cell">สูตรยา / ชื่อยาเคมีบำบัด</div>
-            <div class="grid-cell" style="text-align: center;">จำนวนบันทึก (ครั้ง)</div>
-            <div class="grid-cell" style="text-align: center;">สัดส่วนเปอร์เซ็นต์ (%)</div>
-        </div>
-        <div class="grid-row">
-            <div class="grid-cell">Carboplatin</div>
-            <div class="grid-cell" style="text-align: center; font-weight: bold; color: #2b6cb0;">19</div>
-            <div class="grid-cell" style="text-align: center;">63%</div>
-        </div>
-        <div class="grid-row">
-            <div class="grid-cell">Vincristine</div>
-            <div class="grid-cell" style="text-align: center;">4</div>
-            <div class="grid-cell" style="text-align: center;">13%</div>
-        </div>
-        <div class="grid-row">
-            <div class="grid-cell">BC Regimen</div>
-            <div class="grid-cell" style="text-align: center;">3</div>
-            <div class="grid-cell" style="text-align: center;">10%</div>
-        </div>
-        <div class="grid-row">
-            <div class="grid-cell">Bleomycin</div>
-            <div class="grid-cell" style="text-align: center;">2</div>
-            <div class="grid-cell" style="text-align: center;">7%</div>
-        </div>
-        <div class="grid-row">
-            <div class="grid-cell">CV Regimen</div>
-            <div class="grid-cell" style="text-align: center;">2</div>
-            <div class="grid-cell" style="text-align: center;">7%</div>
-        </div>
-        <div class="grid-row">
-            <div class="grid-cell">อื่นๆ (Other)</div>
-            <div class="grid-cell" style="text-align: center;">0</div>
-            <div class="grid-cell" style="text-align: center;">0%</div>
-        </div>
-    </div>
-
-    <h3>อันดับเภสัชกรผู้บันทึกข้อมูลสูงสุด (Top Active Users)</h3>
-    <ol>
-        <li><strong>admin</strong> (เภสัชกรหลัก) : บันทึกข้อมูลเข้าระบบทั้งหมด <strong>29 ครั้ง</strong></li>
-        <li><strong>test2</strong> (เภสัชกรทดสอบ) : บันทึกข้อมูลเข้าระบบทั้งหมด <strong>1 ครั้ง</strong></li>
-    </ol>
-
-    <div class="page-break"></div>
-
-    <h2>4. ตัวอย่างโครงสร้างคำสั่ง SQL (Database Schema DDL)</h2>
-    <p>ตัวอย่างการออกแบบตารางเก็บประวัติของคนไข้และค่าตัวเลขเพื่อนำไปประมวลผลบนหน้าสถิติ:</p>
-    <div class="code-block">CREATE TABLE `ประวัติคนไข้` (
-    `id` INT AUTO_INCREMENT PRIMARY KEY,
-    `hn` VARCHAR(50) NOT NULL COMMENT 'รหัสประจำตัวผู้ป่วย',
-    `patient_name` VARCHAR(255) NOT NULL,
-    `weight` DECIMAL(5,2) NOT NULL COMMENT 'น้ำหนัก (kg)',
-    `height` DECIMAL(5,2) NOT NULL COMMENT 'ส่วนสูง (cm)',
-    `bsa` DECIMAL(4,2) NOT NULL COMMENT 'พื้นที่ผิวร่างกายคำนวณได้',
-    `regimen_name` VARCHAR(100),
-    `drug_name` VARCHAR(100) NOT NULL,
-    `calculated_dose` DECIMAL(8,2) NOT NULL,
-    `recorder_id` INT,
-    `recorded_at` TIMESTAMP DEFAULT CURRENT_TIMESTAMP
-);</div>
-
+        // 3. กราฟเส้น (Line Chart)
+        const ctxLine = document.getElementById('lineChart').getContext('2d');
+        new Chart(ctxLine, {
+            type: 'line',
+            data: {
+                labels: ['ม.ค.', 'ก.พ.', 'มี.ค.', 'เม.ย.', 'พ.ค.', 'มิ.ย.'],
+                datasets: [{
+                    label: 'เคสคนไข้ใหม่',
+                    data: [15, 22, 35, 28, 41, 56],
+                    borderColor: '#1e3a8a',
+                    backgroundColor: 'rgba(30, 58, 138, 0.05)',
+                    borderWidth: 3,
+                    tension: 0.3,
+                    fill: true,
+                    pointBackgroundColor: '#1e3a8a'
+                }]
+            },
+            options: {
+                responsive: true,
+                maintainAspectRatio: false,
+                plugins: { legend: { display: false } },
+                scales: { y: { beginAtZero: true } }
+            }
+        });
+    </script>
 </body>
 </html>
-oncology_blueprint.html
-กำลังแสดง oncology_blueprint.html

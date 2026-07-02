@@ -17,6 +17,7 @@ const DrugsInfo = ({ currentUser, onBack, showNotification, theme }) => {
     const [drugForm, setDrugForm] = useState({
         drug_code: '',
         drug_name: '',
+        drug_category: 'CHEMOTHERAPY',
         calculation_type: 'BSA',
         default_weight_type: 'ACTUAL',
         standard_dose_value: '',
@@ -52,6 +53,7 @@ const DrugsInfo = ({ currentUser, onBack, showNotification, theme }) => {
         setDrugForm({
             drug_code: '',
             drug_name: '',
+            drug_category: 'CHEMOTHERAPY',
             calculation_type: 'BSA',
             default_weight_type: 'ACTUAL',
             standard_dose_value: '',
@@ -69,6 +71,7 @@ const DrugsInfo = ({ currentUser, onBack, showNotification, theme }) => {
         setDrugForm({
             drug_code: drug.drug_code || '',
             drug_name: drug.drug_name || '',
+            drug_category: drug.drug_category || 'CHEMOTHERAPY',
             calculation_type: drug.calculation_type || 'BSA',
             default_weight_type: drug.default_weight_type || 'ACTUAL',
             standard_dose_value: drug.standard_dose_value !== null && drug.standard_dose_value !== undefined ? drug.standard_dose_value.toString() : '',
@@ -175,6 +178,24 @@ const DrugsInfo = ({ currentUser, onBack, showNotification, theme }) => {
             case 'CALVERT_FORMULA': return isDark ? 'bg-amber-950/50 text-amber-400 border-amber-800/50' : 'bg-amber-50 text-amber-700 border-amber-200';
             case 'FIXED_DOSE': return isDark ? 'bg-purple-950/50 text-purple-400 border-purple-800/50' : 'bg-purple-50 text-purple-700 border-purple-200';
             case 'WEIGHT_BASED': return isDark ? 'bg-emerald-950/50 text-emerald-400 border-emerald-800/50' : 'bg-emerald-50 text-emerald-700 border-emerald-200';
+            default: return isDark ? 'bg-slate-800 text-slate-300 border-slate-700' : 'bg-slate-100 text-slate-600 border-slate-200';
+        }
+    };
+
+    const getCategoryLabel = (cat) => {
+        switch (cat) {
+            case 'CHEMOTHERAPY': return 'ยาเคมีบำบัด';
+            case 'TARGETED_THERAPY': return 'ยามุ่งเป้า';
+            case 'IMMUNOTHERAPY': return 'ภูมิคุ้มกันบำบัด';
+            default: return cat || 'ยาเคมีบำบัด';
+        }
+    };
+
+    const getCategoryColor = (cat) => {
+        switch (cat) {
+            case 'CHEMOTHERAPY': return isDark ? 'bg-rose-950/50 text-rose-400 border-rose-800/50' : 'bg-rose-50 text-rose-700 border-rose-200';
+            case 'TARGETED_THERAPY': return isDark ? 'bg-amber-950/50 text-amber-400 border-amber-800/50' : 'bg-amber-50 text-amber-700 border-amber-200';
+            case 'IMMUNOTHERAPY': return isDark ? 'bg-emerald-950/50 text-emerald-400 border-emerald-800/50' : 'bg-emerald-50 text-emerald-700 border-emerald-200';
             default: return isDark ? 'bg-slate-800 text-slate-300 border-slate-700' : 'bg-slate-100 text-slate-600 border-slate-200';
         }
     };
@@ -305,6 +326,7 @@ const DrugsInfo = ({ currentUser, onBack, showNotification, theme }) => {
                                     <th className="px-2.5 py-3 text-[11px] font-black uppercase tracking-wider opacity-60 w-[3%]">#</th>
                                     <th className="px-2.5 py-3 text-[11px] font-black uppercase tracking-wider opacity-60 w-[10%]">CODE</th>
                                     <th className="px-2.5 py-3 text-[11px] font-black uppercase tracking-wider opacity-60 w-[15%]">ชื่อยา</th>
+                                    <th className="px-2.5 py-3 text-[11px] font-black uppercase tracking-wider opacity-60 w-[12%] text-center">กลุ่มยา</th>
                                     <th className="px-2.5 py-3 text-[11px] font-black uppercase tracking-wider opacity-60 w-[13%]">ประเภทการคำนวณ</th>
                                     <th className="px-2.5 py-3 text-[11px] font-black uppercase tracking-wider opacity-60 w-[10%]">ขนาดยามาตรฐาน</th>
                                     <th className="px-2.5 py-3 text-[11px] font-black uppercase tracking-wider opacity-60 w-[7%]">หน่วย</th>
@@ -344,6 +366,11 @@ const DrugsInfo = ({ currentUser, onBack, showNotification, theme }) => {
                                                     <p className="font-black text-sm uppercase tracking-wide">{drug.drug_name}</p>
                                                 </div>
                                             </div>
+                                        </td>
+                                        <td className="px-2.5 py-3 text-center">
+                                            <span className={`px-2 py-0.5 rounded-lg text-[10px] font-black border whitespace-nowrap ${getCategoryColor(drug.drug_category)}`}>
+                                                {getCategoryLabel(drug.drug_category)}
+                                            </span>
                                         </td>
                                         <td className="px-2.5 py-3">
                                             <span className={`px-2 py-0.5 rounded-lg text-[10px] font-black border whitespace-nowrap ${getCalcTypeColor(drug.calculation_type)}`}>
@@ -437,7 +464,7 @@ const DrugsInfo = ({ currentUser, onBack, showNotification, theme }) => {
                         </h3>
 
                         <form onSubmit={handleFormSubmit} className="space-y-4">
-                            <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                            <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
                                 <div>
                                     <label className="block text-xs font-black opacity-70 mb-1.5 uppercase ml-1">CODE (Drug Code)</label>
                                     <input
@@ -458,6 +485,19 @@ const DrugsInfo = ({ currentUser, onBack, showNotification, theme }) => {
                                         onChange={e => setDrugForm({ ...drugForm, drug_name: e.target.value })}
                                         required
                                     />
+                                </div>
+                                <div>
+                                    <label className="block text-xs font-black opacity-70 mb-1.5 uppercase ml-1">กลุ่มยา *</label>
+                                    <select
+                                        className="form-control text-sm"
+                                        value={drugForm.drug_category}
+                                        onChange={e => setDrugForm({ ...drugForm, drug_category: e.target.value })}
+                                        required
+                                    >
+                                        <option value="CHEMOTHERAPY">ยาเคมีบำบัด (Chemotherapy)</option>
+                                        <option value="TARGETED_THERAPY">ยามุ่งเป้า (Targeted Therapy)</option>
+                                        <option value="IMMUNOTHERAPY">ยากลุ่มภูมิคุ้มกันบำบัด (Immunotherapy)</option>
+                                    </select>
                                 </div>
                                 <div>
                                     <label className="block text-xs font-black opacity-70 mb-1.5 uppercase ml-1">ประเภทการคำนวณหลัก *</label>
@@ -636,9 +676,14 @@ const DrugsInfo = ({ currentUser, onBack, showNotification, theme }) => {
                                         </div>
                                         <div>
                                             <h3 className="font-black text-lg uppercase tracking-wide">{drug.drug_name}</h3>
-                                            <span className={`text-[10px] font-black uppercase tracking-widest ${colors.label}`}>
-                                                {getCalcTypeLabel(drug.calculation_type)}
-                                            </span>
+                                            <div className="flex gap-1.5 flex-wrap items-center mt-1">
+                                                <span className={`text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded border ${colors.label} border-current`}>
+                                                    {getCalcTypeLabel(drug.calculation_type)}
+                                                </span>
+                                                <span className={`text-[9px] font-black uppercase tracking-widest px-1.5 py-0.5 rounded border ${getCategoryColor(drug.drug_category)}`}>
+                                                    {getCategoryLabel(drug.drug_category)}
+                                                </span>
+                                            </div>
                                         </div>
                                     </div>
                                     {getStatusBadge(drug.is_active)}

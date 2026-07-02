@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useCalculations } from './utils/useCalculations';
-import { Moon, Sun, ChevronRight, ArrowLeft, Printer, Trash2, History, User, Info, LogOut, ArrowUpDown, ChevronUp, ChevronDown, Filter, X, Settings, Pill } from 'lucide-react';
+import { Moon, Sun, ChevronRight, ArrowLeft, Printer, Trash2, History, User, Info, LogOut, ArrowUpDown, ChevronUp, ChevronDown, Filter, X, Settings, Pill, Search } from 'lucide-react';
 import axios from 'axios';
 import Login from './components/Login';
 import Notification from './components/Notification';
@@ -27,10 +27,14 @@ function App() {
     const [step, setStep] = useState('auth'); // 'auth', 'login' (patient check-in), 'workspace'
     const [user, setUser] = useState(null);
     const [loginData, setLoginData] = useState({ username: '', password: '' });
-    const [patient, setPatient] = useState({ hn: '', name: '', height: '', weight: '', gender: '', age: '' });
+    const [patient, setPatient] = useState({ hn: '', title: '', name: '', height: '', weight: '', gender: '', age: '' });
     const [logs, setLogs] = useState([]);
     const [notification, setNotification] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
+    const [patients, setPatients] = useState([]);
+    const [patientSearch, setPatientSearch] = useState('');
+    const lastAutofilledHnRef = useRef('');
+    const [prevStats, setPrevStats] = useState({ height: '', weight: '' });
     const [deleteConfirmLog, setDeleteConfirmLog] = useState(null);
     const [showTimeoutWarning, setShowTimeoutWarning] = useState(false);
     const [timeoutCountdown, setTimeoutCountdown] = useState(30);
@@ -53,6 +57,29 @@ function App() {
             }
         }
     }, []);
+
+    // HTML5 History API integration for browser back/forward buttons
+    useEffect(() => {
+        const handlePopState = (event) => {
+            if (event.state && event.state.step) {
+                setStep(event.state.step);
+            } else {
+                setStep('auth');
+            }
+        };
+        window.addEventListener('popstate', handlePopState);
+        // Set initial state
+        window.history.replaceState({ step }, '', '');
+        return () => {
+            window.removeEventListener('popstate', handlePopState);
+        };
+    }, []);
+
+    useEffect(() => {
+        if (window.history.state?.step !== step) {
+            window.history.pushState({ step }, '', '');
+        }
+    }, [step]);
 
     const {
         bsa, setBsa,
@@ -107,7 +134,13 @@ function App() {
 
     // Theme effect
     useEffect(() => {
-        theme === 'light' ? document.body.classList.add('light-mode') : document.body.classList.remove('light-mode');
+        if (theme === 'light') {
+            document.body.classList.add('light-mode');
+            document.body.classList.remove('dark');
+        } else {
+            document.body.classList.remove('light-mode');
+            document.body.classList.add('dark');
+        }
         localStorage.setItem('appThemeMode', theme);
     }, [theme]);
 
@@ -124,6 +157,80 @@ function App() {
             console.error("Failed to fetch logs", err);
         }
     };
+
+    const fetchPatients = async () => {
+        try {
+            const res = await axios.get(`${API_BASE}/patients`);
+            if (res.data.success) setPatients(res.data.patients);
+        } catch (err) {
+            console.error("Failed to fetch patients", err);
+        }
+    };
+
+    useEffect(() => {
+        fetchPatients();
+    }, []);
+
+    useEffect(() => {
+        if (step === 'login') {
+            fetchPatients();
+        }
+    }, [step]);
+
+    const filteredPatients = useMemo(() => {
+        if (!patientSearch.trim()) return patients;
+        const q = patientSearch.toLowerCase();
+        return patients.filter(p =>
+            (p.hn && p.hn.toLowerCase().includes(q)) ||
+            (p.name && p.name.toLowerCase().includes(q))
+        );
+    }, [patients, patientSearch]);
+
+    const selectPatient = (p) => {
+        lastAutofilledHnRef.current = p.hn;
+        setPatient({
+            hn: p.hn,
+            title: p.title || '',
+            name: p.name,
+            age: p.age || '',
+            height: '', // clear for new input
+            weight: '', // clear for new input
+            gender: p.gender || ''
+        });
+        setPrevStats({
+            height: p.height || '',
+            weight: p.weight || ''
+        });
+        showNotification(`ดึงข้อมูลผู้ป่วย H.N. ${p.hn} เรียบร้อยแล้ว`, "success");
+    };
+
+    // Auto-fill when typing an existing H.N.
+    useEffect(() => {
+        if (!patient.hn) {
+            lastAutofilledHnRef.current = '';
+            setPrevStats({ height: '', weight: '' });
+            return;
+        }
+
+        const matched = patients.find(p => p.hn.trim().toLowerCase() === patient.hn.trim().toLowerCase());
+        if (matched && matched.hn !== lastAutofilledHnRef.current) {
+            setPatient({
+                hn: matched.hn,
+                title: matched.title || '',
+                name: matched.name,
+                age: matched.age || '',
+                height: '', // clear for new input
+                weight: '', // clear for new input
+                gender: matched.gender || ''
+            });
+            setPrevStats({
+                height: matched.height || '',
+                weight: matched.weight || ''
+            });
+            lastAutofilledHnRef.current = matched.hn;
+            showNotification(`พบข้อมูลผู้ป่วย H.N. ${matched.hn} ในระบบและดึงข้อมูลมากรอกสำเร็จ`, "success");
+        }
+    }, [patient.hn, patients]);
 
     // Recalculate BSA and Dose when inputs change
     useEffect(() => {
@@ -232,10 +339,21 @@ function App() {
             doseText = finalDose; // e.g. "120.00 mg + 2.00 mg"
         }
 
+        const title = (patient.title || '').trim();
+        let name = (patient.name || '').trim();
+        if (title) {
+            while (name.startsWith(title)) {
+                name = name.substring(title.length).trim();
+            }
+            name = `${title} ${name}`;
+        } else {
+            name = name || 'ไม่ระบุชื่อ';
+        }
+
         const logData = {
             timestamp: getFormattedThaiTimestamp(),
             hn: patient.hn,
-            patientName: patient.name || 'ไม่ระบุชื่อ',
+            patientName: name,
             calculatedBsaM2: formatBsa(bsa),
             formulaUsed: sanitizeNaN(`${calculationDetails.formulaUsed} | ${calculationDetails.amputation}`),
             prescribedDose: sanitizeNaN(doseText),
@@ -338,13 +456,26 @@ function App() {
         }
     };
 
-    const handlePatientCheckIn = () => {
-        if (!patient.hn || !patient.height || !patient.weight) {
+    const handlePatientCheckIn = async () => {
+        const finalHeight = patient.height || prevStats.height;
+        const finalWeight = patient.weight || prevStats.weight;
+
+        if (!patient.hn || !finalHeight || !finalWeight) {
             showNotification("กรุณากรอกข้อมูลที่จำเป็นให้ครบถ้วน", "error");
             return;
         }
-        const h = parseFloat(patient.height);
-        const w = parseFloat(patient.weight);
+
+        // Clean up title duplicate prefixes from patient's name
+        const cleanedTitle = (patient.title || '').trim();
+        let cleanedName = (patient.name || '').trim();
+        if (cleanedTitle) {
+            while (cleanedName.startsWith(cleanedTitle)) {
+                cleanedName = cleanedName.substring(cleanedTitle.length).trim();
+            }
+        }
+
+        const h = parseFloat(finalHeight);
+        const w = parseFloat(finalWeight);
         if (isNaN(h) || h < 30 || h > 250) {
             showNotification("ค่าส่วนสูงผิดปกติ! โปรดตรวจสอบข้อมูลอีกครั้ง (30 - 250 cm)", "error");
             return;
@@ -360,7 +491,24 @@ function App() {
                 return;
             }
         }
-        setStep('workspace');
+        
+        const updatedPatient = {
+            ...patient,
+            name: cleanedName,
+            height: String(finalHeight),
+            weight: String(finalWeight)
+        };
+        
+        try {
+            const res = await axios.post(`${API_BASE}/patients`, updatedPatient);
+            if (res.data.success) {
+                setPatient(updatedPatient);
+                setStep('workspace');
+            }
+        } catch (err) {
+            console.error("Check-in Error:", err);
+            showNotification(err.response?.data?.message || "เกิดข้อผิดพลาดในการตรวจสอบข้อมูลคนไข้", "error");
+        }
     };
 
     const uniqueFormulas = useMemo(() => {
@@ -549,6 +697,14 @@ function App() {
         return result;
     }, [logs, searchQuery, formulaFilter, pharmacistFilter, sortConfig, startDateFilter, endDateFilter]);
 
+    const handleBackFromHistory = () => {
+        if (patient && patient.hn) {
+            setStep('workspace');
+        } else {
+            setStep('login');
+        }
+    };
+
     const currentDrugInfo = drugsInfo.find(d => d.id === drug) || drugsInfo[0];
 
     return (
@@ -576,6 +732,14 @@ function App() {
                                     <Pill size={14} /> ข้อมูลยา (Drugs)
                                 </button>
                             )}
+                            {step !== 'calculation-history' && (
+                                <button
+                                    onClick={() => setStep('calculation-history')}
+                                    className="flex items-center gap-1.5 text-xs font-black text-indigo-500 hover:text-indigo-400 transition-colors uppercase tracking-widest text-left cursor-pointer border-l border-slate-700/50 pl-3 whitespace-nowrap"
+                                >
+                                    <History size={14} /> ประวัติการคำนวณ (History)
+                                </button>
+                            )}
                             {user.role?.toUpperCase() === 'ADMIN' && step !== 'admin-users' && (
                                 <button
                                     onClick={() => setStep('admin-users')}
@@ -600,46 +764,169 @@ function App() {
                         setStep('login');
                     }} />
                 ) : step === 'login' ? (
-                    <div className="max-w-xl mx-auto premium-card p-6 md:p-10">
-                        <div className="flex justify-between items-start mb-6">
+                    <div className="max-w-5xl mx-auto grid grid-cols-1 md:grid-cols-12 gap-6 animate-pop animate-row-in">
+                        {/* Left column: Patient Search Panel */}
+                        <div className="md:col-span-5 premium-card p-6 md:p-8 flex flex-col justify-between">
                             <div>
-                                <h1 className="text-3xl font-black">Patient Check-in</h1>
-                                <p className="text-slate-400">ระบบเข้าตรวจสอบข้อมูลผู้ป่วย</p>
+                                <h2 className="text-xl font-black mb-1">ค้นหาข้อมูลผู้ป่วย</h2>
+                                <p className="text-xs text-slate-400 mb-4">ค้นหาข้อมูลผู้ป่วยที่ลงทะเบียนไว้ในระบบ</p>
+                                
+                                <div className="relative mb-4">
+                                    <input
+                                        type="text"
+                                        placeholder="ค้นหา H.N. หรือ ชื่อ..."
+                                        value={patientSearch}
+                                        onChange={e => setPatientSearch(e.target.value)}
+                                        className="form-control pl-10 py-2.5 text-sm font-bold"
+                                    />
+                                    <div className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400">
+                                        <Search size={16} />
+                                    </div>
+                                </div>
+
+                                <div className="space-y-2.5 overflow-y-auto max-h-[320px] pr-1.5 scrollable-patient-list">
+                                    {filteredPatients.length > 0 ? (
+                                        filteredPatients.map(p => (
+                                            <div
+                                                key={p.hn}
+                                                onClick={() => selectPatient(p)}
+                                                className={`p-3.5 rounded-2xl border text-left cursor-pointer transition-all duration-300 ${
+                                                    patient.hn === p.hn
+                                                        ? 'bg-sky-600/10 border-sky-500 shadow-md'
+                                                        : theme === 'dark'
+                                                            ? 'bg-slate-900/50 border-slate-800 hover:bg-slate-800/50 hover:border-slate-700'
+                                                            : 'bg-slate-50 border-slate-200 hover:bg-slate-100 hover:border-slate-300 shadow-sm'
+                                                }`}
+                                            >
+                                                <div className="flex justify-between items-start">
+                                                    <span className="font-bold text-sky-500 dark:text-sky-400 text-xs font-mono">H.N. {p.hn}</span>
+                                                    <span className="text-[10px] uppercase font-bold text-slate-400">
+                                                        {p.gender === 'male' ? 'ชาย (Male)' : p.gender === 'female' ? 'หญิง (Female)' : '-'}
+                                                    </span>
+                                                </div>
+                                                <p className="font-bold text-sm text-slate-800 dark:text-slate-200 mt-1 truncate">
+                                                {(() => {
+                                                    const title = (p.title || '').trim();
+                                                    let name = (p.name || '').trim();
+                                                    if (title) {
+                                                        while (name.startsWith(title)) {
+                                                            name = name.substring(title.length).trim();
+                                                        }
+                                                        return `${title} ${name}`;
+                                                    }
+                                                    return name;
+                                                })()}
+                                            </p>
+                                                <div className="flex gap-3 mt-2 text-[10px] text-slate-500 dark:text-slate-400 font-semibold">
+                                                    <span>อายุ: {p.age || '-'} ปี</span>
+                                                    <span>สูง: {p.height || '-'} cm</span>
+                                                    <span>น้ำหนัก: {p.weight || '-'} kg</span>
+                                                </div>
+                                            </div>
+                                        ))
+                                    ) : (
+                                        <div className="text-center py-8 text-slate-500 font-bold italic text-sm">
+                                            ไม่พบข้อมูลผู้ป่วย
+                                        </div>
+                                    )}
+                                </div>
+                            </div>
+                            
+                            <div className="mt-4 pt-3 border-t border-slate-700/10 text-center">
+                                <button
+                                    type="button"
+                                    onClick={() => setPatient({ hn: '', name: '', height: '', weight: '', gender: '', age: '' })}
+                                    className="text-xs font-bold text-slate-400 hover:text-rose-500 transition-colors uppercase tracking-wider"
+                                >
+                                    ล้างแบบฟอร์ม (Clear Form)
+                                </button>
                             </div>
                         </div>
-                        <div className="space-y-4">
-                            <input 
-                                type="text" 
-                                placeholder="H.N. ผู้ป่วย" 
-                                required 
-                                className="form-control" 
-                                value={patient.hn}
-                                onChange={e => setPatient({ ...patient, hn: e.target.value })}
-                            />
-                            <div className="grid grid-cols-4 gap-4">
-                                <div className="col-span-3">
-                                    <input type="text" placeholder="ชื่อ-นามสกุล" className="form-control" onChange={e => setPatient({ ...patient, name: e.target.value })} />
-                                </div>
-                                <div className="col-span-1">
-                                    <input type="number" placeholder="อายุ (ปี)" className="form-control" value={patient.age} onChange={e => setPatient({ ...patient, age: e.target.value })} />
+
+                        {/* Right column: Check-in Form */}
+                        <div className="md:col-span-7 premium-card p-6 md:p-8">
+                            <div className="flex justify-between items-start mb-6">
+                                <div>
+                                    <h1 className="text-3xl font-black">Patient Check-in</h1>
+                                    <p className="text-slate-400">ระบบเข้าตรวจสอบและบันทึกข้อมูลผู้ป่วย</p>
                                 </div>
                             </div>
-                            <div className="grid grid-cols-3 gap-4">
-                                <input type="number" placeholder="ส่วนสูง (cm)" className="form-control" onChange={e => setPatient({ ...patient, height: e.target.value })} />
-                                <input type="number" placeholder="น้ำหนัก (kg)" className="form-control" onChange={e => setPatient({ ...patient, weight: e.target.value })} />
-                                <select className="form-control" value={patient.gender} onChange={e => setPatient({ ...patient, gender: e.target.value })}>
-                                    <option value="">เลือกเพศ (Select Gender)</option>
-                                    <option value="male">ชาย (Male)</option>
-                                    <option value="female">หญิง (Female)</option>
-                                </select>
+                            <div className="space-y-4">
+                                <input 
+                                    type="text" 
+                                    placeholder="H.N. ผู้ป่วย" 
+                                    required 
+                                    className="form-control" 
+                                    value={patient.hn}
+                                    onChange={e => setPatient({ ...patient, hn: e.target.value })}
+                                />
+                                <div className="grid grid-cols-4 gap-4">
+                                    <div className="col-span-1">
+                                        <select 
+                                            className="form-control" 
+                                            value={patient.title || ''} 
+                                            onChange={e => setPatient({ ...patient, title: e.target.value })}
+                                        >
+                                            <option value="">คำนำหน้า</option>
+                                            <option value="นาย">นาย</option>
+                                            <option value="นาง">นาง</option>
+                                            <option value="นางสาว">นางสาว</option>
+                                            <option value="ด.ช.">ด.ช.</option>
+                                            <option value="ด.ญ.">ด.ญ.</option>
+                                        </select>
+                                    </div>
+                                    <div className="col-span-2">
+                                        <input 
+                                            type="text" 
+                                            placeholder="ชื่อ-นามสกุล" 
+                                            className="form-control" 
+                                            value={patient.name || ''}
+                                            onChange={e => setPatient({ ...patient, name: e.target.value })} 
+                                        />
+                                    </div>
+                                    <div className="col-span-1">
+                                        <input 
+                                            type="number" 
+                                            placeholder="อายุ (ปี)" 
+                                            className="form-control" 
+                                            value={patient.age || ''} 
+                                            onChange={e => setPatient({ ...patient, age: e.target.value })} 
+                                        />
+                                    </div>
+                                </div>
+                                <div className="grid grid-cols-3 gap-4">
+                                    <input 
+                                        type="number" 
+                                        placeholder={prevStats.height ? prevStats.height : "ส่วนสูง (cm)"} 
+                                        className="form-control" 
+                                        value={patient.height || ''}
+                                        onChange={e => setPatient({ ...patient, height: e.target.value })} 
+                                    />
+                                    <input 
+                                        type="number" 
+                                        placeholder={prevStats.weight ? prevStats.weight : "น้ำหนัก (kg)"} 
+                                        className="form-control" 
+                                        value={patient.weight || ''}
+                                        onChange={e => setPatient({ ...patient, weight: e.target.value })} 
+                                    />
+                                    <select 
+                                        className="form-control" 
+                                        value={patient.gender || ''} 
+                                        onChange={e => setPatient({ ...patient, gender: e.target.value })}
+                                    >
+                                        <option value="">เลือกเพศ (Select Gender)</option>
+                                        <option value="male">ชาย (Male)</option>
+                                        <option value="female">หญิง (Female)</option>
+                                    </select>
+                                </div>
+                                <button onClick={handlePatientCheckIn} className="w-full btn-primary">เข้าสู่ระบบคำนวณ ➔</button>
                             </div>
-                            <button onClick={handlePatientCheckIn} className="w-full btn-primary">เข้าสู่ระบบคำนวณ ➔</button>
                         </div>
                     </div>
                 ) : step === 'drugs-info' ? (
                     <DrugsInfo
                         currentUser={user}
-                        onBack={() => setStep('login')}
+                        onBack={handleBackFromHistory}
                         showNotification={showNotification}
                         theme={theme}
                     />
@@ -647,20 +934,208 @@ function App() {
                     <AdminUsers
                         currentUser={user}
                         setCurrentUser={setUser}
-                        onBack={() => setStep('workspace')}
+                        onBack={handleBackFromHistory}
                         showNotification={showNotification}
                         theme={theme}
                     />
+                ) : step === 'calculation-history' ? (
+                    <div className="animate-row-in space-y-6">
+                        <div className="max-w-7xl mx-auto premium-card p-6 md:p-8 relative">
+                            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 pb-4 border-b border-slate-700/10">
+                                <div className="flex items-center gap-3">
+                                    <button
+                                        onClick={handleBackFromHistory}
+                                        className="p-2.5 rounded-xl border border-slate-700/30 hover:bg-slate-700/10 transition-all cursor-pointer text-slate-400 hover:text-white mr-2 no-print"
+                                        title="ย้อนกลับ"
+                                    >
+                                        <ArrowLeft size={20} />
+                                    </button>
+                                    <div>
+                                        <h1 className="text-3xl font-black flex items-center gap-2">
+                                            <History size={28} className="text-sky-400 print-hide" /> รายงานบันทึกประวัติการคำนวณ
+                                        </h1>
+                                        <p className="text-slate-400">ประวัติและบันทึกข้อมูลการคำนวณขนาดยาเคมีบำบัดของผู้ป่วย</p>
+                                    </div>
+                                </div>
+                                <div className="flex items-center gap-2.5 no-print w-full md:w-auto">
+                                    <button
+                                        onClick={() => setShowFilterPanel(!showFilterPanel)}
+                                        className={`py-2 px-4 rounded-xl border flex items-center gap-2 text-sm font-bold transition-all duration-300 whitespace-nowrap ${showFilterPanel
+                                            ? 'bg-sky-600 border-sky-400 text-white shadow-md'
+                                            : theme === 'dark'
+                                                ? 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'
+                                                : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50 shadow-sm'
+                                            }`}
+                                    >
+                                        <Filter size={15} /> {showFilterPanel ? 'ปิดตัวกรอง' : 'ตัวกรอง (Filters)'}
+                                    </button>
+                                    <input
+                                        type="text"
+                                        placeholder="ค้นหา H.N. / ชื่อคนไข้..."
+                                        value={searchQuery}
+                                        onChange={e => setSearchQuery(e.target.value)}
+                                        className="form-control py-2 px-4 text-sm rounded-xl border border-slate-700/30 font-bold focus:border-sky-500 w-[240px]"
+                                    />
+                                    <button onClick={() => window.print()} className="no-print bg-slate-800 hover:bg-slate-700 text-sky-400 font-bold py-2 px-4 rounded-xl border border-slate-700 flex items-center gap-2 text-xs transition-all active:scale-95 shadow-lg whitespace-nowrap">
+                                        <Printer size={14} /> พิมพ์รายงาน
+                                    </button>
+                                </div>
+                            </div>
+
+                            {showFilterPanel && (
+                                <div className={`no-print p-5 rounded-2xl border mb-5 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 animate-pop ${theme === 'dark'
+                                    ? 'bg-slate-900/60 border-slate-800'
+                                    : 'bg-slate-50 border-slate-200 shadow-inner'
+                                    }`}>
+                                    <div>
+                                        <label className="block text-xs font-black text-slate-400 mb-1.5 uppercase">วันที่เริ่มต้น (Start Date)</label>
+                                        <input
+                                            type="text"
+                                            placeholder="วว/ดด/ปปปป (เช่น 24/06/2569)"
+                                            value={startDateFilter}
+                                            onChange={e => handleDateInputChange(e.target.value, startDateFilter, setStartDateFilter)}
+                                            className="form-control py-1.5 px-3 text-xs rounded-xl font-bold"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-black text-slate-400 mb-1.5 uppercase">วันที่สิ้นสุด (End Date)</label>
+                                        <input
+                                            type="text"
+                                            placeholder="วว/ดด/ปปปป (เช่น 24/06/2569)"
+                                            value={endDateFilter}
+                                            onChange={e => handleDateInputChange(e.target.value, endDateFilter, setEndDateFilter)}
+                                            className="form-control py-1.5 px-3 text-xs rounded-xl font-bold"
+                                        />
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-black text-slate-400 mb-1.5 uppercase">สูตรคำนวณ (Formula)</label>
+                                        <select
+                                            value={formulaFilter}
+                                            onChange={e => setFormulaFilter(e.target.value)}
+                                            className="form-control py-1.5 px-3 text-xs rounded-xl font-bold"
+                                        >
+                                            <option value="all">สูตรทั้งหมด (All)</option>
+                                            {uniqueFormulas.map(f => (
+                                                <option key={f} value={f}>{f}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div>
+                                        <label className="block text-xs font-black text-slate-400 mb-1.5 uppercase">ผู้บันทึก (Pharmacist)</label>
+                                        <select
+                                            value={pharmacistFilter}
+                                            onChange={e => setPharmacistFilter(e.target.value)}
+                                            className="form-control py-1.5 px-3 text-xs rounded-xl font-bold"
+                                        >
+                                            <option value="all">ผู้บันทึกทั้งหมด (All)</option>
+                                            {uniquePharmacists.map(u => (
+                                                <option key={u} value={u}>{u}</option>
+                                            ))}
+                                        </select>
+                                    </div>
+                                    <div className="sm:col-span-2 md:col-span-4 flex justify-end gap-2 pt-3 border-t border-slate-700/10">
+                                        <button
+                                            onClick={() => {
+                                                setStartDateFilter('');
+                                                setEndDateFilter('');
+                                                setFormulaFilter('all');
+                                                setPharmacistFilter('all');
+                                            }}
+                                            className="px-4 py-2 rounded-xl text-xs font-black bg-rose-600/10 text-rose-500 border border-rose-500/20 hover:bg-rose-600/20 transition-all cursor-pointer"
+                                        >
+                                            ล้างตัวกรอง (Reset)
+                                        </button>
+                                        <button
+                                            onClick={() => setShowFilterPanel(false)}
+                                            className="px-4 py-2 rounded-xl text-xs font-black bg-slate-700 text-white transition-all cursor-pointer"
+                                        >
+                                            ปิด (Close)
+                                        </button>
+                                    </div>
+                                </div>
+                            )}
+
+                            <div className="overflow-x-auto overflow-y-auto max-h-[500px] rounded-lg border border-slate-700/20 shadow-inner scrollable-table-container">
+                                <table className="w-full text-left text-sm md:text-base print-table">
+                                    <thead className="sticky top-0 z-10" style={{ backgroundColor: 'var(--table-header-bg)' }}>
+                                        <tr className="bg-sky-600/10 text-slate-400 border-b border-slate-700/20">
+                                            {renderTableHeader('วันที่บันทึก', 'w-[15%] whitespace-nowrap')}
+                                            {renderTableHeader('H.N.', 'w-[10%] whitespace-nowrap')}
+                                            {renderTableHeader('ชื่อผู้ป่วย', 'w-[18%] whitespace-nowrap')}
+                                            {renderTableHeader('เพศ', 'w-[8%] whitespace-nowrap', 'justify-center')}
+                                            {renderTableHeader('อายุ', 'w-[8%] whitespace-nowrap', 'justify-center')}
+                                            {renderTableHeader('BSA', 'w-[8%] whitespace-nowrap', 'justify-center')}
+                                            {renderTableHeader('สูตรการคำนวณ', 'w-[18%] whitespace-nowrap')}
+                                            {renderTableHeader('Dose', 'w-[12%] whitespace-nowrap', 'justify-end')}
+                                            {renderTableHeader('ผู้บันทึก', 'w-[11%] whitespace-nowrap', 'justify-center')}
+                                            {user?.role?.toUpperCase() === 'ADMIN' && renderTableHeader('จัดการ', 'w-[8%] whitespace-nowrap no-print', 'justify-center')}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {filteredLogs.length > 0 ? (
+                                            filteredLogs.map(log => (
+                                                <tr key={log.id} className="border-b border-slate-700/10 hover:bg-sky-600/5 transition-colors">
+                                                    <td className="p-4 font-mono opacity-70 whitespace-nowrap">{log.timestamp}</td>
+                                                    <td className="p-4 font-bold whitespace-nowrap">{log.hn}</td>
+                                                    <td className="p-4 font-bold uppercase">{log.patient_name}</td>
+                                                    <td className="p-4 text-center font-bold whitespace-nowrap gender-text-highlight">
+                                                        {log.gender === 'female' ? 'หญิง' : log.gender === 'male' ? 'ชาย' : '-'}
+                                                    </td>
+                                                    <td className="p-4 text-center font-bold whitespace-nowrap">
+                                                        {log.age ? `${log.age} ปี` : '-'}
+                                                    </td>
+                                                    <td className="p-4 text-center text-emerald-500 font-bold whitespace-nowrap">{sanitizeNaN(log.calculated_bsa)}</td>
+                                                    <td className="p-4 text-slate-400 font-bold uppercase leading-snug">{sanitizeNaN(log.formula_used)}</td>
+                                                    <td className="p-4 text-right text-amber-500 font-black whitespace-nowrap">{sanitizeNaN(log.prescribed_dose)}</td>
+                                                    <td className="p-4 text-center text-sky-400 font-bold uppercase truncate max-w-[120px]">{log.user_name || '-'}</td>
+                                                    {user?.role?.toUpperCase() === 'ADMIN' && (
+                                                        <td className="p-4 text-center no-print">
+                                                            <button
+                                                                onClick={() => handleDeleteLog(log)}
+                                                                className="text-red-500 hover:text-red-400 p-1.5 rounded-lg hover:bg-red-500/10 transition-all active:scale-95 cursor-pointer flex items-center justify-center mx-auto"
+                                                                title="ลบรายการบันทึกประวัตินี้"
+                                                            >
+                                                                <Trash2 size={16} />
+                                                            </button>
+                                                        </td>
+                                                    )}
+                                                </tr>
+                                            ))
+                                        ) : (
+                                            <tr>
+                                                <td colSpan={user?.role?.toUpperCase() === 'ADMIN' ? 10 : 9} className="p-8 text-center text-slate-500 font-bold italic">
+                                                    ไม่พบประวัติการคำนวณที่ตรงกับการค้นหา
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
+                        </div>
+                    </div>
                 ) : (
                     <div className="animate-row-in space-y-6">
                         {/* Medical Record View */}
                         <div className="w-full premium-card p-5 flex justify-between items-center no-print">
                             <div>
-                                <h2 className="text-xl font-black">{patient.name || 'ไม่ระบุชื่อ'} ({patient.hn})</h2>
+                                <h2 className="text-xl font-black">
+                                    {(() => {
+                                        const title = (patient.title || '').trim();
+                                        let name = (patient.name || '').trim();
+                                        if (title) {
+                                            while (name.startsWith(title)) {
+                                                name = name.substring(title.length).trim();
+                                            }
+                                            return `${title} ${name}`;
+                                        }
+                                        return name || 'ไม่ระบุชื่อ';
+                                    })()} ({patient.hn})
+                                </h2>
                                 <p className="text-slate-400">H: {patient.height} cm | W: {patient.weight} kg | อายุ: {patient.age ? `${patient.age} ปี` : '-'} | เพศ: {patient.gender === 'female' ? 'หญิง (Female)' : patient.gender === 'male' ? 'ชาย (Male)' : '-'}</p>
                             </div>
                             <button onClick={() => {
-                                setPatient({ hn: '', name: '', height: '', weight: '', gender: '', age: '' });
+                                setPatient({ hn: '', title: '', name: '', height: '', weight: '', gender: '', age: '' });
+                                setPrevStats({ height: '', weight: '' });
                                 setPatientScr('');
                                 setUseAutoGfr(false);
                                 setAmputation('none');
@@ -1111,166 +1586,6 @@ function App() {
                             </div>
                         </div>
 
-                        <div className="premium-card p-6 history-section">
-                            <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-4">
-                                <h3 className="font-black uppercase text-slate-400 flex items-center gap-2 text-xl md:text-2xl print:text-3xl print:text-black">
-                                    <History size={18} className="text-sky-400 print-hide" /> รายงานบันทึกประวัติการคำนวณ
-                                </h3>
-                                <div className="flex items-center gap-2.5 no-print w-full md:w-auto">
-                                    <button
-                                        onClick={() => setShowFilterPanel(!showFilterPanel)}
-                                        className={`py-2 px-4 rounded-xl border flex items-center gap-2 text-sm font-bold transition-all duration-300 whitespace-nowrap ${showFilterPanel
-                                            ? 'bg-sky-600 border-sky-400 text-white shadow-md'
-                                            : theme === 'dark'
-                                                ? 'bg-slate-800 border-slate-700 text-slate-300 hover:bg-slate-700'
-                                                : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50 shadow-sm'
-                                            }`}
-                                    >
-                                        <Filter size={15} /> {showFilterPanel ? 'ปิดตัวกรอง' : 'ตัวกรอง (Filters)'}
-                                    </button>
-                                    <input
-                                        type="text"
-                                        placeholder="ค้นหา H.N. / ชื่อคนไข้..."
-                                        value={searchQuery}
-                                        onChange={e => setSearchQuery(e.target.value)}
-                                        className="form-control py-2 px-4 text-sm rounded-xl border border-slate-700/30 font-bold focus:border-sky-500 w-[240px]"
-                                    />
-                                    <button onClick={() => window.print()} className="no-print bg-slate-800 hover:bg-slate-700 text-sky-400 font-bold py-2 px-4 rounded-xl border border-slate-700 flex items-center gap-2 text-xs transition-all active:scale-95 shadow-lg whitespace-nowrap">
-                                        <Printer size={14} /> พิมพ์รายงาน
-                                    </button>
-                                </div>
-                            </div>
-
-                            {showFilterPanel && (
-                                <div className={`no-print p-5 rounded-2xl border mb-5 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 animate-pop ${theme === 'dark'
-                                    ? 'bg-slate-900/60 border-slate-800'
-                                    : 'bg-slate-50 border-slate-200 shadow-inner'
-                                    }`}>
-                                    <div>
-                                        <label className="block text-xs font-black text-slate-400 mb-1.5 uppercase">วันที่เริ่มต้น (Start Date)</label>
-                                        <input
-                                            type="text"
-                                            placeholder="วว/ดด/ปปปป (เช่น 24/06/2569)"
-                                            value={startDateFilter}
-                                            onChange={e => handleDateInputChange(e.target.value, startDateFilter, setStartDateFilter)}
-                                            className="form-control py-1.5 px-3 text-xs rounded-xl font-bold"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-black text-slate-400 mb-1.5 uppercase">วันที่สิ้นสุด (End Date)</label>
-                                        <input
-                                            type="text"
-                                            placeholder="วว/ดด/ปปปป (เช่น 24/06/2569)"
-                                            value={endDateFilter}
-                                            onChange={e => handleDateInputChange(e.target.value, endDateFilter, setEndDateFilter)}
-                                            className="form-control py-1.5 px-3 text-xs rounded-xl font-bold"
-                                        />
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-black text-slate-400 mb-1.5 uppercase">สูตรคำนวณ (Formula)</label>
-                                        <select
-                                            value={formulaFilter}
-                                            onChange={e => setFormulaFilter(e.target.value)}
-                                            className="form-control py-1.5 px-3 text-xs rounded-xl font-bold"
-                                        >
-                                            <option value="all">สูตรทั้งหมด (All)</option>
-                                            {uniqueFormulas.map(f => (
-                                                <option key={f} value={f}>{f}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                    <div>
-                                        <label className="block text-xs font-black text-slate-400 mb-1.5 uppercase">ผู้บันทึก (Pharmacist)</label>
-                                        <select
-                                            value={pharmacistFilter}
-                                            onChange={e => setPharmacistFilter(e.target.value)}
-                                            className="form-control py-1.5 px-3 text-xs rounded-xl font-bold"
-                                        >
-                                            <option value="all">ผู้บันทึกทั้งหมด (All)</option>
-                                            {uniquePharmacists.map(u => (
-                                                <option key={u} value={u}>{u}</option>
-                                            ))}
-                                        </select>
-                                    </div>
-                                    <div className="sm:col-span-2 md:col-span-4 flex justify-end gap-2 pt-3 border-t border-slate-700/10">
-                                        <button
-                                            onClick={() => {
-                                                setStartDateFilter('');
-                                                setEndDateFilter('');
-                                                setFormulaFilter('all');
-                                                setPharmacistFilter('all');
-                                            }}
-                                            className="px-4 py-2 rounded-xl text-xs font-black bg-rose-600/10 text-rose-500 border border-rose-500/20 hover:bg-rose-600/20 transition-all cursor-pointer"
-                                        >
-                                            ล้างตัวกรอง (Reset)
-                                        </button>
-                                        <button
-                                            onClick={() => setShowFilterPanel(false)}
-                                            className="px-4 py-2 rounded-xl text-xs font-black bg-slate-700 text-white transition-all cursor-pointer"
-                                        >
-                                            ปิด (Close)
-                                        </button>
-                                    </div>
-                                </div>
-                            )}
-                            <div className="overflow-x-auto overflow-y-auto max-h-[300px] rounded-lg border border-slate-700/20 shadow-inner scrollable-table-container">
-                                <table className="w-full text-left text-sm md:text-base print-table">
-                                    <thead className="sticky top-0 z-10" style={{ backgroundColor: 'var(--table-header-bg)' }}>
-                                        <tr className="bg-sky-600/10 text-slate-400 border-b border-slate-700/20">
-                                            {renderTableHeader('วันที่บันทึก', 'w-[15%] whitespace-nowrap')}
-                                            {renderTableHeader('H.N.', 'w-[10%] whitespace-nowrap')}
-                                            {renderTableHeader('ชื่อผู้ป่วย', 'w-[18%] whitespace-nowrap')}
-                                            {renderTableHeader('เพศ', 'w-[8%] whitespace-nowrap', 'justify-center')}
-                                            {renderTableHeader('อายุ', 'w-[8%] whitespace-nowrap', 'justify-center')}
-                                            {renderTableHeader('BSA', 'w-[8%] whitespace-nowrap', 'justify-center')}
-                                            {renderTableHeader('สูตรการคำนวณ', 'w-[18%] whitespace-nowrap')}
-                                            {renderTableHeader('Dose', 'w-[12%] whitespace-nowrap', 'justify-end')}
-                                            {renderTableHeader('ผู้บันทึก', 'w-[11%] whitespace-nowrap', 'justify-center')}
-                                            {user?.role?.toUpperCase() === 'ADMIN' && renderTableHeader('จัดการ', 'w-[8%] whitespace-nowrap no-print', 'justify-center')}
-                                        </tr>
-                                    </thead>
-                                    <tbody>
-                                        {filteredLogs.length > 0 ? (
-                                            filteredLogs.map(log => (
-                                                <tr key={log.id} className="border-b border-slate-700/10 hover:bg-sky-600/5 transition-colors">
-                                                    <td className="p-4 font-mono opacity-70 whitespace-nowrap">{log.timestamp}</td>
-                                                    <td className="p-4 font-bold whitespace-nowrap">{log.hn}</td>
-                                                    <td className="p-4 font-bold uppercase">{log.patient_name}</td>
-                                                    <td className="p-4 text-center font-bold whitespace-nowrap gender-text-highlight">
-                                                        {log.gender === 'female' ? 'หญิง' : log.gender === 'male' ? 'ชาย' : '-'}
-                                                    </td>
-                                                    <td className="p-4 text-center font-bold whitespace-nowrap">
-                                                        {log.age ? `${log.age} ปี` : '-'}
-                                                    </td>
-                                                    <td className="p-4 text-center text-emerald-500 font-bold whitespace-nowrap">{sanitizeNaN(log.calculated_bsa)}</td>
-                                                    <td className="p-4 text-slate-400 font-bold uppercase leading-snug">{sanitizeNaN(log.formula_used)}</td>
-                                                    <td className="p-4 text-right text-amber-500 font-black whitespace-nowrap">{sanitizeNaN(log.prescribed_dose)}</td>
-                                                    <td className="p-4 text-center text-sky-400 font-bold uppercase truncate max-w-[120px]">{log.user_name || '-'}</td>
-                                                    {user?.role?.toUpperCase() === 'ADMIN' && (
-                                                        <td className="p-4 text-center no-print">
-                                                            <button
-                                                                onClick={() => handleDeleteLog(log)}
-                                                                className="text-red-500 hover:text-red-400 p-1.5 rounded-lg hover:bg-red-500/10 transition-all active:scale-95 cursor-pointer flex items-center justify-center mx-auto"
-                                                                title="ลบรายการบันทึกประวัตินี้"
-                                                            >
-                                                                <Trash2 size={16} />
-                                                            </button>
-                                                        </td>
-                                                    )}
-                                                </tr>
-                                            ))
-                                        ) : (
-                                            <tr>
-                                                <td colSpan={user?.role?.toUpperCase() === 'ADMIN' ? 10 : 9} className="p-8 text-center text-slate-500 font-bold italic">
-                                                    ไม่พบประวัติการคำนวณที่ตรงกับการค้นหา
-                                                </td>
-                                            </tr>
-                                        )}
-                                    </tbody>
-                                </table>
-                            </div>
-                            {/* Removed Institutional Signature Section and End of Calculation Record */}
-                        </div>
                     </div>
                 )}
             </div>

@@ -3,158 +3,512 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>10. Checklist ก่อนขึ้น Production</title>
-    <script src="https://cdn.tailwindcss.com"></script>
-    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    <title>10. Oncology Checklist ก่อนขึ้น Production (A4 Strict 1-Page - Clean Mode)</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css">
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@300;400;600;700&display=swap" rel="stylesheet">
+
+    <style>
+        /* บังคับตัวหน้าเว็บทั้งหมดให้มีขนาดเท่ากับหน้าจอเดสก์ท็อปพอดี ไม่ให้มี scrollbar */
+        body {
+            font-family: 'Sarabun', sans-serif;
+            background-color: #f1f5f9; 
+            color: #1e293b;
+            padding: 0;
+            margin: 0;
+            width: 100vw;
+            height: 100vh;
+            overflow: hidden; /* ห้ามเกิดสโครลบาร์เด็ดขาด */
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+
+        /* กล่องคอนเทนเนอร์หลักขยายตามสัดส่วนหน้าจอแบบไดนามิก */
+        .blueprint-container {
+            width: 96vw;
+            height: 94vh;
+            background-color: #ffffff; 
+            border: 1px solid #e2e8f0;
+            border-radius: 16px;
+            box-shadow: 0 20px 40px -12px rgba(0, 0, 0, 0.06);
+            padding: 24px;
+            display: flex;
+            flex-direction: column;
+            justify-content: space-between;
+            box-sizing: border-box;
+        }
+
+        /* ส่วนหัวข้อหลัก (Header) */
+        .header-section {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .top-badge-num {
+            background: linear-gradient(135deg, #2563eb, #1d4ed8);
+            color: white;
+            font-size: 32px;
+            font-weight: 700;
+            padding: 2px 20px;
+            border-radius: 10px;
+            display: inline-block;
+            margin-right: 15px;
+            box-shadow: 0 6px 12px rgba(37, 99, 235, 0.15);
+        }
+
+        .main-title {
+            font-size: 30px;
+            font-weight: 700;
+            color: #0f172a;
+            margin: 0;
+        }
+
+        .sub-title {
+            font-size: 16px;
+            color: #64748b;
+            margin-top: 2px;
+            font-weight: 600;
+        }
+
+        .system-tag {
+            background-color: #f0fdf4; 
+            color: #15803d;
+            border: 1px solid #bbf7d0;
+            padding: 6px 16px;
+            border-radius: 30px;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .page-badge {
+            background-color: #f1f5f9;
+            color: #475569;
+            border: 1px solid #cbd5e1;
+            padding: 4px 12px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        /* Area จัดการ Grid บล็อกหลัก */
+        .grid-area {
+            flex-grow: 1;
+            display: flex;
+            flex-direction: column;
+            justify-content: flex-start;
+            gap: 15px;
+        }
+
+        /* ตกแต่งสไตล์การ์ด Compact มินิมอล */
+        .checklist-card {
+            background: #ffffff;
+            border: 1px solid #e2e8f0;
+            border-radius: 12px;
+            padding: 16px;
+            height: 100%;
+            box-shadow: 0 2px 4px rgba(0, 0, 0, 0.01);
+        }
+
+        .card-header-custom {
+            display: flex;
+            align-items: center;
+            margin-bottom: 12px;
+            border-bottom: 1px solid #f1f5f9;
+            padding-bottom: 8px;
+        }
+
+        .badge-num {
+            color: white;
+            font-weight: 700;
+            font-size: 13px;
+            padding: 2px 8px;
+            border-radius: 20px;
+            margin-right: 10px;
+        }
+
+        .card-title-text {
+            font-size: 16px;
+            font-weight: 700;
+            color: #0f172a;
+        }
+
+        /* กล่องไอคอน */
+        .icon-box {
+            width: 34px;
+            height: 34px;
+            border-radius: 8px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: white;
+            font-size: 16px;
+            margin-right: 12px;
+        }
+
+        /* แถบสีด้านบนของการ์ดแต่ละใบ */
+        .col-functional .icon-box, .col-functional .badge-num { background: linear-gradient(135deg, #3b82f6, #1d4ed8); }
+        .col-functional .checklist-card { border-top: 4px solid #3b82f6; }
+
+        .col-security .icon-box, .col-security .badge-num { background: linear-gradient(135deg, #a855f7, #7e22ce); }
+        .col-security .checklist-card { border-top: 4px solid #a855f7; }
+
+        .col-database .icon-box, .col-database .badge-num { background: linear-gradient(135deg, #0d9488, #0f766e); }
+        .col-database .checklist-card { border-top: 4px solid #0d9488; }
+
+        .col-performance .icon-box, .col-performance .badge-num { background: linear-gradient(135deg, #0ea5e9, #0369a1); }
+        .col-performance .checklist-card { border-top: 4px solid #0ea5e9; }
+
+        .col-operations .icon-box, .col-operations .badge-num { background: linear-gradient(135deg, #f59e0b, #d97706); }
+        .col-operations .checklist-card { border-top: 4px solid #f59e0b; }
+
+        .col-deployment .icon-box, .col-deployment .badge-num { background: linear-gradient(135deg, #ec4899, #c026d3); }
+        .col-deployment .checklist-card { border-top: 4px solid #ec4899; }
+
+        .col-readiness .icon-box, .col-readiness .badge-num { background: linear-gradient(135deg, #10b981, #059669); }
+        .col-readiness .checklist-card { border-top: 5px solid #10b981; }
+
+        /* ข้อความรายการภายใน */
+        .check-list {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+
+        .check-list li {
+            font-size: 13.5px;
+            color: #334155;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            font-weight: 500;
+            white-space: nowrap;
+            overflow: hidden;
+            text-overflow: ellipsis;
+        }
+
+        .check-list li i {
+            color: #cbd5e1; 
+            margin-right: 8px;
+            font-size: 15px;
+        }
+
+        /* แบนเนอร์ Go-Live ด้านล่าง */
+        .golive-banner {
+            background-color: #fefce8;
+            border: 1.5px dashed #eab308;
+            border-radius: 10px;
+            padding: 14px 25px;
+            margin-top: auto; 
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+            gap: 35px;
+        }
+
+        .golive-title {
+            font-size: 18px;
+            font-weight: 700;
+            color: #854d0e;
+            display: flex;
+            align-items: center;
+            margin: 0;
+            white-space: nowrap;
+        }
+
+        .golive-title i {
+            color: #eab308;
+            margin-right: 10px;
+            font-size: 22px;
+        }
+
+        .golive-items-container {
+            display: flex;
+            gap: 25px;
+            margin: 0;
+            padding: 0;
+        }
+
+        .golive-item {
+            font-size: 14.5px;
+            font-weight: 600;
+            color: #475569;
+            display: flex;
+            align-items: center;
+            white-space: nowrap;
+        }
+
+        .golive-item i {
+            color: #cbd5e1;
+            background-color: #f1f5f9;
+            border: 1px solid #cbd5e1;
+            padding: 5px;
+            border-radius: 50%;
+            margin-right: 8px;
+            font-size: 11px;
+        }
+
+        /* แถบส่วนท้ายสุดใต้บอร์ด */
+        .footer-bar {
+            background-color: #1e3a8a; 
+            color: #ffffff;
+            margin: 20px -24px -24px -24px;
+            padding: 12px 24px;
+            border-bottom-left-radius: 14px;
+            border-bottom-right-radius: 14px;
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            font-size: 13px;
+        }
+
+        .footer-bar span {
+            color: #60a5fa;
+            font-weight: 600;
+        }
+
+        /* -------------------------------------------------------------
+           สไตล์สำหรับการพิมพ์ (Print) เพื่อล็อกให้อยู่ในหน้าเดียวพอดีเป๊ะ
+           ------------------------------------------------------------- */
+        @media print {
+            @page {
+                size: A4 landscape; /* บังคับกระดาษเป็นแนวนอน */
+                margin: 0;         /* เคลียร์ขอบกระดาษทิ้งทั้งหมดป้องกันการขึ้นหน้าใหม่ */
+            }
+            html, body {
+                width: 297mm !important;  
+                height: 210mm !important; 
+                overflow: hidden !important;
+                background-color: #ffffff !important;
+                -webkit-print-color-adjust: exact !important; 
+                print-color-adjust: exact !important;
+            }
+            body {
+                display: flex !important;
+                align-items: center !important;
+                justify-content: center !important;
+            }
+            .blueprint-container {
+                width: 285mm !important;  /* บีบกล่องเนื้อหาให้อยู่ในเซฟโซนหน้าเดียวพอดี */
+                height: 198mm !important; 
+                border: 1px solid #e2e8f0 !important;
+                box-shadow: none !important;
+                padding: 15px !important;
+                margin: 0 auto !important;
+            }
+            .checklist-card {
+                padding: 10px !important;
+            }
+            .check-list li {
+                margin-bottom: 5px !important;
+                font-size: 11.5px !important; 
+            }
+            .golive-banner {
+                padding: 10px 15px !important;
+            }
+            .footer-bar {
+                margin: 15px -15px -15px -15px !important;
+                padding: 8px 15px !important;
+            }
+        }
+    </style>
 </head>
-<body class="bg-slate-100 font-sans min-h-screen p-4 md:p-8">
+<body>
 
-    <div class="max-w-7xl mx-auto bg-white rounded-2xl shadow-xl overflow-hidden border border-slate-200">
+<div class="blueprint-container">
+    
+    <div class="header-section">
+        <div class="d-flex align-items-center">
+            <div class="top-badge-num">10.</div>
+            <div>
+                <h1 class="main-title">10. Checklist ก่อนขึ้น Production</h1>
+                <div class="sub-title">รายการตรวจสอบความพร้อมขั้นสุดท้ายก่อนนำระบบใช้งานจริงบนเซิร์ฟเวอร์โรงพยาบาล</div>
+            </div>
+        </div>
+            </div>
+
+    <div class="grid-area">
         
-        <div class="bg-indigo-900 text-white p-6 relative">
-            <div class="flex flex-col md:flex-row md:justify-between md:items-center gap-4">
-                <div>
-                    <span class="bg-amber-500 text-indigo-950 font-bold px-3 py-1 rounded-full text-sm uppercase tracking-wider">10. Checklist ก่อนขึ้น Production</span>
-                    <h1 class="text-2xl md:text-3xl font-extrabold mt-2">รายการตรวจสอบก่อนนำระบบใช้งานจริง</h1>
-                    <p class="text-indigo-200 text-sm mt-1"><i class="fa-solid fa-cubes mr-1"></i> ระบบจองห้องประชุม (Meeting Room Booking Blueprint)</p>
+        <div class="row g-3">
+            <div class="col-md-3 col-functional">
+                <div class="checklist-card">
+                    <div class="card-header-custom">
+                        <div class="icon-box"><i class="fa-solid fa-calculator"></i></div>
+                        <div>
+                            <span class="badge-num">01</span>
+                            <span class="card-title-text">Functional</span>
+                        </div>
+                    </div>
+                    <ul class="check-list">
+                        <li><i class="fa-regular fa-circle"></i>ทดสอบการคำนวณ BSA</li>
+                        <li><i class="fa-regular fa-circle"></i>ตรวจสอบส่วนลดสูญเสียอวัยวะ</li>
+                        <li><i class="fa-regular fa-circle"></i>ตรวจสอบสูตร Calvert (AUC)</li>
+                        <li><i class="fa-regular fa-circle"></i>ตรวจสอบ Max GFR Cap</li>
+                        <li><i class="fa-regular fa-circle"></i>ทดสอบ Patient Check-in</li>
+                        <li><i class="fa-regular fa-circle"></i>ตรวจสอบการเลือกสูตรยาร่วม</li>
+                        <li><i class="fa-regular fa-circle"></i>จัดการค่ายาขีดจำกัดสูงสุด</li>
+                        <li><i class="fa-regular fa-circle"></i>บันทึกประวัติผลคำนวณจ่ายยา</li>
+                    </ul>
                 </div>
-                <div class="text-right text-xs md:text-sm text-indigo-300 border-t md:border-t-0 md:border-l border-indigo-700 pt-4 md:pt-0 md:pl-6">
-                    <p>ผู้พัฒนา: <span class="text-white font-semibold">BUGpairoj</span></p>
-                    <p>หน้า: 10 / 10</p>
+            </div>
+
+            <div class="col-md-3 col-security">
+                <div class="checklist-card">
+                    <div class="card-header-custom">
+                        <div class="icon-box"><i class="fa-solid fa-shield-halved"></i></div>
+                        <div>
+                            <span class="badge-num">02</span>
+                            <span class="card-title-text">Security</span>
+                        </div>
+                    </div>
+                    <ul class="check-list">
+                        <li><i class="fa-regular fa-circle"></i>เปิดใช้งาน HTTPS เต็มรูปแบบ</li>
+                        <li><i class="fa-regular fa-circle"></i>มีระบบป้องกัน CSRF Token</li>
+                        <li><i class="fa-regular fa-circle"></i>แยกสิทธิ์ RBAC เภสัชกร/แอดมิน</li>
+                        <li><i class="fa-regular fa-circle"></i>แฮชรหัสผ่านด้วย BCrypt</li>
+                        <li><i class="fa-regular fa-circle"></i>ตรวจสอบและกรองค่า Clinical Input</li>
+                        <li><i class="fa-regular fa-circle"></i>ใช้ Prepared Statements ป้องกัน SQL</li>
+                        <li><i class="fa-regular fa-circle"></i>ตั้งเวลา Session Timeout ปลอดภัย</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="col-md-3 col-database">
+                <div class="checklist-card">
+                    <div class="card-header-custom">
+                        <div class="icon-box"><i class="fa-solid fa-database"></i></div>
+                        <div>
+                            <span class="badge-num">03</span>
+                            <span class="card-title-text">Database</span>
+                        </div>
+                    </div>
+                    <ul class="check-list">
+                        <li><i class="fa-regular fa-circle"></i>ตั้งค่า Backup อัตโนมัติทุกคืน</li>
+                        <li><i class="fa-regular fa-circle"></i>ทดสอบการ Restore ข้อมูลสำเร็จ</li>
+                        <li><i class="fa-regular fa-circle"></i>ทำ Index ตารางสำคัญ (HN/ยา)</li>
+                        <li><i class="fa-regular fa-circle"></i>ตรวจสอบการเชื่อมความสัมพันธ์ FK</li>
+                        <li><i class="fa-regular fa-circle"></i>Timezone ตรงกับประเทศไทย</li>
+                    </ul>
+                </div>
+            </div>
+
+            <div class="col-md-3 col-performance">
+                <div class="checklist-card">
+                    <div class="card-header-custom">
+                        <div class="icon-box"><i class="fa-solid fa-gauge-high"></i></div>
+                        <div>
+                            <span class="badge-num">04</span>
+                            <span class="card-title-text">Performance</span>
+                        </div>
+                    </div>
+                    <ul class="check-list">
+                        <li><i class="fa-regular fa-circle"></i>ทำ Pagination ตารางประวัติยา</li>
+                        <li><i class="fa-regular fa-circle"></i>ปรับแต่ง Query ค้นหาข้อมูลด่วน</li>
+                        <li><i class="fa-regular fa-circle"></i>บีบอัดไฟล์ Asset หน้าบ้าน (Minify)</li>
+                        <li><i class="fa-regular fa-circle"></i>ทำ Cache ข้อมูลสูตรยาและตัวยาร่วม</li>
+                        <li><i class="fa-regular fa-circle"></i>ลดขนาดรูปภาพโลโก้และสื่อในระบบ</li>
+                    </ul>
                 </div>
             </div>
         </div>
 
-        <div class="p-6 grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-6">
-            
-            <div class="bg-slate-50 rounded-xl p-5 border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
-                <div class="flex items-center gap-3 mb-4">
-                    <div class="bg-blue-100 text-blue-700 w-10 h-10 rounded-lg flex items-center justify-center font-bold text-lg">01</div>
-                    <h2 class="font-bold text-slate-800 text-lg">Functional</h2>
+        <div class="row g-3">
+            <div class="col-md-4 col-operations">
+                <div class="checklist-card">
+                    <div class="card-header-custom">
+                        <div class="icon-box"><i class="fa-solid fa-gears"></i></div>
+                        <div>
+                            <span class="badge-num">05</span>
+                            <span class="card-title-text">Operations</span>
+                        </div>
+                    </div>
+                    <ul class="check-list">
+                        <li><i class="fa-regular fa-circle"></i>ตรวจสอบ Cron job คำนวณอัตโนมัติ</li>
+                        <li><i class="fa-regular fa-circle"></i>ติดตั้งระบบ Log Monitoring ตรวจสอบสถานะ</li>
+                        <li><i class="fa-regular fa-circle"></i>ระบบ Error แจ้งเตือนข้อผิดพลาดหลัก</li>
+                        <li><i class="fa-regular fa-circle"></i>ตรวจสอบพื้นที่ดิสก์ (Disk Space) คนไข้</li>
+                        <li><i class="fa-regular fa-circle"></i>ตั้งค่าการแจ้งเตือน email และไลน์แอดมิน</li>
+                    </ul>
                 </div>
-                <ul class="space-y-2.5 text-slate-600">
-                    <li class="flex items-start gap-2.5"><input type="checkbox" class="mt-1 w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300"> <span>ทดสอบการจอง</span></li>
-                    <li class="flex items-start gap-2.5"><input type="checkbox" class="mt-1 w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300"> <span>อนุมัติ</span></li>
-                    <li class="flex items-start gap-2.5"><input type="checkbox" class="mt-1 w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300"> <span>ยกเลิก</span></li>
-                    <li class="flex items-start gap-2.5"><input type="checkbox" class="mt-1 w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300"> <span>ตรวจสอบเวลาซ้อน</span></li>
-                    <li class="flex items-start gap-2.5"><input type="checkbox" class="mt-1 w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300"> <span>แจ้งเตือน</span></li>
-                    <li class="flex items-start gap-2.5"><input type="checkbox" class="mt-1 w-4 h-4 rounded text-blue-600 focus:ring-blue-500 border-slate-300"> <span>export</span></li>
-                </ul>
             </div>
 
-            <div class="bg-slate-50 rounded-xl p-5 border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
-                <div class="flex items-center gap-3 mb-4">
-                    <div class="bg-purple-100 text-purple-700 w-10 h-10 rounded-lg flex items-center justify-center font-bold text-lg">02</div>
-                    <h2 class="font-bold text-slate-800 text-lg">Security</h2>
+            <div class="col-md-4 col-deployment">
+                <div class="checklist-card">
+                    <div class="card-header-custom">
+                        <div class="icon-box"><i class="fa-solid fa-network-wired"></i></div>
+                        <div>
+                            <span class="badge-num">06</span>
+                            <span class="card-title-text">Deployment</span>
+                        </div>
+                    </div>
+                    <ul class="check-list">
+                        <li><i class="fa-regular fa-circle"></i>ตั้งค่าไฟล์ .env สภาพแวดล้อมจริง</li>
+                        <li><i class="fa-regular fa-circle"></i>ตั้งค่า APP_URL ตรงกับโดเมนหลัก</li>
+                        <li><i class="fa-regular fa-circle"></i>ตรวจสอบสิทธิ์เขียนโฟลเดอร์รายงานคนไข้</li>
+                        <li><i class="fa-regular fa-circle"></i>กำหนด File Permissions ให้ปลอดภัย</li>
+                        <li><i class="fa-regular fa-circle"></i>เปิดใช้งาน Production Mode สมบูรณ์</li>
+                    </ul>
                 </div>
-                <ul class="space-y-2.5 text-slate-600">
-                    <li class="flex items-start gap-2.5"><input type="checkbox" class="mt-1 w-4 h-4 rounded text-purple-600 focus:ring-purple-500 border-slate-300"> <span class="font-mono text-sm">HTTPS</span></li>
-                    <li class="flex items-start gap-2.5"><input type="checkbox" class="mt-1 w-4 h-4 rounded text-purple-600 focus:ring-purple-500 border-slate-300"> <span class="font-mono text-sm">CSRF</span></li>
-                    <li class="flex items-start gap-2.5"><input type="checkbox" class="mt-1 w-4 h-4 rounded text-purple-600 focus:ring-purple-500 border-slate-300"> <span class="font-mono text-sm">RBAC</span></li>
-                    <li class="flex items-start gap-2.5"><input type="checkbox" class="mt-1 w-4 h-4 rounded text-purple-600 focus:ring-purple-500 border-slate-300"> <span>password hashing</span></li>
-                    <li class="flex items-start gap-2.5"><input type="checkbox" class="mt-1 w-4 h-4 rounded text-purple-600 focus:ring-purple-500 border-slate-300"> <span>input validation</span></li>
-                    <li class="flex items-start gap-2.5"><input type="checkbox" class="mt-1 w-4 h-4 rounded text-purple-600 focus:ring-purple-500 border-slate-300"> <span>prepared statements</span></li>
-                    <li class="flex items-start gap-2.5"><input type="checkbox" class="mt-1 w-4 h-4 rounded text-purple-600 focus:ring-purple-500 border-slate-300"> <span>session timeout</span></li>
-                </ul>
             </div>
 
-            <div class="bg-slate-50 rounded-xl p-5 border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
-                <div class="flex items-center gap-3 mb-4">
-                    <div class="bg-teal-100 text-teal-700 w-10 h-10 rounded-lg flex items-center justify-center font-bold text-lg">03</div>
-                    <h2 class="font-bold text-slate-800 text-lg">Database</h2>
+            <div class="col-md-4 col-readiness">
+                <div class="checklist-card">
+                    <div class="card-header-custom">
+                        <div class="icon-box"><i class="fa-solid fa-user-graduate"></i></div>
+                        <div>
+                            <span class="badge-num">07</span>
+                            <span class="card-title-text">User Readiness</span>
+                        </div>
+                    </div>
+                    <ul class="check-list">
+                        <li><i class="fa-regular fa-circle"></i>จัดทำไฟล์คู่มือการใช้งานสำหรับเภสัชกร</li>
+                        <li><i class="fa-regular fa-circle"></i>จัดอบรมการดูแลระบบให้กับทีมแอดมินไอที</li>
+                        <li><i class="fa-regular fa-circle"></i>ลงนามผ่านเกณฑ์การทดสอบระบบ (UAT Sign-off)</li>
+                        <li><i class="fa-regular fa-circle"></i>เตรียมข้อมูลช่องทางติดต่อด่วนฉุกเฉิน</li>
+                    </ul>
                 </div>
-                <ul class="space-y-2.5 text-slate-600">
-                    <li class="flex items-start gap-2.5"><input type="checkbox" class="mt-1 w-4 h-4 rounded text-teal-600 focus:ring-teal-500 border-slate-300"> <span>backup</span></li>
-                    <li class="flex items-start gap-2.5"><input type="checkbox" class="mt-1 w-4 h-4 rounded text-teal-600 focus:ring-teal-500 border-slate-300"> <span>restore test</span></li>
-                    <li class="flex items-start gap-2.5"><input type="checkbox" class="mt-1 w-4 h-4 rounded text-teal-600 focus:ring-teal-500 border-slate-300"> <span>index สำคัญ</span></li>
-                    <li class="flex items-start gap-2.5"><input type="checkbox" class="mt-1 w-4 h-4 rounded text-teal-600 focus:ring-teal-500 border-slate-300"> <span>foreign keys</span></li>
-                    <li class="flex items-start gap-2.5"><input type="checkbox" class="mt-1 w-4 h-4 rounded text-teal-600 focus:ring-teal-500 border-slate-300"> <span>timezone</span></li>
-                </ul>
-            </div>
-
-            <div class="bg-slate-50 rounded-xl p-5 border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
-                <div class="flex items-center gap-3 mb-4">
-                    <div class="bg-emerald-100 text-emerald-700 w-10 h-10 rounded-lg flex items-center justify-center font-bold text-lg">04</div>
-                    <h2 class="font-bold text-slate-800 text-lg">Performance</h2>
-                </div>
-                <ul class="space-y-2.5 text-slate-600">
-                    <li class="flex items-start gap-2.5"><input type="checkbox" class="mt-1 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300"> <span>pagination</span></li>
-                    <li class="flex items-start gap-2.5"><input type="checkbox" class="mt-1 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300"> <span>query optimization</span></li>
-                    <li class="flex items-start gap-2.5"><input type="checkbox" class="mt-1 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300"> <span>asset minify</span></li>
-                    <li class="flex items-start gap-2.5"><input type="checkbox" class="mt-1 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300"> <span>cache</span></li>
-                    <li class="flex items-start gap-2.5"><input type="checkbox" class="mt-1 w-4 h-4 rounded text-emerald-600 focus:ring-emerald-500 border-slate-300"> <span>image optimization</span></li>
-                </ul>
-            </div>
-
-            <div class="bg-slate-50 rounded-xl p-5 border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
-                <div class="flex items-center gap-3 mb-4">
-                    <div class="bg-cyan-100 text-cyan-700 w-10 h-10 rounded-lg flex items-center justify-center font-bold text-lg">05</div>
-                    <h2 class="font-bold text-slate-800 text-lg">Operations</h2>
-                </div>
-                <ul class="space-y-2.5 text-slate-600">
-                    <li class="flex items-start gap-2.5"><input type="checkbox" class="mt-1 w-4 h-4 rounded text-cyan-600 focus:ring-cyan-500 border-slate-300"> <span>cron job</span></li>
-                    <li class="flex items-start gap-2.5"><input type="checkbox" class="mt-1 w-4 h-4 rounded text-cyan-600 focus:ring-cyan-500 border-slate-300"> <span>log monitoring</span></li>
-                    <li class="flex items-start gap-2.5"><input type="checkbox" class="mt-1 w-4 h-4 rounded text-cyan-600 focus:ring-cyan-500 border-slate-300"> <span>error log</span></li>
-                    <li class="flex items-start gap-2.5"><input type="checkbox" class="mt-1 w-4 h-4 rounded text-cyan-600 focus:ring-cyan-500 border-slate-300"> <span>disk space</span></li>
-                    <li class="flex items-start gap-2.5"><input type="checkbox" class="mt-1 w-4 h-4 rounded text-cyan-600 focus:ring-cyan-500 border-slate-300"> <span>email/LINE config</span></li>
-                </ul>
-            </div>
-
-            <div class="bg-slate-50 rounded-xl p-5 border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
-                <div class="flex items-center gap-3 mb-4">
-                    <div class="bg-orange-100 text-orange-700 w-10 h-10 rounded-lg flex items-center justify-center font-bold text-lg">06</div>
-                    <h2 class="font-bold text-slate-800 text-lg">Deployment</h2>
-                </div>
-                <ul class="space-y-2.5 text-slate-600">
-                    <li class="flex items-start gap-2.5"><input type="checkbox" class="mt-1 w-4 h-4 rounded text-orange-600 focus:ring-orange-500 border-slate-300"> <span class="font-mono text-sm">.env ถูกต้อง</span></li>
-                    <li class="flex items-start gap-2.5"><input type="checkbox" class="mt-1 w-4 h-4 rounded text-orange-600 focus:ring-orange-500 border-slate-300"> <span class="font-mono text-sm">APP_URL</span></li>
-                    <li class="flex items-start gap-2.5"><input type="checkbox" class="mt-1 w-4 h-4 rounded text-orange-600 focus:ring-orange-500 border-slate-300"> <span>writable folders</span></li>
-                    <li class="flex items-start gap-2.5"><input type="checkbox" class="mt-1 w-4 h-4 rounded text-orange-600 focus:ring-orange-500 border-slate-300"> <span>file permissions</span></li>
-                    <li class="flex items-start gap-2.5"><input type="checkbox" class="mt-1 w-4 h-4 rounded text-orange-600 focus:ring-orange-500 border-slate-300"> <span>production mode</span></li>
-                </ul>
-            </div>
-
-            <div class="bg-slate-50 rounded-xl p-5 border border-slate-200 shadow-sm hover:shadow-md transition-shadow">
-                <div class="flex items-center gap-3 mb-4">
-                    <div class="bg-indigo-100 text-indigo-700 w-10 h-10 rounded-lg flex items-center justify-center font-bold text-lg">07</div>
-                    <h2 class="font-bold text-slate-800 text-lg">User readiness</h2>
-                </div>
-                <ul class="space-y-2.5 text-slate-600">
-                    <li class="flex items-start gap-2.5"><input type="checkbox" class="mt-1 w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300"> <span>คู่มือใช้งาน</span></li>
-                    <li class="flex items-start gap-2.5"><input type="checkbox" class="mt-1 w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300"> <span>admin training</span></li>
-                    <li class="flex items-start gap-2.5"><input type="checkbox" class="mt-1 w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300"> <span class="font-mono text-sm">UAT sign-off</span></li>
-                    <li class="flex items-start gap-2.5"><input type="checkbox" class="mt-1 w-4 h-4 rounded text-indigo-600 focus:ring-indigo-500 border-slate-300"> <span>support contact</span></li>
-                </ul>
-            </div>
-
-        </div>
-
-        <div class="bg-amber-50 border-t border-amber-200 p-6">
-            <div class="flex items-center gap-3 mb-4">
-                <span class="text-2xl text-amber-500">⭐</span>
-                <h3 class="text-lg font-bold text-amber-900">Go-Live พร้อมเมื่อ</h3>
-            </div>
-            <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
-                <label class="flex items-center gap-3 bg-white p-4 rounded-xl border border-amber-200 text-slate-700 font-medium text-sm shadow-sm hover:bg-amber-100/50 cursor-pointer transition-colors">
-                    <input type="checkbox" class="w-4 h-4 text-amber-600 focus:ring-amber-500 border-slate-300 rounded-full">
-                    <span>ผ่าน UAT</span>
-                </label>
-                <label class="flex items-center gap-3 bg-white p-4 rounded-xl border border-amber-200 text-slate-700 font-medium text-sm shadow-sm hover:bg-amber-100/50 cursor-pointer transition-colors">
-                    <input type="checkbox" class="w-4 h-4 text-amber-600 focus:ring-amber-500 border-slate-300 rounded-full">
-                    <span>ผ่าน security review</span>
-                </label>
-                <label class="flex items-center gap-3 bg-white p-4 rounded-xl border border-amber-200 text-slate-700 font-medium text-sm shadow-sm hover:bg-amber-100/50 cursor-pointer transition-colors">
-                    <input type="checkbox" class="w-4 h-4 text-amber-600 focus:ring-amber-500 border-slate-300 rounded-full">
-                    <span>backup ใช้งานได้</span>
-                </label>
-                <label class="flex items-center gap-3 bg-white p-4 rounded-xl border border-amber-200 text-slate-700 font-medium text-sm shadow-sm hover:bg-amber-100/50 cursor-pointer transition-colors">
-                    <input type="checkbox" class="w-4 h-4 text-amber-600 focus:ring-amber-500 border-slate-300 rounded-full">
-                    <span>monitoring พร้อม</span>
-                </label>
             </div>
         </div>
 
     </div>
 
+    <div class="golive-banner">
+        <div class="golive-title">
+            <i class="fa-solid fa-star-of-life"></i>
+            <span>ระบบพร้อมสำหรับ Go-Live เมื่อ:</span>
+        </div>
+        <div class="golive-items-container">
+            <div class="golive-item">
+                <i class="fa-regular fa-circle"></i> ผ่านการทดสอบ UAT จากเภสัชกร
+            </div>
+            <div class="golive-item">
+                <i class="fa-regular fa-circle"></i> ผ่านรายงาน Security Review
+            </div>
+            <div class="golive-item">
+                <i class="fa-regular fa-circle"></i> ระบบสำรองข้อมูลทำงานสมบูรณ์
+            </div>
+            <div class="golive-item">
+                <i class="fa-regular fa-circle"></i> มีทีมตรวจสอบระบบดูแล 24 ชั่วโมง
+            </div>
+        </div>
+    </div>
+
+    <div class="footer-bar">
+        <div>
+            <i class="fa-regular fa-folder-open me-2"></i>
+            พิมพ์เขียวระบบคำนวนยาเคมีบำบัด <span>(React / Node.js / MySQL)</span>
+        </div>
+        <div>
+            
+        </div>
+    </div>
+
+</div>
+
+<script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.2/dist/js/bootstrap.bundle.min.js"></script>
 </body>
 </html>

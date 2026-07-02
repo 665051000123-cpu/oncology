@@ -43,15 +43,17 @@
             color: var(--color-text-main);
         }
 
+        /* ปรับปรุงตรงนี้: รองรับหน้าจอทุกขนาดและจัดกึ่งกลางได้อย่างสมบูรณ์ */
         .blueprint-canvas {
-            width: 1280px;
+            width: 100%;
+            max-width: 1280px;
             height: 900px;
             background-color: var(--bg-canvas);
             border-radius: 24px;
             border: 1px solid var(--border-color);
             box-shadow: 0 15px 50px rgba(0, 0, 0, 0.05);
             position: relative;
-            overflow: hidden;
+            overflow: auto; /* เปลี่ยนจาก hidden เป็น auto เผื่อหน้าจอเล็กเกินไปจะยังเลื่อนดูได้ */
             padding: 25px 30px;
             display: flex;
             flex-direction: column;
@@ -245,16 +247,16 @@
             font-size: 9px;
         }
 
-        /* --- พิกัดตารางแบบ 3 คอลัมน์ เคลียร์ช่องไฟตรงกลางเพิ่มขึ้นเพื่อหลบเส้น --- */
+        /* --- พิกัดตารางแบบ 3 คอลัมน์ --- */
         #table-activity-logs   { top: 15px;  left: 50px;  }
         #table-dose-logs       { top: 290px; left: 50px;  }
         
-        #table-login           { top: 15px;  left: 520px; }
-        #table-users           { top: 245px; left: 520px; } 
-        #table-patient-history { top: 430px; left: 520px; } 
+        #table-login           { top: 15px;  left: 490px; } /* ขยับเข้ามาให้สมดุล */
+        #table-users           { top: 245px; left: 490px; } 
+        #table-patient-history { top: 430px; left: 490px; } 
 
-        #table-drugs-info      { top: 15px;  left: 1010px; width: 245px; } /* ขยับออกขวาเพิ่มพื้นที่ */
-        #table-dosage-logs     { top: 435px; left: 1010px; } /* ขยับออกขวาเพิ่มพื้นที่ */
+        #table-drugs-info      { top: 15px;  left: 950px; width: 245px; } /* ขยับเข้ามาให้สมดุล */
+        #table-dosage-logs     { top: 435px; left: 950px; } 
 
         .svg-canvas {
             position: absolute;
@@ -303,51 +305,39 @@
                 <div class="number-badge">2.</div>
                 <div class="title-text">
                     <h1>Database Schema</h1>
-                    <p>โครงสร้างฐานข้อมูลระบบคำนวณขนาดยาเคมีบำบัดและการผูกสัมพันธ์ระบบประวัติทางคลินิก</p>
+                    <p>โครงสร้างฐานข้อมูลระบบคำนวณขนาดยาเคมีบำบัด</p>
                 </div>
             </div>
-            <div class="header-meta">
-                <div class="system-badge">
-                    <i class="fa-solid fa-network-wired"></i> DATA INTEGRITY ENVIRONMENT
-                </div>
-                <div class="version-badge">VERSION 1.2</div>
-            </div>
-        </div>
+                   </div>
 
         <div class="diagram-workspace" id="workspace">
             
             <svg class="svg-canvas">
-                <path d="M 520 300 L 480 300 L 480 90 L 520 90" class="relationship-line" id="line-users-login"></path>
-                
-                <path d="M 520 300 L 480 300 L 480 115 L 285 115" class="relationship-line" id="line-users-activity"></path>
-
-                <path d="M 755 323 L 790 323 L 790 618 L 1010 618" class="relationship-line" id="line-users-dosage"></path>
-
-                <path d="M 1010 503 L 420 503 L 420 360 L 285 360" class="relationship-line" id="line-dosage-dose"></path>
-
-                <path d="M 755 453 L 970 453 L 970 503 L 1010 503" class="relationship-line" id="line-patient-dosage"></path>
-
-                <path d="M 1010 40 L 970 40 L 970 641 L 1010 641" class="relationship-line" id="line-drugs-dosage"></path>
+                <path d="M 490 300 L 450 300 L 450 90 L 490 90" class="relationship-line" id="line-users-login"></path>
+                <path d="M 490 300 L 450 300 L 450 115 L 285 115" class="relationship-line" id="line-users-activity"></path>
+                <path d="M 725 323 L 760 323 L 760 618 L 950 618" class="relationship-line" id="line-users-dosage"></path>
+                <path d="M 950 503 L 420 503 L 420 360 L 285 360" class="relationship-line" id="line-dosage-dose"></path>
+                <path d="M 725 453 L 910 453 L 910 503 L 950 503" class="relationship-line" id="line-patient-dosage"></path>
+                <path d="M 950 40 L 910 40 L 910 641 L 950 641" class="relationship-line" id="line-drugs-dosage"></path>
             </svg>
 
-            <div class="relation-label" style="top: 300px; left: 495px;">1</div>
-            <div class="relation-label" style="top: 90px; left: 495px;">1</div>
+            <div class="relation-label" style="top: 300px; left: 475px;">1</div>
+            <div class="relation-label" style="top: 90px; left: 475px;">1</div>
 
-            <div class="relation-label" style="top: 300px; left: 465px;">1</div>
+            <div class="relation-label" style="top: 300px; left: 435px;">1</div>
             <div class="relation-label" style="top: 115px; left: 305px;">∞</div>
 
-            <div class="relation-label" style="top: 323px; left: 775px;">1</div>
-            <div class="relation-label" style="top: 618px; left: 990px;">∞</div>
+            <div class="relation-label" style="top: 323px; left: 745px;">1</div>
+            <div class="relation-label" style="top: 618px; left: 930px;">∞</div>
 
-            <div class="relation-label" style="top: 503px; left: 985px;">1</div>
+            <div class="relation-label" style="top: 503px; left: 925px;">1</div>
             <div class="relation-label" style="top: 360px; left: 305px;">1</div>
 
-            <div class="relation-label" style="top: 453px; left: 775px;">1</div>
-            <div class="relation-label" style="top: 503px; left: 995px;">∞</div>
+            <div class="relation-label" style="top: 453px; left: 745px;">1</div>
+            <div class="relation-label" style="top: 503px; left: 935px;">∞</div>
 
-            <div class="relation-label" style="top: 40px; left: 985px;">1</div>
-            <div class="relation-label" style="top: 641px; left: 995px;">∞</div>
-
+            <div class="relation-label" style="top: 40px; left: 925px;">1</div>
+            <div class="relation-label" style="top: 641px; left: 935px;">∞</div>
 
             <div class="table-card purple-theme" id="table-users">
                 <div class="table-header">
@@ -470,8 +460,6 @@
             <div class="legend-item"><span class="rel-icon">1</span><span>= หนึ่ง (One)</span></div>
             <div class="legend-item"><span class="rel-icon">∞</span><span>= หลาย (Many)</span></div>
         </div>
-
-                </div>
 
     </div>
 
