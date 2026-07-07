@@ -23,11 +23,11 @@ const formatBsa = (val) => {
 };
 
 function App() {
-    const [theme, setTheme] = useState(localStorage.getItem('appThemeMode') || 'dark');
+    const [theme, setTheme] = useState(localStorage.getItem('appThemeMode') || 'light');
     const [step, setStep] = useState('auth'); // 'auth', 'login' (patient check-in), 'workspace'
     const [user, setUser] = useState(null);
     const [loginData, setLoginData] = useState({ username: '', password: '' });
-    const [patient, setPatient] = useState({ hn: '', title: '', name: '', height: '', weight: '', gender: '', age: '', ward: '' });
+    const [patient, setPatient] = useState({ hn: '', title: '', name: '', height: '', weight: '', gender: '', age: '' });
     const [logs, setLogs] = useState([]);
     const [notification, setNotification] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
@@ -36,10 +36,6 @@ function App() {
     const lastAutofilledHnRef = useRef('');
     const [prevStats, setPrevStats] = useState({ height: '', weight: '' });
     const [deleteConfirmLog, setDeleteConfirmLog] = useState(null);
-    const [calcHematology, setCalcHematology] = useState(true);
-    const [calcLiver, setCalcLiver] = useState(true);
-    const [calcRenal, setCalcRenal] = useState(true);
-    const [selectedHnDetail, setSelectedHnDetail] = useState(null);
     const [showTimeoutWarning, setShowTimeoutWarning] = useState(false);
     const [timeoutCountdown, setTimeoutCountdown] = useState(30);
 
@@ -199,8 +195,7 @@ function App() {
             age: p.age || '',
             height: '', // clear for new input
             weight: '', // clear for new input
-            gender: p.gender || '',
-            ward: p.ward || ''
+            gender: p.gender || ''
         });
         setPrevStats({
             height: p.height || '',
@@ -226,8 +221,7 @@ function App() {
                 age: matched.age || '',
                 height: '', // clear for new input
                 weight: '', // clear for new input
-                gender: matched.gender || '',
-                ward: matched.ward || ''
+                gender: matched.gender || ''
             });
             setPrevStats({
                 height: matched.height || '',
@@ -365,8 +359,7 @@ function App() {
             prescribedDose: sanitizeNaN(doseText),
             userName: user.name || user.username,
             gender: patient.gender,
-            age: patient.age,
-            ward: patient.ward || ''
+            age: patient.age
         };
 
         try {
@@ -842,7 +835,7 @@ function App() {
                             <div className="mt-4 pt-3 border-t border-slate-700/10 text-center">
                                 <button
                                     type="button"
-                                    onClick={() => setPatient({ hn: '', name: '', height: '', weight: '', gender: '', age: '', ward: '' })}
+                                    onClick={() => setPatient({ hn: '', name: '', height: '', weight: '', gender: '', age: '' })}
                                     className="text-xs font-bold text-slate-400 hover:text-rose-500 transition-colors uppercase tracking-wider"
                                 >
                                     ล้างแบบฟอร์ม (Clear Form)
@@ -926,27 +919,6 @@ function App() {
                                         <option value="female">หญิง (Female)</option>
                                     </select>
                                 </div>
-                                <select
-                                    className="form-control"
-                                    value={patient.ward || ''}
-                                    onChange={e => setPatient({ ...patient, ward: e.target.value })}
-                                >
-                                    <option value="">เลือกหอผู้ป่วย (Ward)</option>
-                                    <option value="ตึก 1">ตึก 1</option>
-                                    <option value="ตึก 2">ตึก 2</option>
-                                    <option value="ตึก 3">ตึก 3</option>
-                                    <option value="ตึก 4">ตึก 4</option>
-                                    <option value="ตึก 5">ตึก 5</option>
-                                    <option value="ตึก 6">ตึก 6</option>
-                                    <option value="ตึก 7">ตึก 7</option>
-                                    <option value="ตึก 8">ตึก 8</option>
-                                    <option value="ตึก 9">ตึก 9</option>
-                                    <option value="ตึก 10">ตึก 10</option>
-                                    <option value="ผู้ป่วยนอก (OPD)">ผู้ป่วยนอก (OPD)</option>
-                                    <option value="ICU">ICU</option>
-                                    <option value="CCU">CCU</option>
-                                    <option value="ER">ER</option>
-                                </select>
                                 <button onClick={handlePatientCheckIn} className="w-full btn-primary">เข้าสู่ระบบคำนวณ ➔</button>
                             </div>
                         </div>
@@ -1083,92 +1055,62 @@ function App() {
                                 </div>
                             )}
 
-                            {selectedHnDetail ? (
-                                <div className="space-y-4">
-                                    <div className="flex items-center gap-3 mb-2 no-print">
-                                        <button type="button" onClick={() => setSelectedHnDetail(null)} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-sky-600/10 text-sky-500 border border-sky-500/20 hover:bg-sky-600/20 font-bold text-sm transition-all cursor-pointer">
-                                            ← กลับ
-                                        </button>
-                                        <div>
-                                            <span className="font-black text-xl">H.N. {selectedHnDetail}</span>
-                                            <span className="text-slate-400 text-sm ml-2">— {filteredLogs.filter(l => l.hn === selectedHnDetail).length} รายการ</span>
-                                        </div>
-                                    </div>
-                                    {(() => {
-                                        const hnLogs = filteredLogs.filter(l => l.hn === selectedHnDetail);
-                                        const latestLog = hnLogs[0] || {};
-                                        return (
-                                            <>
-                                                <div className={`p-4 rounded-2xl border flex flex-wrap gap-4 items-center ${theme === 'dark' ? 'bg-slate-800/50 border-slate-700/30' : 'bg-sky-50 border-sky-200'}`}>
-                                                    <div className="w-12 h-12 rounded-full bg-sky-600 flex items-center justify-center text-white font-black text-lg shrink-0">{(latestLog.patient_name || '?')[0]}</div>
-                                                    <div>
-                                                        <p className="font-black text-lg uppercase">{latestLog.patient_name || '-'}</p>
-                                                        <p className="text-slate-400 text-sm">{latestLog.gender === 'female' ? 'หญิง' : 'ชาย'}{latestLog.ward ? ' | ' + latestLog.ward : ''}</p>
-                                                    </div>
-                                                    <div className="ml-auto text-right"><div className="text-3xl font-black text-sky-500">{hnLogs.length}</div><div className="text-xs text-slate-400">ครั้งที่คำนวณ</div></div>
-                                                </div>
-                                                <div className="overflow-x-auto rounded-2xl border border-slate-700/20 shadow-inner">
-                                                    <table className="w-full text-sm text-left print-table">
-                                                        <thead className="sticky top-0 z-10" style={{ backgroundColor: 'var(--table-header-bg)' }}>
-                                                            <tr className="bg-sky-600/10 text-slate-400 border-b border-slate-700/20 text-[11px] font-black uppercase">
-                                                                <th className="px-4 py-3">วันที่</th><th className="px-4 py-3">หอ</th><th className="px-4 py-3">BSA</th><th className="px-4 py-3">ยา/สูตร</th><th className="px-4 py-3 text-right">Dose</th><th className="px-4 py-3 text-center">ผู้บันทึก</th>
-                                                                {user?.role?.toUpperCase() === 'ADMIN' && <th className="px-4 py-3 text-center no-print">ลบ</th>}
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody>
-                                                            {hnLogs.map(log => (
-                                                                <tr key={log.id} className="border-b border-slate-700/10 hover:bg-sky-600/5 transition-colors">
-                                                                    <td className="px-4 py-3 font-mono text-xs opacity-70 whitespace-nowrap">{log.timestamp}</td>
-                                                                    <td className="px-4 py-3 text-xs font-bold">{log.ward || '-'}</td>
-                                                                    <td className="px-4 py-3 text-center text-emerald-500 font-bold">{sanitizeNaN(log.calculated_bsa)}</td>
-                                                                    <td className="px-4 py-3 text-slate-400 text-[11px]">{sanitizeNaN(log.formula_used)}</td>
-                                                                    <td className="px-4 py-3 text-right text-amber-500 font-black whitespace-nowrap">{sanitizeNaN(log.prescribed_dose)}</td>
-                                                                    <td className="px-4 py-3 text-center text-sky-400 font-bold">{log.user_name || '-'}</td>
-                                                                    {user?.role?.toUpperCase() === 'ADMIN' && (
-                                                                        <td className="px-4 py-3 text-center no-print"><button onClick={() => handleDeleteLog(log)} className="text-red-500 hover:text-red-400 p-1.5 rounded-lg hover:bg-red-500/10 transition-all cursor-pointer"><Trash2 size={15}/></button></td>
-                                                                    )}
-                                                                </tr>
-                                                            ))}
-                                                        </tbody>
-                                                    </table>
-                                                </div>
-                                            </>
-                                        );
-                                    })()}
-                                </div>
-                            ) : (
-                                (() => {
-                                    const grouped = {};
-                                    filteredLogs.forEach(log => {
-                                        if (!grouped[log.hn]) grouped[log.hn] = { hn: log.hn, name: log.patient_name, gender: log.gender, ward: log.ward, logs: [] };
-                                        grouped[log.hn].logs.push(log);
-                                        if (log.patient_name) grouped[log.hn].name = log.patient_name;
-                                        if (log.ward) grouped[log.hn].ward = log.ward;
-                                    });
-                                    const patientList = Object.values(grouped).sort((a, b) => (b.logs[0]?.timestamp || '').localeCompare(a.logs[0]?.timestamp || ''));
-                                    if (patientList.length === 0) return <div className="p-12 text-center text-slate-400 font-bold italic text-lg">ไม่พบประวัติการคำนวณที่ตรงกับการค้นหา</div>;
-                                    return (
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                                            {patientList.map(p => (
-                                                <button key={p.hn} type="button" onClick={() => setSelectedHnDetail(p.hn)} className={`w-full text-left p-5 rounded-2xl border transition-all duration-200 hover:scale-[1.02] hover:shadow-xl active:scale-[0.98] cursor-pointer ${theme === 'dark' ? 'bg-slate-800/60 border-slate-700/40 hover:border-sky-500/60 hover:bg-slate-800' : 'bg-white border-slate-200 hover:border-sky-400 shadow-sm hover:shadow-sky-100'}`}>
-                                                    <div className="flex items-start gap-3">
-                                                        <div className="w-10 h-10 rounded-full bg-sky-600 flex items-center justify-center text-white font-black text-sm shrink-0">{(p.name || '?').charAt(0)}</div>
-                                                        <div className="flex-1 min-w-0">
-                                                            <div className="flex items-center gap-2 flex-wrap mb-1"><span className="text-[11px] font-black px-2 py-0.5 rounded-lg bg-sky-500/15 text-sky-500 border border-sky-500/20">H.N. {p.hn}</span></div>
-                                                            <p className="font-black text-sm uppercase truncate">{p.name || '-'}</p>
-                                                            <p className="text-[11px] text-slate-400 mt-0.5">{p.gender === 'female' ? 'หญิง' : p.gender === 'male' ? 'ชาย' : '-'}{p.ward ? ' | ' + p.ward : ''}</p>
-                                                        </div>
-                                                        <div className="text-right shrink-0"><div className="text-2xl font-black text-sky-500 leading-tight">{p.logs.length}</div><div className="text-[10px] text-slate-400 font-bold">ครั้ง</div></div>
-                                                    </div>
-                                                    <div className="text-[11px] text-slate-400 font-bold border-t border-slate-700/10 pt-2 mt-3 flex items-center justify-between">
-                                                        <span>ล่าสุด: {p.logs[0]?.timestamp || '-'}</span><span className="text-sky-500 font-black">ดูประวัติ →</span>
-                                                    </div>
-                                                </button>
-                                            ))}
-                                        </div>
-                                    );
-                                })()
-                            )}
+                            <div className="overflow-x-auto overflow-y-auto max-h-[500px] rounded-lg border border-slate-700/20 shadow-inner scrollable-table-container">
+                                <table className="w-full text-left text-sm md:text-base print-table">
+                                    <thead className="sticky top-0 z-10" style={{ backgroundColor: 'var(--table-header-bg)' }}>
+                                        <tr className="bg-sky-600/10 text-slate-400 border-b border-slate-700/20">
+                                            {renderTableHeader('วันที่บันทึก', 'w-[15%] whitespace-nowrap')}
+                                            {renderTableHeader('H.N.', 'w-[10%] whitespace-nowrap')}
+                                            {renderTableHeader('ชื่อผู้ป่วย', 'w-[18%] whitespace-nowrap')}
+                                            {renderTableHeader('เพศ', 'w-[8%] whitespace-nowrap', 'justify-center')}
+                                            {renderTableHeader('อายุ', 'w-[8%] whitespace-nowrap', 'justify-center')}
+                                            {renderTableHeader('BSA', 'w-[8%] whitespace-nowrap', 'justify-center')}
+                                            {renderTableHeader('สูตรการคำนวณ', 'w-[18%] whitespace-nowrap')}
+                                            {renderTableHeader('Dose', 'w-[12%] whitespace-nowrap', 'justify-end')}
+                                            {renderTableHeader('ผู้บันทึก', 'w-[11%] whitespace-nowrap', 'justify-center')}
+                                            {user?.role?.toUpperCase() === 'ADMIN' && renderTableHeader('จัดการ', 'w-[8%] whitespace-nowrap no-print', 'justify-center')}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {filteredLogs.length > 0 ? (
+                                            filteredLogs.map(log => (
+                                                <tr key={log.id} className="border-b border-slate-700/10 hover:bg-sky-600/5 transition-colors">
+                                                    <td className="p-4 font-mono opacity-70 whitespace-nowrap">{log.timestamp}</td>
+                                                    <td className="p-4 font-bold whitespace-nowrap">{log.hn}</td>
+                                                    <td className="p-4 font-bold uppercase">{log.patient_name}</td>
+                                                    <td className="p-4 text-center font-bold whitespace-nowrap gender-text-highlight">
+                                                        {log.gender === 'female' ? 'หญิง' : log.gender === 'male' ? 'ชาย' : '-'}
+                                                    </td>
+                                                    <td className="p-4 text-center font-bold whitespace-nowrap">
+                                                        {log.age ? `${log.age} ปี` : '-'}
+                                                    </td>
+                                                    <td className="p-4 text-center text-emerald-500 font-bold whitespace-nowrap">{sanitizeNaN(log.calculated_bsa)}</td>
+                                                    <td className="p-4 text-slate-400 font-bold uppercase leading-snug">{sanitizeNaN(log.formula_used)}</td>
+                                                    <td className="p-4 text-right text-amber-500 font-black whitespace-nowrap">{sanitizeNaN(log.prescribed_dose)}</td>
+                                                    <td className="p-4 text-center text-sky-400 font-bold uppercase truncate max-w-[120px]">{log.user_name || '-'}</td>
+                                                    {user?.role?.toUpperCase() === 'ADMIN' && (
+                                                        <td className="p-4 text-center no-print">
+                                                            <button
+                                                                onClick={() => handleDeleteLog(log)}
+                                                                className="text-red-500 hover:text-red-400 p-1.5 rounded-lg hover:bg-red-500/10 transition-all active:scale-95 cursor-pointer flex items-center justify-center mx-auto"
+                                                                title="ลบรายการบันทึกประวัตินี้"
+                                                            >
+                                                                <Trash2 size={16} />
+                                                            </button>
+                                                        </td>
+                                                    )}
+                                                </tr>
+                                            ))
+                                        ) : (
+                                            <tr>
+                                                <td colSpan={user?.role?.toUpperCase() === 'ADMIN' ? 10 : 9} className="p-8 text-center text-slate-500 font-bold italic">
+                                                    ไม่พบประวัติการคำนวณที่ตรงกับการค้นหา
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
                 ) : (
@@ -1192,7 +1134,7 @@ function App() {
                                 <p className="text-slate-400">H: {patient.height} cm | W: {patient.weight} kg | อายุ: {patient.age ? `${patient.age} ปี` : '-'} | เพศ: {patient.gender === 'female' ? 'หญิง (Female)' : patient.gender === 'male' ? 'ชาย (Male)' : '-'}</p>
                             </div>
                             <button onClick={() => {
-                                setPatient({ hn: '', title: '', name: '', height: '', weight: '', gender: '', age: '', ward: '' });
+                                setPatient({ hn: '', title: '', name: '', height: '', weight: '', gender: '', age: '' });
                                 setPrevStats({ height: '', weight: '' });
                                 setPatientScr('');
                                 setUseAutoGfr(false);

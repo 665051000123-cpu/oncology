@@ -96,7 +96,12 @@ const DosageLog = sequelize.define('DosageLog', {
     gender: DataTypes.STRING(20),
     age: DataTypes.STRING(20),
     height: DataTypes.STRING(20),
-    weight: DataTypes.STRING(20)
+    weight: DataTypes.STRING(20),
+    ward: DataTypes.STRING(100),
+    allergies: DataTypes.TEXT,
+    drugs_used: DataTypes.TEXT,
+    doctor: DataTypes.STRING(255),
+    gfr_value: DataTypes.STRING(50)
 }, {
     tableName: 'dosage_logs',
     timestamps: false
@@ -186,6 +191,22 @@ const Patient = sequelize.define('Patient', {
     timestamps: false
 });
 
+const Solvent = sequelize.define('Solvent', {
+    id: {
+        type: DataTypes.INTEGER,
+        primaryKey: true,
+        autoIncrement: true
+    },
+    name: {
+        type: DataTypes.STRING(100),
+        allowNull: false,
+        unique: true
+    }
+}, {
+    tableName: 'solvents',
+    timestamps: false
+});
+
 // Associations
 ActivityLog.belongsTo(User, { foreignKey: 'employee_id', targetKey: 'employee_id', as: 'user', constraints: false });
 
@@ -246,6 +267,25 @@ async function initializeDatabase() {
             const insertPromises = Object.values(uniquePatients).map(p => Patient.create(p));
             await Promise.all(insertPromises);
             console.log(`✅ Extracted and inserted ${Object.keys(uniquePatients).length} patients into patients table.`);
+        }
+
+        // Seed default solvents if table is empty
+        const solventCount = await Solvent.count();
+        if (solventCount === 0) {
+            console.log('🧪 Seeding default solvents...');
+            const defaultSolvents = [
+                "-", "0", "D5N/2 300", "D5N/5 100", "D5N/5 120", "D5N/5 130", "D5N/5 200",
+                "D5N/5 250", "D5N/5 50", "D5N/5 500", "D5N/5 70", "D5N/5 75", "D5N/5 80", "D5N/5 90",
+                "D-5-S 1000", "D-5-S 250", "D-5-S 500",
+                "D5S(แก้ว) 500", "D5S/2 1000", "D5S/2 200", "D5S/2 400", "D5S/2 500", "D5S/2(แก้ว) 1000",
+                "D-5-W 10", "D-5-W 100", "D-5-W 1000", "D-5-W 20", "D-5-W 200", "D-5-W 250",
+                "D5W 5", "D-5-W 50", "D-5-W 500", "D-5-W(แก้ว) 200", "D-5-W(แก้ว) 500",
+                "NSS 100", "NSS 125", "NSS 150", "NSS 200", "NSS 250", "NSS 3", "NSS 50", "NSS 500",
+                "NSS(แก้ว) 100", "NSS(แก้ว) 1000", "NSS(แก้ว) 500", "NSS. 10",
+                "WFI 10", "WFI 20", "WFI 50", "ขวด Doxo 0"
+            ];
+            await Solvent.bulkCreate(defaultSolvents.map(name => ({ name })));
+            console.log('✅ Default solvents seeded.');
         }
 
         // Seed default admin if table is empty
@@ -372,7 +412,25 @@ app.post('/api/change-password', async (req, res) => {
 app.post('/api/logs', async (req, res) => {
     try {
         console.log('📥 Received Log Data:', req.body);
-        const { timestamp, hn, patientName, calculatedBsaM2, formulaUsed, prescribedDose, userName, gender, age, height, weight, employee_id } = req.body;
+        const { 
+            timestamp, 
+            hn, 
+            patientName, 
+            calculatedBsaM2, 
+            formulaUsed, 
+            prescribedDose, 
+            userName, 
+            gender, 
+            age, 
+            height, 
+            weight,
+            ward,
+            allergies,
+            drugsUsed,
+            doctor,
+            gfr_value,
+            employee_id
+        } = req.body;
 
         const newLog = await DosageLog.create({
             timestamp,
@@ -385,7 +443,12 @@ app.post('/api/logs', async (req, res) => {
             gender,
             age,
             height,
-            weight
+            weight,
+            ward,
+            allergies,
+            drugs_used: drugsUsed,
+            doctor,
+            gfr_value
         });
 
         // Update or create patient record to keep stats updated
@@ -410,7 +473,7 @@ app.post('/api/logs', async (req, res) => {
         }
 
         // บันทึกกิจกรรมการคำนวณและตรวจสอบโดสยา
-        const empId = employee_id || '';
+        const empId = typeof employee_id !== 'undefined' ? employee_id : (req.body.employee_id || '');
         if (empId) {
             logActivity(empId, 'SAVE_CALCULATION', `คำนวณขนาดยาผู้ป่วย HN: ${hn} (${patientName}) สูตร: ${formulaUsed} ขนาด: ${prescribedDose}`);
         } else {
@@ -925,6 +988,55 @@ app.post('/api/patients', async (req, res) => {
         }
     } catch (err) {
         console.error('❌ Patient save error:', err);
+        res.status(500).json({ success: false, message: 'Database Error: ' + err.message });
+    }
+});
+
+// 🧪 API: ดึงข้อมูลตัวทำละลายทั้งหมด
+app.get('/api/solvents', async (req, res) => {
+    try {
+        const solvents = await Solvent.findAll({
+            order: [['name', 'ASC']]
+        });
+        res.json({ success: true, solvents });
+    } catch (err) {
+        console.error('❌ Solvents fetch error:', err);
+        res.status(500).json({ success: false, message: 'Database Error: ' + err.message });
+    }
+});
+
+// 🧪 API: เพิ่มตัวทำละลายใหม่
+app.post('/api/solvents', async (req, res) => {
+    try {
+        let { name } = req.body;
+        const employeeId = req.headers['x-employee-id'];
+
+        if (!name || typeof name !== 'string') {
+            return res.status(400).json({ success: false, message: 'กรุณากรอกชื่อตัวทำละลาย' });
+        }
+
+        name = name.trim();
+        if (!name) {
+            return res.status(400).json({ success: false, message: 'ชื่อตัวทำละลายไม่สามารถเป็นค่าว่างได้' });
+        }
+
+        // Check duplicates case-insensitively
+        const existing = await Solvent.findOne({
+            where: sequelize.where(
+                sequelize.fn('lower', sequelize.col('name')),
+                name.toLowerCase()
+            )
+        });
+
+        if (existing) {
+            return res.status(400).json({ success: false, message: 'ตัวทำละลายนี้มีอยู่ในระบบแล้ว' });
+        }
+
+        const newSolvent = await Solvent.create({ name });
+        logActivity(employeeId, 'ADD_SOLVENT', `เพิ่มตัวทำละลายใหม่: ${name}`);
+        res.json({ success: true, solvent: newSolvent });
+    } catch (err) {
+        console.error('❌ Create solvent error:', err);
         res.status(500).json({ success: false, message: 'Database Error: ' + err.message });
     }
 });

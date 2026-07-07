@@ -178,9 +178,26 @@ body.light-mode {
     visibility: visible !important;
   }
 
+  .print-only {
+    display: inline !important;
+    visibility: visible !important;
+  }
+
+  .history-child-row {
+    display: table-row !important;
+  }
+
   @page {
     margin: 0.4cm 0.8cm !important;
   }
+}
+
+.history-collapsed {
+  display: none;
+}
+
+.print-only {
+  display: none !important;
 }
 
 /* Custom Styles from index.html */
@@ -322,5 +339,88 @@ body:not(.light-mode) .gender-text-highlight {
   /* Scrollable table max-height reduction for 768px screen height */
   .scrollable-table-container {
     max-height: 250px !important;
+  }
+}
+
+/* Single Drug Prescriptions Print Support */
+#single-drug-print-template {
+  display: none;
+}
+
+@media print {
+  body.printing-single-drug #root {
+    display: none !important;
+  }
+  body.printing-single-drug #single-drug-print-template {
+    display: block !important;
+  }
+}
+
+/* Chemotherapy Box/IV Bag Sticker Print Style */
+.sticker-print-template {
+  display: none;
+}
+
+@media print {
+  body.printing-sticker #root {
+    display: none !important;
+  }
+  body.printing-sticker .sticker-print-template {
+    display: block !important;
+    width: 100% !important;
+    background: white !important;
+  }
+  body.printing-sticker .sticker-label-card {
+    page-break-after: always;
+    width: 80mm;
+    height: 50mm;
+    border: 1.5px solid #000 !important;
+    padding: 2.5mm !important;
+    margin: 10mm auto !important;
+    box-sizing: border-box;
+    font-size: 7.5pt !important;
+    line-height: 1.3 !important;
+    color: #000 !important;
+    background: #fff !important;
+    font-family: 'Noto Sans Thai', sans-serif !important;
+    display: flex;
+    flex-direction: column;
+    justify-content: space-between;
+    border-radius: 4px;
+    box-shadow: none !important;
+  }
+  body.printing-sticker .sticker-header {
+    border-bottom: 1px solid #000 !important;
+    padding-bottom: 0.8mm !important;
+    text-align: center;
+    font-weight: bold !important;
+    font-size: 8pt !important;
+  }
+  body.printing-sticker .sticker-body {
+    flex-grow: 1;
+    padding-top: 1mm !important;
+    padding-bottom: 1mm !important;
+    display: flex;
+    flex-direction: column;
+    justify-content: center;
+    gap: 0.5mm;
+  }
+  body.printing-sticker .sticker-row {
+    display: flex;
+    justify-content: space-between;
+    font-size: 7.5pt !important;
+  }
+  body.printing-sticker .sticker-footer {
+    border-top: 0.8px dashed #000 !important;
+    padding-top: 0.8mm !important;
+    font-size: 6pt !important;
+    display: flex;
+    justify-content: space-between;
+    opacity: 0.8;
+  }
+  @page {
+    body.printing-sticker {
+      margin: 0 !important;
+    }
   }
 }

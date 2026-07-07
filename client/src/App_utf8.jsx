@@ -11,23 +11,23 @@ import DrugsInfo from './components/DrugsInfo';
 const API_BASE = '/api';
 
 const sanitizeNaN = (val) => {
-    if (val === null || val === undefined) return 'ว่าง';
+    if (val === null || val === undefined) return 'α╕ºα╣êα╕▓α╕ç';
     const str = String(val);
-    if (str.toUpperCase() === 'NAN') return 'ว่าง';
-    return str.replace(/NaN/g, 'ว่าง');
+    if (str.toUpperCase() === 'NAN') return 'α╕ºα╣êα╕▓α╕ç';
+    return str.replace(/NaN/g, 'α╕ºα╣êα╕▓α╕ç');
 };
 
 const formatBsa = (val) => {
-    if (val === null || val === undefined || isNaN(val)) return 'ว่าง';
+    if (val === null || val === undefined || isNaN(val)) return 'α╕ºα╣êα╕▓α╕ç';
     return val.toFixed(4);
 };
 
 function App() {
-    const [theme, setTheme] = useState(localStorage.getItem('appThemeMode') || 'dark');
+    const [theme, setTheme] = useState(localStorage.getItem('appThemeMode') || 'light');
     const [step, setStep] = useState('auth'); // 'auth', 'login' (patient check-in), 'workspace'
     const [user, setUser] = useState(null);
     const [loginData, setLoginData] = useState({ username: '', password: '' });
-    const [patient, setPatient] = useState({ hn: '', title: '', name: '', height: '', weight: '', gender: '', age: '', ward: '' });
+    const [patient, setPatient] = useState({ hn: '', title: '', name: '', height: '', weight: '', gender: '', age: '' });
     const [logs, setLogs] = useState([]);
     const [notification, setNotification] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
@@ -36,10 +36,6 @@ function App() {
     const lastAutofilledHnRef = useRef('');
     const [prevStats, setPrevStats] = useState({ height: '', weight: '' });
     const [deleteConfirmLog, setDeleteConfirmLog] = useState(null);
-    const [calcHematology, setCalcHematology] = useState(true);
-    const [calcLiver, setCalcLiver] = useState(true);
-    const [calcRenal, setCalcRenal] = useState(true);
-    const [selectedHnDetail, setSelectedHnDetail] = useState(null);
     const [showTimeoutWarning, setShowTimeoutWarning] = useState(false);
     const [timeoutCountdown, setTimeoutCountdown] = useState(30);
 
@@ -116,22 +112,22 @@ function App() {
         {
             id: 'vincristine',
             name: 'VINCRISTINE',
-            desc: 'คำนวณตาม BSA พร้อม Dose Cap',
-            details: 'Dose = BSA × 1.4 mg/m² (หากผลลัพธ์โดส > 2.0 mg จะทำการจำกัดขนาดยาสูงสุดไว้ที่ 2.0 mg เพื่อป้องกันอาการพิษต่อระบบประสาท)',
+            desc: 'α╕äα╕│α╕Öα╕ºα╕ôα╕òα╕▓α╕í BSA α╕₧α╕úα╣ëα╕¡α╕í Dose Cap',
+            details: 'Dose = BSA ├ù 1.4 mg/m┬▓ (α╕½α╕▓α╕üα╕£α╕Ñα╕Ñα╕▒α╕₧α╕ÿα╣îα╣éα╕öα╕¬ > 2.0 mg α╕êα╕░α╕ùα╕│α╕üα╕▓α╕úα╕êα╕│α╕üα╕▒α╕öα╕éα╕Öα╕▓α╕öα╕óα╕▓α╕¬α╕╣α╕çα╕¬α╕╕α╕öα╣äα╕ºα╣ëα╕ùα╕╡α╣ê 2.0 mg α╣Çα╕₧α╕╖α╣êα╕¡α╕¢α╣ëα╕¡α╕çα╕üα╕▒α╕Öα╕¡α╕▓α╕üα╕▓α╕úα╕₧α╕┤α╕⌐α╕òα╣êα╕¡α╕úα╕░α╕Üα╕Üα╕¢α╕úα╕░α╕¬α╕▓α╕ù)',
             color: 'sky'
         },
         {
             id: 'carboplatin',
             name: 'CARBOPLATIN',
-            desc: 'คำนวณผ่าน Calvert Formula',
-            details: 'Dose = Target AUC × (eGFR + 25) (จำกัดค่า eGFR สูงสุดไม่เกิน 125 ml/min เพื่อป้องกันภาวะเป็นพิษจากยา)',
+            desc: 'α╕äα╕│α╕Öα╕ºα╕ôα╕£α╣êα╕▓α╕Ö Calvert Formula',
+            details: 'Dose = Target AUC ├ù (eGFR + 25) (α╕êα╕│α╕üα╕▒α╕öα╕äα╣êα╕▓ eGFR α╕¬α╕╣α╕çα╕¬α╕╕α╕öα╣äα╕íα╣êα╣Çα╕üα╕┤α╕Ö 125 ml/min α╣Çα╕₧α╕╖α╣êα╕¡α╕¢α╣ëα╕¡α╕çα╕üα╕▒α╕Öα╕áα╕▓α╕ºα╕░α╣Çα╕¢α╣çα╕Öα╕₧α╕┤α╕⌐α╕êα╕▓α╕üα╕óα╕▓)',
             color: 'amber'
         },
         {
             id: 'bleomycin',
             name: 'BLEOMYCIN',
-            desc: 'กำหนดขนาดยาคงที่ (Fixed Dose)',
-            details: 'ขนาดยาในสูตร BEP Regimen ถูกกำหนดขนาดยาคงที่ไว้ที่ 30 units เสมอ เพื่อความปลอดภัยของปอดผู้ป่วย',
+            desc: 'α╕üα╕│α╕½α╕Öα╕öα╕éα╕Öα╕▓α╕öα╕óα╕▓α╕äα╕çα╕ùα╕╡α╣ê (Fixed Dose)',
+            details: 'α╕éα╕Öα╕▓α╕öα╕óα╕▓α╣âα╕Öα╕¬α╕╣α╕òα╕ú BEP Regimen α╕ûα╕╣α╕üα╕üα╕│α╕½α╕Öα╕öα╕éα╕Öα╕▓α╕öα╕óα╕▓α╕äα╕çα╕ùα╕╡α╣êα╣äα╕ºα╣ëα╕ùα╕╡α╣ê 30 units α╣Çα╕¬α╕íα╕¡ α╣Çα╕₧α╕╖α╣êα╕¡α╕äα╕ºα╕▓α╕íα╕¢α╕Ñα╕¡α╕öα╕áα╕▒α╕óα╕éα╕¡α╕çα╕¢α╕¡α╕öα╕£α╕╣α╣ëα╕¢α╣êα╕ºα╕ó',
             color: 'purple'
         }
     ];
@@ -199,14 +195,13 @@ function App() {
             age: p.age || '',
             height: '', // clear for new input
             weight: '', // clear for new input
-            gender: p.gender || '',
-            ward: p.ward || ''
+            gender: p.gender || ''
         });
         setPrevStats({
             height: p.height || '',
             weight: p.weight || ''
         });
-        showNotification(`ดึงข้อมูลผู้ป่วย H.N. ${p.hn} เรียบร้อยแล้ว`, "success");
+        showNotification(`α╕öα╕╢α╕çα╕éα╣ëα╕¡α╕íα╕╣α╕Ñα╕£α╕╣α╣ëα╕¢α╣êα╕ºα╕ó H.N. ${p.hn} α╣Çα╕úα╕╡α╕óα╕Üα╕úα╣ëα╕¡α╕óα╣üα╕Ñα╣ëα╕º`, "success");
     };
 
     // Auto-fill when typing an existing H.N.
@@ -226,15 +221,14 @@ function App() {
                 age: matched.age || '',
                 height: '', // clear for new input
                 weight: '', // clear for new input
-                gender: matched.gender || '',
-                ward: matched.ward || ''
+                gender: matched.gender || ''
             });
             setPrevStats({
                 height: matched.height || '',
                 weight: matched.weight || ''
             });
             lastAutofilledHnRef.current = matched.hn;
-            showNotification(`พบข้อมูลผู้ป่วย H.N. ${matched.hn} ในระบบและดึงข้อมูลมากรอกสำเร็จ`, "success");
+            showNotification(`α╕₧α╕Üα╕éα╣ëα╕¡α╕íα╕╣α╕Ñα╕£α╕╣α╣ëα╕¢α╣êα╕ºα╕ó H.N. ${matched.hn} α╣âα╕Öα╕úα╕░α╕Üα╕Üα╣üα╕Ñα╕░α╕öα╕╢α╕çα╕éα╣ëα╕¡α╕íα╕╣α╕Ñα╕íα╕▓α╕üα╕úα╕¡α╕üα╕¬α╕│α╣Çα╕úα╣çα╕ê`, "success");
         }
     }, [patient.hn, patients]);
 
@@ -353,7 +347,7 @@ function App() {
             }
             name = `${title} ${name}`;
         } else {
-            name = name || 'ไม่ระบุชื่อ';
+            name = name || 'α╣äα╕íα╣êα╕úα╕░α╕Üα╕╕α╕èα╕╖α╣êα╕¡';
         }
 
         const logData = {
@@ -365,17 +359,16 @@ function App() {
             prescribedDose: sanitizeNaN(doseText),
             userName: user.name || user.username,
             gender: patient.gender,
-            age: patient.age,
-            ward: patient.ward || ''
+            age: patient.age
         };
 
         try {
             await axios.post(`${API_BASE}/logs`, logData);
             fetchLogs();
-            showNotification("บันทึกข้อมูลเรียบร้อยแล้ว", "success");
+            showNotification("α╕Üα╕▒α╕Öα╕ùα╕╢α╕üα╕éα╣ëα╕¡α╕íα╕╣α╕Ñα╣Çα╕úα╕╡α╕óα╕Üα╕úα╣ëα╕¡α╕óα╣üα╕Ñα╣ëα╕º", "success");
         } catch (err) {
             console.error("Save Error:", err);
-            showNotification(`เกิดข้อผิดพลาดในการบันทึก: ${err.response?.data?.message || err.message}`, "error");
+            showNotification(`α╣Çα╕üα╕┤α╕öα╕éα╣ëα╕¡α╕£α╕┤α╕öα╕₧α╕Ñα╕▓α╕öα╣âα╕Öα╕üα╕▓α╕úα╕Üα╕▒α╕Öα╕ùα╕╢α╕ü: ${err.response?.data?.message || err.message}`, "error");
         }
     };
 
@@ -425,7 +418,7 @@ function App() {
                 clearInterval(checkInterval);
                 setShowTimeoutWarning(false);
                 handleLogout();
-                showNotification("เซสชันหมดเวลาเนื่องจากไม่มีการใช้งานระบบ", "warning");
+                showNotification("α╣Çα╕ïα╕¬α╕èα╕▒α╕Öα╕½α╕íα╕öα╣Çα╕ºα╕Ñα╕▓α╣Çα╕Öα╕╖α╣êα╕¡α╕çα╕êα╕▓α╕üα╣äα╕íα╣êα╕íα╕╡α╕üα╕▓α╕úα╣âα╕èα╣ëα╕çα╕▓α╕Öα╕úα╕░α╕Üα╕Ü", "warning");
             } else if (elapsed >= warningLimit) {
                 // Show warning and update countdown seconds
                 const remainingSecs = Math.ceil((timeoutLimit - elapsed) / 1000);
@@ -455,11 +448,11 @@ function App() {
             await axios.delete(`${API_BASE}/admin/logs/${logId}`, {
                 headers: { 'x-employee-id': user.employee_id }
             });
-            showNotification("ลบประวัติการคำนวณสำเร็จ", "success");
+            showNotification("α╕Ñα╕Üα╕¢α╕úα╕░α╕ºα╕▒α╕òα╕┤α╕üα╕▓α╕úα╕äα╕│α╕Öα╕ºα╕ôα╕¬α╕│α╣Çα╕úα╣çα╕ê", "success");
             fetchLogs();
         } catch (err) {
             console.error("Failed to delete log:", err);
-            showNotification(`ไม่สามารถลบประวัติการคำนวณได้: ${err.response?.data?.message || err.message}`, "error");
+            showNotification(`α╣äα╕íα╣êα╕¬α╕▓α╕íα╕▓α╕úα╕ûα╕Ñα╕Üα╕¢α╕úα╕░α╕ºα╕▒α╕òα╕┤α╕üα╕▓α╕úα╕äα╕│α╕Öα╕ºα╕ôα╣äα╕öα╣ë: ${err.response?.data?.message || err.message}`, "error");
         }
     };
 
@@ -468,7 +461,7 @@ function App() {
         const finalWeight = patient.weight || prevStats.weight;
 
         if (!patient.hn || !finalHeight || !finalWeight) {
-            showNotification("กรุณากรอกข้อมูลที่จำเป็นให้ครบถ้วน", "error");
+            showNotification("α╕üα╕úα╕╕α╕ôα╕▓α╕üα╕úα╕¡α╕üα╕éα╣ëα╕¡α╕íα╕╣α╕Ñα╕ùα╕╡α╣êα╕êα╕│α╣Çα╕¢α╣çα╕Öα╣âα╕½α╣ëα╕äα╕úα╕Üα╕ûα╣ëα╕ºα╕Ö", "error");
             return;
         }
 
@@ -484,17 +477,17 @@ function App() {
         const h = parseFloat(finalHeight);
         const w = parseFloat(finalWeight);
         if (isNaN(h) || h < 30 || h > 250) {
-            showNotification("ค่าส่วนสูงผิดปกติ! โปรดตรวจสอบข้อมูลอีกครั้ง (30 - 250 cm)", "error");
+            showNotification("α╕äα╣êα╕▓α╕¬α╣êα╕ºα╕Öα╕¬α╕╣α╕çα╕£α╕┤α╕öα╕¢α╕üα╕òα╕┤! α╣éα╕¢α╕úα╕öα╕òα╕úα╕ºα╕êα╕¬α╕¡α╕Üα╕éα╣ëα╕¡α╕íα╕╣α╕Ñα╕¡α╕╡α╕üα╕äα╕úα╕▒α╣ëα╕ç (30 - 250 cm)", "error");
             return;
         }
         if (isNaN(w) || w < 2 || w > 300) {
-            showNotification("ค่าน้ำหนักผิดปกติ! โปรดตรวจสอบข้อมูลอีกครั้ง (2 - 300 kg)", "error");
+            showNotification("α╕äα╣êα╕▓α╕Öα╣ëα╕│α╕½α╕Öα╕▒α╕üα╕£α╕┤α╕öα╕¢α╕üα╕òα╕┤! α╣éα╕¢α╕úα╕öα╕òα╕úα╕ºα╕êα╕¬α╕¡α╕Üα╕éα╣ëα╕¡α╕íα╕╣α╕Ñα╕¡α╕╡α╕üα╕äα╕úα╕▒α╣ëα╕ç (2 - 300 kg)", "error");
             return;
         }
         if (patient.age) {
             const age = parseFloat(patient.age);
             if (isNaN(age) || age < 1 || age > 120) {
-                showNotification("ค่าอายุผิดปกติ! โปรดตรวจสอบข้อมูลอีกครั้ง (1 - 120 ปี)", "error");
+                showNotification("α╕äα╣êα╕▓α╕¡α╕▓α╕óα╕╕α╕£α╕┤α╕öα╕¢α╕üα╕òα╕┤! α╣éα╕¢α╕úα╕öα╕òα╕úα╕ºα╕êα╕¬α╕¡α╕Üα╕éα╣ëα╕¡α╕íα╕╣α╕Ñα╕¡α╕╡α╕üα╕äα╕úα╕▒α╣ëα╕ç (1 - 120 α╕¢α╕╡)", "error");
                 return;
             }
         }
@@ -514,7 +507,7 @@ function App() {
             }
         } catch (err) {
             console.error("Check-in Error:", err);
-            showNotification(err.response?.data?.message || "เกิดข้อผิดพลาดในการตรวจสอบข้อมูลคนไข้", "error");
+            showNotification(err.response?.data?.message || "α╣Çα╕üα╕┤α╕öα╕éα╣ëα╕¡α╕£α╕┤α╕öα╕₧α╕Ñα╕▓α╕öα╣âα╕Öα╕üα╕▓α╕úα╕òα╕úα╕ºα╕êα╕¬α╕¡α╕Üα╕éα╣ëα╕¡α╕íα╕╣α╕Ñα╕äα╕Öα╣äα╕éα╣ë", "error");
         }
     };
 
@@ -564,7 +557,7 @@ function App() {
     const isIncompleteDose = (val) => {
         if (!val) return true;
         const str = String(val);
-        return str === 'NaN' || str === 'ว่าง' || str.includes('NaN') || str.includes('ว่าง');
+        return str === 'NaN' || str === 'α╕ºα╣êα╕▓α╕ç' || str.includes('NaN') || str.includes('α╕ºα╣êα╕▓α╕ç');
     };
 
     const renderTableHeader = (label, widthClass, alignClass = '') => {
@@ -722,21 +715,21 @@ function App() {
                         <User size={32} className="text-white" />
                     </div>
                     <div className="flex flex-col">
-                        <span className={`text-xs font-black uppercase tracking-widest block mb-1 ${theme === 'dark' ? 'text-sky-400' : 'text-sky-600'}`}>บัญชีผู้ใช้</span>
+                        <span className={`text-xs font-black uppercase tracking-widest block mb-1 ${theme === 'dark' ? 'text-sky-400' : 'text-sky-600'}`}>α╕Üα╕▒α╕ìα╕èα╕╡α╕£α╕╣α╣ëα╣âα╕èα╣ë</span>
                         <p className={`text-2xl font-black leading-tight ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>{user.name || user.username}</p>
                         <div className="flex items-center gap-3 mt-1.5 flex-wrap">
                             <button
                                 onClick={handleLogout}
                                 className="flex items-center gap-1.5 text-xs font-black text-red-500 hover:text-red-400 transition-colors uppercase tracking-widest text-left cursor-pointer whitespace-nowrap"
                             >
-                                <LogOut size={14} /> ออกจากระบบ (Logout)
+                                <LogOut size={14} /> α╕¡α╕¡α╕üα╕êα╕▓α╕üα╕úα╕░α╕Üα╕Ü (Logout)
                             </button>
                             {step !== 'drugs-info' && (
                                 <button
                                     onClick={() => setStep('drugs-info')}
                                     className="flex items-center gap-1.5 text-xs font-black text-emerald-500 hover:text-emerald-400 transition-colors uppercase tracking-widest text-left cursor-pointer border-l border-slate-700/50 pl-3 whitespace-nowrap"
                                 >
-                                    <Pill size={14} /> ข้อมูลยา (Drugs)
+                                    <Pill size={14} /> α╕éα╣ëα╕¡α╕íα╕╣α╕Ñα╕óα╕▓ (Drugs)
                                 </button>
                             )}
                             {step !== 'calculation-history' && (
@@ -744,7 +737,7 @@ function App() {
                                     onClick={() => setStep('calculation-history')}
                                     className="flex items-center gap-1.5 text-xs font-black text-indigo-500 hover:text-indigo-400 transition-colors uppercase tracking-widest text-left cursor-pointer border-l border-slate-700/50 pl-3 whitespace-nowrap"
                                 >
-                                    <History size={14} /> ประวัติการคำนวณ (History)
+                                    <History size={14} /> α╕¢α╕úα╕░α╕ºα╕▒α╕òα╕┤α╕üα╕▓α╕úα╕äα╕│α╕Öα╕ºα╕ô (History)
                                 </button>
                             )}
                             {user.role?.toUpperCase() === 'ADMIN' && step !== 'admin-users' && (
@@ -752,7 +745,7 @@ function App() {
                                     onClick={() => setStep('admin-users')}
                                     className="flex items-center gap-1.5 text-xs font-black text-sky-500 hover:text-sky-400 transition-colors uppercase tracking-widest text-left cursor-pointer border-l border-slate-700/50 pl-3 whitespace-nowrap"
                                 >
-                                    <Settings size={14} /> จัดการผู้ใช้ (Admin)
+                                    <Settings size={14} /> α╕êα╕▒α╕öα╕üα╕▓α╕úα╕£α╕╣α╣ëα╣âα╕èα╣ë (Admin)
                                 </button>
                             )}
                         </div>
@@ -775,13 +768,13 @@ function App() {
                         {/* Left column: Patient Search Panel */}
                         <div className="md:col-span-5 premium-card p-6 md:p-8 flex flex-col justify-between">
                             <div>
-                                <h2 className="text-xl font-black mb-1">ค้นหาข้อมูลผู้ป่วย</h2>
-                                <p className="text-xs text-slate-400 mb-4">ค้นหาข้อมูลผู้ป่วยที่ลงทะเบียนไว้ในระบบ</p>
+                                <h2 className="text-xl font-black mb-1">α╕äα╣ëα╕Öα╕½α╕▓α╕éα╣ëα╕¡α╕íα╕╣α╕Ñα╕£α╕╣α╣ëα╕¢α╣êα╕ºα╕ó</h2>
+                                <p className="text-xs text-slate-400 mb-4">α╕äα╣ëα╕Öα╕½α╕▓α╕éα╣ëα╕¡α╕íα╕╣α╕Ñα╕£α╕╣α╣ëα╕¢α╣êα╕ºα╕óα╕ùα╕╡α╣êα╕Ñα╕çα╕ùα╕░α╣Çα╕Üα╕╡α╕óα╕Öα╣äα╕ºα╣ëα╣âα╕Öα╕úα╕░α╕Üα╕Ü</p>
                                 
                                 <div className="relative mb-4">
                                     <input
                                         type="text"
-                                        placeholder="ค้นหา H.N. หรือ ชื่อ..."
+                                        placeholder="α╕äα╣ëα╕Öα╕½α╕▓ H.N. α╕½α╕úα╕╖α╕¡ α╕èα╕╖α╣êα╕¡..."
                                         value={patientSearch}
                                         onChange={e => setPatientSearch(e.target.value)}
                                         className="form-control pl-10 py-2.5 text-sm font-bold"
@@ -808,7 +801,7 @@ function App() {
                                                 <div className="flex justify-between items-start">
                                                     <span className="font-bold text-sky-500 dark:text-sky-400 text-xs font-mono">H.N. {p.hn}</span>
                                                     <span className="text-[10px] uppercase font-bold text-slate-400">
-                                                        {p.gender === 'male' ? 'ชาย (Male)' : p.gender === 'female' ? 'หญิง (Female)' : '-'}
+                                                        {p.gender === 'male' ? 'α╕èα╕▓α╕ó (Male)' : p.gender === 'female' ? 'α╕½α╕ìα╕┤α╕ç (Female)' : '-'}
                                                     </span>
                                                 </div>
                                                 <p className="font-bold text-sm text-slate-800 dark:text-slate-200 mt-1 truncate">
@@ -825,15 +818,15 @@ function App() {
                                                 })()}
                                             </p>
                                                 <div className="flex gap-3 mt-2 text-[10px] text-slate-500 dark:text-slate-400 font-semibold">
-                                                    <span>อายุ: {p.age || '-'} ปี</span>
-                                                    <span>สูง: {p.height || '-'} cm</span>
-                                                    <span>น้ำหนัก: {p.weight || '-'} kg</span>
+                                                    <span>α╕¡α╕▓α╕óα╕╕: {p.age || '-'} α╕¢α╕╡</span>
+                                                    <span>α╕¬α╕╣α╕ç: {p.height || '-'} cm</span>
+                                                    <span>α╕Öα╣ëα╕│α╕½α╕Öα╕▒α╕ü: {p.weight || '-'} kg</span>
                                                 </div>
                                             </div>
                                         ))
                                     ) : (
                                         <div className="text-center py-8 text-slate-500 font-bold italic text-sm">
-                                            ไม่พบข้อมูลผู้ป่วย
+                                            α╣äα╕íα╣êα╕₧α╕Üα╕éα╣ëα╕¡α╕íα╕╣α╕Ñα╕£α╕╣α╣ëα╕¢α╣êα╕ºα╕ó
                                         </div>
                                     )}
                                 </div>
@@ -842,10 +835,10 @@ function App() {
                             <div className="mt-4 pt-3 border-t border-slate-700/10 text-center">
                                 <button
                                     type="button"
-                                    onClick={() => setPatient({ hn: '', name: '', height: '', weight: '', gender: '', age: '', ward: '' })}
+                                    onClick={() => setPatient({ hn: '', name: '', height: '', weight: '', gender: '', age: '' })}
                                     className="text-xs font-bold text-slate-400 hover:text-rose-500 transition-colors uppercase tracking-wider"
                                 >
-                                    ล้างแบบฟอร์ม (Clear Form)
+                                    α╕Ñα╣ëα╕▓α╕çα╣üα╕Üα╕Üα╕ƒα╕¡α╕úα╣îα╕í (Clear Form)
                                 </button>
                             </div>
                         </div>
@@ -855,13 +848,13 @@ function App() {
                             <div className="flex justify-between items-start mb-6">
                                 <div>
                                     <h1 className="text-3xl font-black">Patient Check-in</h1>
-                                    <p className="text-slate-400">ระบบเข้าตรวจสอบและบันทึกข้อมูลผู้ป่วย</p>
+                                    <p className="text-slate-400">α╕úα╕░α╕Üα╕Üα╣Çα╕éα╣ëα╕▓α╕òα╕úα╕ºα╕êα╕¬α╕¡α╕Üα╣üα╕Ñα╕░α╕Üα╕▒α╕Öα╕ùα╕╢α╕üα╕éα╣ëα╕¡α╕íα╕╣α╕Ñα╕£α╕╣α╣ëα╕¢α╣êα╕ºα╕ó</p>
                                 </div>
                             </div>
                             <div className="space-y-4">
                                 <input 
                                     type="text" 
-                                    placeholder="H.N. ผู้ป่วย" 
+                                    placeholder="H.N. α╕£α╕╣α╣ëα╕¢α╣êα╕ºα╕ó" 
                                     required 
                                     className="form-control" 
                                     value={patient.hn}
@@ -874,18 +867,18 @@ function App() {
                                             value={patient.title || ''} 
                                             onChange={e => setPatient({ ...patient, title: e.target.value })}
                                         >
-                                            <option value="">คำนำหน้า</option>
-                                            <option value="นาย">นาย</option>
-                                            <option value="นาง">นาง</option>
-                                            <option value="นางสาว">นางสาว</option>
-                                            <option value="ด.ช.">ด.ช.</option>
-                                            <option value="ด.ญ.">ด.ญ.</option>
+                                            <option value="">α╕äα╕│α╕Öα╕│α╕½α╕Öα╣ëα╕▓</option>
+                                            <option value="α╕Öα╕▓α╕ó">α╕Öα╕▓α╕ó</option>
+                                            <option value="α╕Öα╕▓α╕ç">α╕Öα╕▓α╕ç</option>
+                                            <option value="α╕Öα╕▓α╕çα╕¬α╕▓α╕º">α╕Öα╕▓α╕çα╕¬α╕▓α╕º</option>
+                                            <option value="α╕ö.α╕è.">α╕ö.α╕è.</option>
+                                            <option value="α╕ö.α╕ì.">α╕ö.α╕ì.</option>
                                         </select>
                                     </div>
                                     <div className="col-span-2">
                                         <input 
                                             type="text" 
-                                            placeholder="ชื่อ-นามสกุล" 
+                                            placeholder="α╕èα╕╖α╣êα╕¡-α╕Öα╕▓α╕íα╕¬α╕üα╕╕α╕Ñ" 
                                             className="form-control" 
                                             value={patient.name || ''}
                                             onChange={e => setPatient({ ...patient, name: e.target.value })} 
@@ -894,7 +887,7 @@ function App() {
                                     <div className="col-span-1">
                                         <input 
                                             type="number" 
-                                            placeholder="อายุ (ปี)" 
+                                            placeholder="α╕¡α╕▓α╕óα╕╕ (α╕¢α╕╡)" 
                                             className="form-control" 
                                             value={patient.age || ''} 
                                             onChange={e => setPatient({ ...patient, age: e.target.value })} 
@@ -904,14 +897,14 @@ function App() {
                                 <div className="grid grid-cols-3 gap-4">
                                     <input 
                                         type="number" 
-                                        placeholder={prevStats.height ? prevStats.height : "ส่วนสูง (cm)"} 
+                                        placeholder={prevStats.height ? prevStats.height : "α╕¬α╣êα╕ºα╕Öα╕¬α╕╣α╕ç (cm)"} 
                                         className="form-control" 
                                         value={patient.height || ''}
                                         onChange={e => setPatient({ ...patient, height: e.target.value })} 
                                     />
                                     <input 
                                         type="number" 
-                                        placeholder={prevStats.weight ? prevStats.weight : "น้ำหนัก (kg)"} 
+                                        placeholder={prevStats.weight ? prevStats.weight : "α╕Öα╣ëα╕│α╕½α╕Öα╕▒α╕ü (kg)"} 
                                         className="form-control" 
                                         value={patient.weight || ''}
                                         onChange={e => setPatient({ ...patient, weight: e.target.value })} 
@@ -921,33 +914,12 @@ function App() {
                                         value={patient.gender || ''} 
                                         onChange={e => setPatient({ ...patient, gender: e.target.value })}
                                     >
-                                        <option value="">เลือกเพศ (Select Gender)</option>
-                                        <option value="male">ชาย (Male)</option>
-                                        <option value="female">หญิง (Female)</option>
+                                        <option value="">α╣Çα╕Ñα╕╖α╕¡α╕üα╣Çα╕₧α╕¿ (Select Gender)</option>
+                                        <option value="male">α╕èα╕▓α╕ó (Male)</option>
+                                        <option value="female">α╕½α╕ìα╕┤α╕ç (Female)</option>
                                     </select>
                                 </div>
-                                <select
-                                    className="form-control"
-                                    value={patient.ward || ''}
-                                    onChange={e => setPatient({ ...patient, ward: e.target.value })}
-                                >
-                                    <option value="">เลือกหอผู้ป่วย (Ward)</option>
-                                    <option value="ตึก 1">ตึก 1</option>
-                                    <option value="ตึก 2">ตึก 2</option>
-                                    <option value="ตึก 3">ตึก 3</option>
-                                    <option value="ตึก 4">ตึก 4</option>
-                                    <option value="ตึก 5">ตึก 5</option>
-                                    <option value="ตึก 6">ตึก 6</option>
-                                    <option value="ตึก 7">ตึก 7</option>
-                                    <option value="ตึก 8">ตึก 8</option>
-                                    <option value="ตึก 9">ตึก 9</option>
-                                    <option value="ตึก 10">ตึก 10</option>
-                                    <option value="ผู้ป่วยนอก (OPD)">ผู้ป่วยนอก (OPD)</option>
-                                    <option value="ICU">ICU</option>
-                                    <option value="CCU">CCU</option>
-                                    <option value="ER">ER</option>
-                                </select>
-                                <button onClick={handlePatientCheckIn} className="w-full btn-primary">เข้าสู่ระบบคำนวณ ➔</button>
+                                <button onClick={handlePatientCheckIn} className="w-full btn-primary">α╣Çα╕éα╣ëα╕▓α╕¬α╕╣α╣êα╕úα╕░α╕Üα╕Üα╕äα╕│α╕Öα╕ºα╕ô Γ₧ö</button>
                             </div>
                         </div>
                     </div>
@@ -974,15 +946,15 @@ function App() {
                                     <button
                                         onClick={handleBackFromHistory}
                                         className="p-2.5 rounded-xl border border-slate-700/30 hover:bg-slate-700/10 transition-all cursor-pointer text-slate-400 hover:text-white mr-2 no-print"
-                                        title="ย้อนกลับ"
+                                        title="α╕óα╣ëα╕¡α╕Öα╕üα╕Ñα╕▒α╕Ü"
                                     >
                                         <ArrowLeft size={20} />
                                     </button>
                                     <div>
                                         <h1 className="text-3xl font-black flex items-center gap-2">
-                                            <History size={28} className="text-sky-400 print-hide" /> รายงานบันทึกประวัติการคำนวณ
+                                            <History size={28} className="text-sky-400 print-hide" /> α╕úα╕▓α╕óα╕çα╕▓α╕Öα╕Üα╕▒α╕Öα╕ùα╕╢α╕üα╕¢α╕úα╕░α╕ºα╕▒α╕òα╕┤α╕üα╕▓α╕úα╕äα╕│α╕Öα╕ºα╕ô
                                         </h1>
-                                        <p className="text-slate-400">ประวัติและบันทึกข้อมูลการคำนวณขนาดยาเคมีบำบัดของผู้ป่วย</p>
+                                        <p className="text-slate-400">α╕¢α╕úα╕░α╕ºα╕▒α╕òα╕┤α╣üα╕Ñα╕░α╕Üα╕▒α╕Öα╕ùα╕╢α╕üα╕éα╣ëα╕¡α╕íα╕╣α╕Ñα╕üα╕▓α╕úα╕äα╕│α╕Öα╕ºα╕ôα╕éα╕Öα╕▓α╕öα╕óα╕▓α╣Çα╕äα╕íα╕╡α╕Üα╕│α╕Üα╕▒α╕öα╕éα╕¡α╕çα╕£α╕╣α╣ëα╕¢α╣êα╕ºα╕ó</p>
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-2.5 no-print w-full md:w-auto">
@@ -995,17 +967,17 @@ function App() {
                                                 : 'bg-white border-slate-300 text-slate-700 hover:bg-slate-50 shadow-sm'
                                             }`}
                                     >
-                                        <Filter size={15} /> {showFilterPanel ? 'ปิดตัวกรอง' : 'ตัวกรอง (Filters)'}
+                                        <Filter size={15} /> {showFilterPanel ? 'α╕¢α╕┤α╕öα╕òα╕▒α╕ºα╕üα╕úα╕¡α╕ç' : 'α╕òα╕▒α╕ºα╕üα╕úα╕¡α╕ç (Filters)'}
                                     </button>
                                     <input
                                         type="text"
-                                        placeholder="ค้นหา H.N. / ชื่อคนไข้..."
+                                        placeholder="α╕äα╣ëα╕Öα╕½α╕▓ H.N. / α╕èα╕╖α╣êα╕¡α╕äα╕Öα╣äα╕éα╣ë..."
                                         value={searchQuery}
                                         onChange={e => setSearchQuery(e.target.value)}
                                         className="form-control py-2 px-4 text-sm rounded-xl border border-slate-700/30 font-bold focus:border-sky-500 w-[240px]"
                                     />
                                     <button onClick={() => window.print()} className="no-print bg-slate-800 hover:bg-slate-700 text-sky-400 font-bold py-2 px-4 rounded-xl border border-slate-700 flex items-center gap-2 text-xs transition-all active:scale-95 shadow-lg whitespace-nowrap">
-                                        <Printer size={14} /> พิมพ์รายงาน
+                                        <Printer size={14} /> α╕₧α╕┤α╕íα╕₧α╣îα╕úα╕▓α╕óα╕çα╕▓α╕Ö
                                     </button>
                                 </div>
                             </div>
@@ -1016,46 +988,46 @@ function App() {
                                     : 'bg-slate-50 border-slate-200 shadow-inner'
                                     }`}>
                                     <div>
-                                        <label className="block text-xs font-black text-slate-400 mb-1.5 uppercase">วันที่เริ่มต้น (Start Date)</label>
+                                        <label className="block text-xs font-black text-slate-400 mb-1.5 uppercase">α╕ºα╕▒α╕Öα╕ùα╕╡α╣êα╣Çα╕úα╕┤α╣êα╕íα╕òα╣ëα╕Ö (Start Date)</label>
                                         <input
                                             type="text"
-                                            placeholder="วว/ดด/ปปปป (เช่น 24/06/2569)"
+                                            placeholder="α╕ºα╕º/α╕öα╕ö/α╕¢α╕¢α╕¢α╕¢ (α╣Çα╕èα╣êα╕Ö 24/06/2569)"
                                             value={startDateFilter}
                                             onChange={e => handleDateInputChange(e.target.value, startDateFilter, setStartDateFilter)}
                                             className="form-control py-1.5 px-3 text-xs rounded-xl font-bold"
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-xs font-black text-slate-400 mb-1.5 uppercase">วันที่สิ้นสุด (End Date)</label>
+                                        <label className="block text-xs font-black text-slate-400 mb-1.5 uppercase">α╕ºα╕▒α╕Öα╕ùα╕╡α╣êα╕¬α╕┤α╣ëα╕Öα╕¬α╕╕α╕ö (End Date)</label>
                                         <input
                                             type="text"
-                                            placeholder="วว/ดด/ปปปป (เช่น 24/06/2569)"
+                                            placeholder="α╕ºα╕º/α╕öα╕ö/α╕¢α╕¢α╕¢α╕¢ (α╣Çα╕èα╣êα╕Ö 24/06/2569)"
                                             value={endDateFilter}
                                             onChange={e => handleDateInputChange(e.target.value, endDateFilter, setEndDateFilter)}
                                             className="form-control py-1.5 px-3 text-xs rounded-xl font-bold"
                                         />
                                     </div>
                                     <div>
-                                        <label className="block text-xs font-black text-slate-400 mb-1.5 uppercase">สูตรคำนวณ (Formula)</label>
+                                        <label className="block text-xs font-black text-slate-400 mb-1.5 uppercase">α╕¬α╕╣α╕òα╕úα╕äα╕│α╕Öα╕ºα╕ô (Formula)</label>
                                         <select
                                             value={formulaFilter}
                                             onChange={e => setFormulaFilter(e.target.value)}
                                             className="form-control py-1.5 px-3 text-xs rounded-xl font-bold"
                                         >
-                                            <option value="all">สูตรทั้งหมด (All)</option>
+                                            <option value="all">α╕¬α╕╣α╕òα╕úα╕ùα╕▒α╣ëα╕çα╕½α╕íα╕ö (All)</option>
                                             {uniqueFormulas.map(f => (
                                                 <option key={f} value={f}>{f}</option>
                                             ))}
                                         </select>
                                     </div>
                                     <div>
-                                        <label className="block text-xs font-black text-slate-400 mb-1.5 uppercase">ผู้บันทึก (Pharmacist)</label>
+                                        <label className="block text-xs font-black text-slate-400 mb-1.5 uppercase">α╕£α╕╣α╣ëα╕Üα╕▒α╕Öα╕ùα╕╢α╕ü (Pharmacist)</label>
                                         <select
                                             value={pharmacistFilter}
                                             onChange={e => setPharmacistFilter(e.target.value)}
                                             className="form-control py-1.5 px-3 text-xs rounded-xl font-bold"
                                         >
-                                            <option value="all">ผู้บันทึกทั้งหมด (All)</option>
+                                            <option value="all">α╕£α╕╣α╣ëα╕Üα╕▒α╕Öα╕ùα╕╢α╕üα╕ùα╕▒α╣ëα╕çα╕½α╕íα╕ö (All)</option>
                                             {uniquePharmacists.map(u => (
                                                 <option key={u} value={u}>{u}</option>
                                             ))}
@@ -1071,104 +1043,74 @@ function App() {
                                             }}
                                             className="px-4 py-2 rounded-xl text-xs font-black bg-rose-600/10 text-rose-500 border border-rose-500/20 hover:bg-rose-600/20 transition-all cursor-pointer"
                                         >
-                                            ล้างตัวกรอง (Reset)
+                                            α╕Ñα╣ëα╕▓α╕çα╕òα╕▒α╕ºα╕üα╕úα╕¡α╕ç (Reset)
                                         </button>
                                         <button
                                             onClick={() => setShowFilterPanel(false)}
                                             className="px-4 py-2 rounded-xl text-xs font-black bg-slate-700 text-white transition-all cursor-pointer"
                                         >
-                                            ปิด (Close)
+                                            α╕¢α╕┤α╕ö (Close)
                                         </button>
                                     </div>
                                 </div>
                             )}
 
-                            {selectedHnDetail ? (
-                                <div className="space-y-4">
-                                    <div className="flex items-center gap-3 mb-2 no-print">
-                                        <button type="button" onClick={() => setSelectedHnDetail(null)} className="flex items-center gap-2 px-4 py-2 rounded-xl bg-sky-600/10 text-sky-500 border border-sky-500/20 hover:bg-sky-600/20 font-bold text-sm transition-all cursor-pointer">
-                                            ← กลับ
-                                        </button>
-                                        <div>
-                                            <span className="font-black text-xl">H.N. {selectedHnDetail}</span>
-                                            <span className="text-slate-400 text-sm ml-2">— {filteredLogs.filter(l => l.hn === selectedHnDetail).length} รายการ</span>
-                                        </div>
-                                    </div>
-                                    {(() => {
-                                        const hnLogs = filteredLogs.filter(l => l.hn === selectedHnDetail);
-                                        const latestLog = hnLogs[0] || {};
-                                        return (
-                                            <>
-                                                <div className={`p-4 rounded-2xl border flex flex-wrap gap-4 items-center ${theme === 'dark' ? 'bg-slate-800/50 border-slate-700/30' : 'bg-sky-50 border-sky-200'}`}>
-                                                    <div className="w-12 h-12 rounded-full bg-sky-600 flex items-center justify-center text-white font-black text-lg shrink-0">{(latestLog.patient_name || '?')[0]}</div>
-                                                    <div>
-                                                        <p className="font-black text-lg uppercase">{latestLog.patient_name || '-'}</p>
-                                                        <p className="text-slate-400 text-sm">{latestLog.gender === 'female' ? 'หญิง' : 'ชาย'}{latestLog.ward ? ' | ' + latestLog.ward : ''}</p>
-                                                    </div>
-                                                    <div className="ml-auto text-right"><div className="text-3xl font-black text-sky-500">{hnLogs.length}</div><div className="text-xs text-slate-400">ครั้งที่คำนวณ</div></div>
-                                                </div>
-                                                <div className="overflow-x-auto rounded-2xl border border-slate-700/20 shadow-inner">
-                                                    <table className="w-full text-sm text-left print-table">
-                                                        <thead className="sticky top-0 z-10" style={{ backgroundColor: 'var(--table-header-bg)' }}>
-                                                            <tr className="bg-sky-600/10 text-slate-400 border-b border-slate-700/20 text-[11px] font-black uppercase">
-                                                                <th className="px-4 py-3">วันที่</th><th className="px-4 py-3">หอ</th><th className="px-4 py-3">BSA</th><th className="px-4 py-3">ยา/สูตร</th><th className="px-4 py-3 text-right">Dose</th><th className="px-4 py-3 text-center">ผู้บันทึก</th>
-                                                                {user?.role?.toUpperCase() === 'ADMIN' && <th className="px-4 py-3 text-center no-print">ลบ</th>}
-                                                            </tr>
-                                                        </thead>
-                                                        <tbody>
-                                                            {hnLogs.map(log => (
-                                                                <tr key={log.id} className="border-b border-slate-700/10 hover:bg-sky-600/5 transition-colors">
-                                                                    <td className="px-4 py-3 font-mono text-xs opacity-70 whitespace-nowrap">{log.timestamp}</td>
-                                                                    <td className="px-4 py-3 text-xs font-bold">{log.ward || '-'}</td>
-                                                                    <td className="px-4 py-3 text-center text-emerald-500 font-bold">{sanitizeNaN(log.calculated_bsa)}</td>
-                                                                    <td className="px-4 py-3 text-slate-400 text-[11px]">{sanitizeNaN(log.formula_used)}</td>
-                                                                    <td className="px-4 py-3 text-right text-amber-500 font-black whitespace-nowrap">{sanitizeNaN(log.prescribed_dose)}</td>
-                                                                    <td className="px-4 py-3 text-center text-sky-400 font-bold">{log.user_name || '-'}</td>
-                                                                    {user?.role?.toUpperCase() === 'ADMIN' && (
-                                                                        <td className="px-4 py-3 text-center no-print"><button onClick={() => handleDeleteLog(log)} className="text-red-500 hover:text-red-400 p-1.5 rounded-lg hover:bg-red-500/10 transition-all cursor-pointer"><Trash2 size={15}/></button></td>
-                                                                    )}
-                                                                </tr>
-                                                            ))}
-                                                        </tbody>
-                                                    </table>
-                                                </div>
-                                            </>
-                                        );
-                                    })()}
-                                </div>
-                            ) : (
-                                (() => {
-                                    const grouped = {};
-                                    filteredLogs.forEach(log => {
-                                        if (!grouped[log.hn]) grouped[log.hn] = { hn: log.hn, name: log.patient_name, gender: log.gender, ward: log.ward, logs: [] };
-                                        grouped[log.hn].logs.push(log);
-                                        if (log.patient_name) grouped[log.hn].name = log.patient_name;
-                                        if (log.ward) grouped[log.hn].ward = log.ward;
-                                    });
-                                    const patientList = Object.values(grouped).sort((a, b) => (b.logs[0]?.timestamp || '').localeCompare(a.logs[0]?.timestamp || ''));
-                                    if (patientList.length === 0) return <div className="p-12 text-center text-slate-400 font-bold italic text-lg">ไม่พบประวัติการคำนวณที่ตรงกับการค้นหา</div>;
-                                    return (
-                                        <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
-                                            {patientList.map(p => (
-                                                <button key={p.hn} type="button" onClick={() => setSelectedHnDetail(p.hn)} className={`w-full text-left p-5 rounded-2xl border transition-all duration-200 hover:scale-[1.02] hover:shadow-xl active:scale-[0.98] cursor-pointer ${theme === 'dark' ? 'bg-slate-800/60 border-slate-700/40 hover:border-sky-500/60 hover:bg-slate-800' : 'bg-white border-slate-200 hover:border-sky-400 shadow-sm hover:shadow-sky-100'}`}>
-                                                    <div className="flex items-start gap-3">
-                                                        <div className="w-10 h-10 rounded-full bg-sky-600 flex items-center justify-center text-white font-black text-sm shrink-0">{(p.name || '?').charAt(0)}</div>
-                                                        <div className="flex-1 min-w-0">
-                                                            <div className="flex items-center gap-2 flex-wrap mb-1"><span className="text-[11px] font-black px-2 py-0.5 rounded-lg bg-sky-500/15 text-sky-500 border border-sky-500/20">H.N. {p.hn}</span></div>
-                                                            <p className="font-black text-sm uppercase truncate">{p.name || '-'}</p>
-                                                            <p className="text-[11px] text-slate-400 mt-0.5">{p.gender === 'female' ? 'หญิง' : p.gender === 'male' ? 'ชาย' : '-'}{p.ward ? ' | ' + p.ward : ''}</p>
-                                                        </div>
-                                                        <div className="text-right shrink-0"><div className="text-2xl font-black text-sky-500 leading-tight">{p.logs.length}</div><div className="text-[10px] text-slate-400 font-bold">ครั้ง</div></div>
-                                                    </div>
-                                                    <div className="text-[11px] text-slate-400 font-bold border-t border-slate-700/10 pt-2 mt-3 flex items-center justify-between">
-                                                        <span>ล่าสุด: {p.logs[0]?.timestamp || '-'}</span><span className="text-sky-500 font-black">ดูประวัติ →</span>
-                                                    </div>
-                                                </button>
-                                            ))}
-                                        </div>
-                                    );
-                                })()
-                            )}
+                            <div className="overflow-x-auto overflow-y-auto max-h-[500px] rounded-lg border border-slate-700/20 shadow-inner scrollable-table-container">
+                                <table className="w-full text-left text-sm md:text-base print-table">
+                                    <thead className="sticky top-0 z-10" style={{ backgroundColor: 'var(--table-header-bg)' }}>
+                                        <tr className="bg-sky-600/10 text-slate-400 border-b border-slate-700/20">
+                                            {renderTableHeader('α╕ºα╕▒α╕Öα╕ùα╕╡α╣êα╕Üα╕▒α╕Öα╕ùα╕╢α╕ü', 'w-[15%] whitespace-nowrap')}
+                                            {renderTableHeader('H.N.', 'w-[10%] whitespace-nowrap')}
+                                            {renderTableHeader('α╕èα╕╖α╣êα╕¡α╕£α╕╣α╣ëα╕¢α╣êα╕ºα╕ó', 'w-[18%] whitespace-nowrap')}
+                                            {renderTableHeader('α╣Çα╕₧α╕¿', 'w-[8%] whitespace-nowrap', 'justify-center')}
+                                            {renderTableHeader('α╕¡α╕▓α╕óα╕╕', 'w-[8%] whitespace-nowrap', 'justify-center')}
+                                            {renderTableHeader('BSA', 'w-[8%] whitespace-nowrap', 'justify-center')}
+                                            {renderTableHeader('α╕¬α╕╣α╕òα╕úα╕üα╕▓α╕úα╕äα╕│α╕Öα╕ºα╕ô', 'w-[18%] whitespace-nowrap')}
+                                            {renderTableHeader('Dose', 'w-[12%] whitespace-nowrap', 'justify-end')}
+                                            {renderTableHeader('α╕£α╕╣α╣ëα╕Üα╕▒α╕Öα╕ùα╕╢α╕ü', 'w-[11%] whitespace-nowrap', 'justify-center')}
+                                            {user?.role?.toUpperCase() === 'ADMIN' && renderTableHeader('α╕êα╕▒α╕öα╕üα╕▓α╕ú', 'w-[8%] whitespace-nowrap no-print', 'justify-center')}
+                                        </tr>
+                                    </thead>
+                                    <tbody>
+                                        {filteredLogs.length > 0 ? (
+                                            filteredLogs.map(log => (
+                                                <tr key={log.id} className="border-b border-slate-700/10 hover:bg-sky-600/5 transition-colors">
+                                                    <td className="p-4 font-mono opacity-70 whitespace-nowrap">{log.timestamp}</td>
+                                                    <td className="p-4 font-bold whitespace-nowrap">{log.hn}</td>
+                                                    <td className="p-4 font-bold uppercase">{log.patient_name}</td>
+                                                    <td className="p-4 text-center font-bold whitespace-nowrap gender-text-highlight">
+                                                        {log.gender === 'female' ? 'α╕½α╕ìα╕┤α╕ç' : log.gender === 'male' ? 'α╕èα╕▓α╕ó' : '-'}
+                                                    </td>
+                                                    <td className="p-4 text-center font-bold whitespace-nowrap">
+                                                        {log.age ? `${log.age} α╕¢α╕╡` : '-'}
+                                                    </td>
+                                                    <td className="p-4 text-center text-emerald-500 font-bold whitespace-nowrap">{sanitizeNaN(log.calculated_bsa)}</td>
+                                                    <td className="p-4 text-slate-400 font-bold uppercase leading-snug">{sanitizeNaN(log.formula_used)}</td>
+                                                    <td className="p-4 text-right text-amber-500 font-black whitespace-nowrap">{sanitizeNaN(log.prescribed_dose)}</td>
+                                                    <td className="p-4 text-center text-sky-400 font-bold uppercase truncate max-w-[120px]">{log.user_name || '-'}</td>
+                                                    {user?.role?.toUpperCase() === 'ADMIN' && (
+                                                        <td className="p-4 text-center no-print">
+                                                            <button
+                                                                onClick={() => handleDeleteLog(log)}
+                                                                className="text-red-500 hover:text-red-400 p-1.5 rounded-lg hover:bg-red-500/10 transition-all active:scale-95 cursor-pointer flex items-center justify-center mx-auto"
+                                                                title="α╕Ñα╕Üα╕úα╕▓α╕óα╕üα╕▓α╕úα╕Üα╕▒α╕Öα╕ùα╕╢α╕üα╕¢α╕úα╕░α╕ºα╕▒α╕òα╕┤α╕Öα╕╡α╣ë"
+                                                            >
+                                                                <Trash2 size={16} />
+                                                            </button>
+                                                        </td>
+                                                    )}
+                                                </tr>
+                                            ))
+                                        ) : (
+                                            <tr>
+                                                <td colSpan={user?.role?.toUpperCase() === 'ADMIN' ? 10 : 9} className="p-8 text-center text-slate-500 font-bold italic">
+                                                    α╣äα╕íα╣êα╕₧α╕Üα╕¢α╕úα╕░α╕ºα╕▒α╕òα╕┤α╕üα╕▓α╕úα╕äα╕│α╕Öα╕ºα╕ôα╕ùα╕╡α╣êα╕òα╕úα╕çα╕üα╕▒α╕Üα╕üα╕▓α╕úα╕äα╣ëα╕Öα╕½α╕▓
+                                                </td>
+                                            </tr>
+                                        )}
+                                    </tbody>
+                                </table>
+                            </div>
                         </div>
                     </div>
                 ) : (
@@ -1186,20 +1128,20 @@ function App() {
                                             }
                                             return `${title} ${name}`;
                                         }
-                                        return name || 'ไม่ระบุชื่อ';
+                                        return name || 'α╣äα╕íα╣êα╕úα╕░α╕Üα╕╕α╕èα╕╖α╣êα╕¡';
                                     })()} ({patient.hn})
                                 </h2>
-                                <p className="text-slate-400">H: {patient.height} cm | W: {patient.weight} kg | อายุ: {patient.age ? `${patient.age} ปี` : '-'} | เพศ: {patient.gender === 'female' ? 'หญิง (Female)' : patient.gender === 'male' ? 'ชาย (Male)' : '-'}</p>
+                                <p className="text-slate-400">H: {patient.height} cm | W: {patient.weight} kg | α╕¡α╕▓α╕óα╕╕: {patient.age ? `${patient.age} α╕¢α╕╡` : '-'} | α╣Çα╕₧α╕¿: {patient.gender === 'female' ? 'α╕½α╕ìα╕┤α╕ç (Female)' : patient.gender === 'male' ? 'α╕èα╕▓α╕ó (Male)' : '-'}</p>
                             </div>
                             <button onClick={() => {
-                                setPatient({ hn: '', title: '', name: '', height: '', weight: '', gender: '', age: '', ward: '' });
+                                setPatient({ hn: '', title: '', name: '', height: '', weight: '', gender: '', age: '' });
                                 setPrevStats({ height: '', weight: '' });
                                 setPatientScr('');
                                 setUseAutoGfr(false);
                                 setAmputation('none');
                                 setAmpDetails({ level: 'below_knee', method: 'weight_method' });
                                 setStep('login');
-                            }} className="bg-sky-600/10 text-sky-500 hover:bg-sky-600/20 px-4 py-2 rounded-lg border border-sky-500/30 transition-all font-bold">เปลี่ยนเคสผู้ป่วย</button>
+                            }} className="bg-sky-600/10 text-sky-500 hover:bg-sky-600/20 px-4 py-2 rounded-lg border border-sky-500/30 transition-all font-bold">α╣Çα╕¢α╕Ñα╕╡α╣êα╕óα╕Öα╣Çα╕äα╕¬α╕£α╕╣α╣ëα╕¢α╣êα╕ºα╕ó</button>
                         </div>
 
                         <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 workspace-section">
@@ -1208,45 +1150,45 @@ function App() {
                                     <div className="flex items-center justify-between mb-4">
                                         <div className="flex items-center gap-3">
                                             <div className="w-8 h-8 rounded-full bg-sky-600 text-white flex items-center justify-center font-black text-xs">02</div>
-                                            <h2 className="text-lg font-black uppercase">สูตรคำนวณพื้นที่ผิว (BSA Formula)</h2>
+                                            <h2 className="text-lg font-black uppercase">α╕¬α╕╣α╕òα╕úα╕äα╕│α╕Öα╕ºα╕ôα╕₧α╕╖α╣ëα╕Öα╕ùα╕╡α╣êα╕£α╕┤α╕º (BSA Formula)</h2>
                                         </div>
                                         <button
                                             type="button"
                                             onClick={() => setShowBsaInfo(!showBsaInfo)}
                                             className="flex items-center gap-2 text-xs font-black text-sky-500 hover:text-sky-400 p-2 bg-sky-600/5 rounded-lg border border-sky-500/20 transition-all no-print"
                                         >
-                                            <Info size={14} /> ข้อมูลสูตร
+                                            <Info size={14} /> α╕éα╣ëα╕¡α╕íα╕╣α╕Ñα╕¬α╕╣α╕òα╕ú
                                         </button>
                                     </div>
                                     <div className="grid grid-cols-2 gap-4">
                                         {['mosteller', 'dubois'].map(f => (
                                             <button key={f} onClick={() => setFormula(f)} className={`p-4 rounded-lg border-2 transition-all font-black uppercase ${formula === f ? 'bg-sky-600 border-sky-400 text-white' : 'bg-transparent border-slate-700/30 text-slate-500'}`}>
-                                                {f === 'mosteller' ? 'มอสเตลเลอร์ (Mosteller)' : 'ดูบัวส์ (DuBois)'}
+                                                {f === 'mosteller' ? 'α╕íα╕¡α╕¬α╣Çα╕òα╕Ñα╣Çα╕Ñα╕¡α╕úα╣î (Mosteller)' : 'α╕öα╕╣α╕Üα╕▒α╕ºα╕¬α╣î (DuBois)'}
                                             </button>
                                         ))}
                                     </div>
                                     {showBsaInfo && (
                                         <div className="animate-pop mt-4 p-5 rounded-2xl border-2 bg-sky-50 dark:bg-sky-950/40 border-sky-400 dark:border-sky-500/50 shadow-md">
                                             <h3 className="font-bold text-sky-700 dark:text-sky-300 mb-3 text-sm flex items-center gap-2">
-                                                <Info size={16} /> รายละเอียดสูตรการคำนวณพื้นที่ผิวร่างกาย (BSA)
+                                                <Info size={16} /> α╕úα╕▓α╕óα╕Ñα╕░α╣Çα╕¡α╕╡α╕óα╕öα╕¬α╕╣α╕òα╕úα╕üα╕▓α╕úα╕äα╕│α╕Öα╕ºα╕ôα╕₧α╕╖α╣ëα╕Öα╕ùα╕╡α╣êα╕£α╕┤α╕ºα╕úα╣êα╕▓α╕çα╕üα╕▓α╕ó (BSA)
                                             </h3>
                                             <div className="space-y-4 text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
                                                 <div className="border-b border-sky-200/60 dark:border-sky-800/40 pb-3">
                                                     <span className="font-bold text-sky-600 dark:text-sky-400 text-[13px]">1. MOSTELLER Formula</span>
                                                     <p className="mt-1 font-mono text-[11px] bg-slate-100 dark:bg-slate-900/60 p-2.5 rounded-lg text-slate-800 dark:text-slate-200">
-                                                        BSA (m²) = √[ (ส่วนสูง (cm) × น้ำหนัก (kg)) / 3600 ]
+                                                        BSA (m┬▓) = ΓêÜ[ (α╕¬α╣êα╕ºα╕Öα╕¬α╕╣α╕ç (cm) ├ù α╕Öα╣ëα╕│α╕½α╕Öα╕▒α╕ü (kg)) / 3600 ]
                                                     </p>
                                                     <p className="mt-1.5 text-[11px] text-slate-500 dark:text-slate-400">
-                                                        สูตรยอดนิยมและใช้งานง่ายที่สุด มีความคลาดเคลื่อนต่ำ เหมาะสำหรับการคำนวณทั่วไปในทางปฏิบัติการแพทย์
+                                                        α╕¬α╕╣α╕òα╕úα╕óα╕¡α╕öα╕Öα╕┤α╕óα╕íα╣üα╕Ñα╕░α╣âα╕èα╣ëα╕çα╕▓α╕Öα╕çα╣êα╕▓α╕óα╕ùα╕╡α╣êα╕¬α╕╕α╕ö α╕íα╕╡α╕äα╕ºα╕▓α╕íα╕äα╕Ñα╕▓α╕öα╣Çα╕äα╕Ñα╕╖α╣êα╕¡α╕Öα╕òα╣êα╕│ α╣Çα╕½α╕íα╕▓α╕░α╕¬α╕│α╕½α╕úα╕▒α╕Üα╕üα╕▓α╕úα╕äα╕│α╕Öα╕ºα╕ôα╕ùα╕▒α╣êα╕ºα╣äα╕¢α╣âα╕Öα╕ùα╕▓α╕çα╕¢α╕Åα╕┤α╕Üα╕▒α╕òα╕┤α╕üα╕▓α╕úα╣üα╕₧α╕ùα╕óα╣î
                                                     </p>
                                                 </div>
                                                 <div>
                                                     <span className="font-bold text-sky-600 dark:text-sky-400 text-[13px]">2. DUBOIS & DUBOIS Formula</span>
                                                     <p className="mt-1 font-mono text-[11px] bg-slate-100 dark:bg-slate-900/60 p-2.5 rounded-lg text-slate-800 dark:text-slate-200">
-                                                        BSA (m²) = 0.20247 × (ส่วนสูง (m))^0.725 × (น้ำหนัก (kg))^0.425
+                                                        BSA (m┬▓) = 0.20247 ├ù (α╕¬α╣êα╕ºα╕Öα╕¬α╕╣α╕ç (m))^0.725 ├ù (α╕Öα╣ëα╕│α╕½α╕Öα╕▒α╕ü (kg))^0.425
                                                     </p>
                                                     <p className="mt-1.5 text-[11px] text-slate-500 dark:text-slate-400">
-                                                        สูตรดั้งเดิมที่มีความเที่ยงตรงสูงในกลุ่มผู้ป่วยที่มีรูปร่างและสัดส่วนน้ำหนัก/ส่วนสูงตามมาตรฐานทั่วไป
+                                                        α╕¬α╕╣α╕òα╕úα╕öα╕▒α╣ëα╕çα╣Çα╕öα╕┤α╕íα╕ùα╕╡α╣êα╕íα╕╡α╕äα╕ºα╕▓α╕íα╣Çα╕ùα╕╡α╣êα╕óα╕çα╕òα╕úα╕çα╕¬α╕╣α╕çα╣âα╕Öα╕üα╕Ñα╕╕α╣êα╕íα╕£α╕╣α╣ëα╕¢α╣êα╕ºα╕óα╕ùα╕╡α╣êα╕íα╕╡α╕úα╕╣α╕¢α╕úα╣êα╕▓α╕çα╣üα╕Ñα╕░α╕¬α╕▒α╕öα╕¬α╣êα╕ºα╕Öα╕Öα╣ëα╕│α╕½α╕Öα╕▒α╕ü/α╕¬α╣êα╕ºα╕Öα╕¬α╕╣α╕çα╕òα╕▓α╕íα╕íα╕▓α╕òα╕úα╕Éα╕▓α╕Öα╕ùα╕▒α╣êα╕ºα╣äα╕¢
                                                     </p>
                                                 </div>
                                             </div>
@@ -1258,56 +1200,56 @@ function App() {
                                     <div className="flex items-center justify-between mb-4">
                                         <div className="flex items-center gap-3">
                                             <div className="w-8 h-8 rounded-full bg-sky-600 text-white flex items-center justify-center font-black text-xs">03</div>
-                                            <h2 className="text-lg font-black uppercase">ตรวจสอบสถานะการสูญเสียอวัยวะ</h2>
+                                            <h2 className="text-lg font-black uppercase">α╕òα╕úα╕ºα╕êα╕¬α╕¡α╕Üα╕¬α╕ûα╕▓α╕Öα╕░α╕üα╕▓α╕úα╕¬α╕╣α╕ìα╣Çα╕¬α╕╡α╕óα╕¡α╕ºα╕▒α╕óα╕ºα╕░</h2>
                                         </div>
                                         <button
                                             type="button"
                                             onClick={() => setShowAmpInfo(!showAmpInfo)}
                                             className="flex items-center gap-2 text-xs font-black text-sky-500 hover:text-sky-400 p-2 bg-sky-600/5 rounded-lg border border-sky-500/20 transition-all no-print"
                                         >
-                                            <Info size={14} /> ข้อมูลสูตร
+                                            <Info size={14} /> α╕éα╣ëα╕¡α╕íα╕╣α╕Ñα╕¬α╕╣α╕òα╕ú
                                         </button>
                                     </div>
                                     <div className="grid grid-cols-2 gap-4 mb-4">
-                                        <button onClick={() => setAmputation('none')} className={`p-4 rounded-lg border-2 font-black transition-all ${amputation === 'none' ? 'bg-sky-600 border-sky-400 text-white' : 'bg-transparent border-slate-700/30 text-slate-500'}`}>ปกติ (None)</button>
-                                        <button onClick={() => setAmputation('amputee')} className={`p-4 rounded-lg border-2 font-black transition-all ${amputation === 'amputee' ? 'bg-sky-600 border-sky-400 text-white' : 'bg-transparent border-slate-700/30 text-slate-500'}`}>มีประวัติตัดแขนขา (Amputee)</button>
+                                        <button onClick={() => setAmputation('none')} className={`p-4 rounded-lg border-2 font-black transition-all ${amputation === 'none' ? 'bg-sky-600 border-sky-400 text-white' : 'bg-transparent border-slate-700/30 text-slate-500'}`}>α╕¢α╕üα╕òα╕┤ (None)</button>
+                                        <button onClick={() => setAmputation('amputee')} className={`p-4 rounded-lg border-2 font-black transition-all ${amputation === 'amputee' ? 'bg-sky-600 border-sky-400 text-white' : 'bg-transparent border-slate-700/30 text-slate-500'}`}>α╕íα╕╡α╕¢α╕úα╕░α╕ºα╕▒α╕òα╕┤α╕òα╕▒α╕öα╣üα╕éα╕Öα╕éα╕▓ (Amputee)</button>
                                     </div>
                                     {amputation === 'amputee' && (
                                         <div className="grid grid-cols-2 gap-4 p-4 bg-sky-600/5 rounded-lg mb-4">
                                             <select className="form-control" value={ampDetails.level} onChange={e => setAmpDetails({ ...ampDetails, level: e.target.value })}>
-                                                <option value="below_knee">ตัดขาใต้เข่า (Below Knee)</option>
-                                                <option value="above_knee">ตัดขาเหนือเข่า (Above Knee)</option>
+                                                <option value="below_knee">α╕òα╕▒α╕öα╕éα╕▓α╣âα╕òα╣ëα╣Çα╕éα╣êα╕▓ (Below Knee)</option>
+                                                <option value="above_knee">α╕òα╕▒α╕öα╕éα╕▓α╣Çα╕½α╕Öα╕╖α╕¡α╣Çα╕éα╣êα╕▓ (Above Knee)</option>
                                             </select>
                                             <select className="form-control" value={ampDetails.method} onChange={e => setAmpDetails({ ...ampDetails, method: e.target.value })}>
-                                                <option value="weight_method">ปรับตามน้ำหนัก (Weight Method)</option>
-                                                <option value="bsa_method">ปรับตามพื้นที่ผิว (BSA Method)</option>
+                                                <option value="weight_method">α╕¢α╕úα╕▒α╕Üα╕òα╕▓α╕íα╕Öα╣ëα╕│α╕½α╕Öα╕▒α╕ü (Weight Method)</option>
+                                                <option value="bsa_method">α╕¢α╕úα╕▒α╕Üα╕òα╕▓α╕íα╕₧α╕╖α╣ëα╕Öα╕ùα╕╡α╣êα╕£α╕┤α╕º (BSA Method)</option>
                                             </select>
                                         </div>
                                     )}
                                     {showAmpInfo && (
                                         <div className="animate-pop mt-4 p-5 rounded-2xl border-2 bg-sky-50 dark:bg-sky-950/40 border-sky-400 dark:border-sky-500/50 shadow-md">
                                             <h3 className="font-bold text-sky-700 dark:text-sky-300 mb-3 text-sm flex items-center gap-2">
-                                                <Info size={16} /> รายละเอียดการปรับคำนวณกรณีสูญเสียอวัยวะ (Amputation)
+                                                <Info size={16} /> α╕úα╕▓α╕óα╕Ñα╕░α╣Çα╕¡α╕╡α╕óα╕öα╕üα╕▓α╕úα╕¢α╕úα╕▒α╕Üα╕äα╕│α╕Öα╕ºα╕ôα╕üα╕úα╕ôα╕╡α╕¬α╕╣α╕ìα╣Çα╕¬α╕╡α╕óα╕¡α╕ºα╕▒α╕óα╕ºα╕░ (Amputation)
                                             </h3>
                                             <div className="space-y-4 text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
                                                 <div className="border-b border-sky-200/60 dark:border-sky-800/40 pb-3">
-                                                    <span className="font-bold text-sky-600 dark:text-sky-400 text-[13px]">1. ปรับตามน้ำหนัก (Weight Method)</span>
+                                                    <span className="font-bold text-sky-600 dark:text-sky-400 text-[13px]">1. α╕¢α╕úα╕▒α╕Üα╕òα╕▓α╕íα╕Öα╣ëα╕│α╕½α╕Öα╕▒α╕ü (Weight Method)</span>
                                                     <p className="mt-1 font-mono text-[11px] bg-slate-100 dark:bg-slate-900/60 p-2.5 rounded-lg text-slate-800 dark:text-slate-200">
-                                                        น้ำหนักสุทธิ = น้ำหนักตัวจริง × (1 - สัดส่วนน้ำหนักอวัยวะ)
+                                                        α╕Öα╣ëα╕│α╕½α╕Öα╕▒α╕üα╕¬α╕╕α╕ùα╕ÿα╕┤ = α╕Öα╣ëα╕│α╕½α╕Öα╕▒α╕üα╕òα╕▒α╕ºα╕êα╕úα╕┤α╕ç ├ù (1 - α╕¬α╕▒α╕öα╕¬α╣êα╕ºα╕Öα╕Öα╣ëα╕│α╕½α╕Öα╕▒α╕üα╕¡α╕ºα╕▒α╕óα╕ºα╕░)
                                                     </p>
                                                     <ul className="mt-1.5 list-disc pl-5 text-[11px] text-slate-500 dark:text-slate-400 space-y-1">
-                                                        <li>ตัดขาใต้เข่า (Below Knee): หักออก 6% ของน้ำหนักตัว (คิดเป็น 94% ของน้ำหนักจริง) แล้วนำไปคำนวณ BSA ต่อ</li>
-                                                        <li>ตัดขาเหนือเข่า (Above Knee): หักออก 15% ของน้ำหนักตัว (คิดเป็น 85% ของน้ำหนักจริง) แล้วนำไปคำนวณ BSA ต่อ</li>
+                                                        <li>α╕òα╕▒α╕öα╕éα╕▓α╣âα╕òα╣ëα╣Çα╕éα╣êα╕▓ (Below Knee): α╕½α╕▒α╕üα╕¡α╕¡α╕ü 6% α╕éα╕¡α╕çα╕Öα╣ëα╕│α╕½α╕Öα╕▒α╕üα╕òα╕▒α╕º (α╕äα╕┤α╕öα╣Çα╕¢α╣çα╕Ö 94% α╕éα╕¡α╕çα╕Öα╣ëα╕│α╕½α╕Öα╕▒α╕üα╕êα╕úα╕┤α╕ç) α╣üα╕Ñα╣ëα╕ºα╕Öα╕│α╣äα╕¢α╕äα╕│α╕Öα╕ºα╕ô BSA α╕òα╣êα╕¡</li>
+                                                        <li>α╕òα╕▒α╕öα╕éα╕▓α╣Çα╕½α╕Öα╕╖α╕¡α╣Çα╕éα╣êα╕▓ (Above Knee): α╕½α╕▒α╕üα╕¡α╕¡α╕ü 15% α╕éα╕¡α╕çα╕Öα╣ëα╕│α╕½α╕Öα╕▒α╕üα╕òα╕▒α╕º (α╕äα╕┤α╕öα╣Çα╕¢α╣çα╕Ö 85% α╕éα╕¡α╕çα╕Öα╣ëα╕│α╕½α╕Öα╕▒α╕üα╕êα╕úα╕┤α╕ç) α╣üα╕Ñα╣ëα╕ºα╕Öα╕│α╣äα╕¢α╕äα╕│α╕Öα╕ºα╕ô BSA α╕òα╣êα╕¡</li>
                                                     </ul>
                                                 </div>
                                                 <div>
-                                                    <span className="font-bold text-sky-600 dark:text-sky-400 text-[13px]">2. ปรับตามพื้นที่ผิว (BSA Method)</span>
+                                                    <span className="font-bold text-sky-600 dark:text-sky-400 text-[13px]">2. α╕¢α╕úα╕▒α╕Üα╕òα╕▓α╕íα╕₧α╕╖α╣ëα╕Öα╕ùα╕╡α╣êα╕£α╕┤α╕º (BSA Method)</span>
                                                     <p className="mt-1 font-mono text-[11px] bg-slate-100 dark:bg-slate-900/60 p-2.5 rounded-lg text-slate-800 dark:text-slate-200">
-                                                        BSA สุทธิ = BSA ปกติ × (1 - สัดส่วนพื้นที่ผิวอวัยวะ)
+                                                        BSA α╕¬α╕╕α╕ùα╕ÿα╕┤ = BSA α╕¢α╕üα╕òα╕┤ ├ù (1 - α╕¬α╕▒α╕öα╕¬α╣êα╕ºα╕Öα╕₧α╕╖α╣ëα╕Öα╕ùα╕╡α╣êα╕£α╕┤α╕ºα╕¡α╕ºα╕▒α╕óα╕ºα╕░)
                                                     </p>
                                                     <ul className="mt-1.5 list-disc pl-5 text-[11px] text-slate-500 dark:text-slate-400 space-y-1">
-                                                        <li>ตัดขาใต้เข่า (Below Knee): ปรับลดค่า BSA ลง 9%</li>
-                                                        <li>ตัดขาเหนือเข่า (Above Knee): ปรับลดค่า BSA ลง 18%</li>
+                                                        <li>α╕òα╕▒α╕öα╕éα╕▓α╣âα╕òα╣ëα╣Çα╕éα╣êα╕▓ (Below Knee): α╕¢α╕úα╕▒α╕Üα╕Ñα╕öα╕äα╣êα╕▓ BSA α╕Ñα╕ç 9%</li>
+                                                        <li>α╕òα╕▒α╕öα╕éα╕▓α╣Çα╕½α╕Öα╕╖α╕¡α╣Çα╕éα╣êα╕▓ (Above Knee): α╕¢α╕úα╕▒α╕Üα╕Ñα╕öα╕äα╣êα╕▓ BSA α╕Ñα╕ç 18%</li>
                                                      </ul>
                                                  </div>
                                              </div>
@@ -1319,13 +1261,13 @@ function App() {
                                     <div className="flex items-center justify-between mb-4">
                                         <div className="flex items-center gap-3">
                                             <div className="w-8 h-8 rounded-full bg-sky-600 text-white flex items-center justify-center font-black text-xs">04</div>
-                                            <h2 className="text-lg font-black uppercase">ตรวจสอบกฎเฉพาะตัวยาและ Absolute Max Caps</h2>
+                                            <h2 className="text-lg font-black uppercase">α╕òα╕úα╕ºα╕êα╕¬α╕¡α╕Üα╕üα╕Äα╣Çα╕ëα╕₧α╕▓α╕░α╕òα╕▒α╕ºα╕óα╕▓α╣üα╕Ñα╕░ Absolute Max Caps</h2>
                                         </div>
                                         <button
                                             onClick={() => setShowDrugInfo(!showDrugInfo)}
                                             className="flex items-center gap-2 text-xs font-black text-sky-500 hover:text-sky-400 p-2 bg-sky-600/5 rounded-lg border border-sky-500/20 transition-all no-print"
                                         >
-                                            <Info size={14} /> ข้อมูลยา
+                                            <Info size={14} /> α╕éα╣ëα╕¡α╕íα╕╣α╕Ñα╕óα╕▓
                                         </button>
                                     </div>
 
@@ -1343,7 +1285,7 @@ function App() {
                                                     : 'text-slate-600 hover:text-slate-900'
                                                 }`}
                                         >
-                                            คำนวณยาเดี่ยว (Single Drug)
+                                            α╕äα╕│α╕Öα╕ºα╕ôα╕óα╕▓α╣Çα╕öα╕╡α╣êα╕óα╕º (Single Drug)
                                         </button>
                                         <button
                                             type="button"
@@ -1355,20 +1297,20 @@ function App() {
                                                     : 'text-slate-600 hover:text-slate-900'
                                                 }`}
                                         >
-                                            สูตรยาร่วม (Regimen Template)
+                                            α╕¬α╕╣α╕òα╕úα╕óα╕▓α╕úα╣êα╕ºα╕í (Regimen Template)
                                         </button>
                                     </div>
 
                                     {calcMode === 'single' ? (
                                         <select className="form-control mb-4" value={drug} onChange={e => setDrug(e.target.value)}>
-                                            <option value="vincristine">วินคริสทีน - VINCRISTINE (Cap 2.0 mg)</option>
-                                            <option value="carboplatin">คาร์โบพลาติน - CARBOPLATIN (Calvert Formula)</option>
-                                            <option value="bleomycin">บลีโอมัยซิน - BLEOMYCIN (Fixed Dose 30 units)</option>
+                                            <option value="vincristine">α╕ºα╕┤α╕Öα╕äα╕úα╕┤α╕¬α╕ùα╕╡α╕Ö - VINCRISTINE (Cap 2.0 mg)</option>
+                                            <option value="carboplatin">α╕äα╕▓α╕úα╣îα╣éα╕Üα╕₧α╕Ñα╕▓α╕òα╕┤α╕Ö - CARBOPLATIN (Calvert Formula)</option>
+                                            <option value="bleomycin">α╕Üα╕Ñα╕╡α╣éα╕¡α╕íα╕▒α╕óα╕ïα╕┤α╕Ö - BLEOMYCIN (Fixed Dose 30 units)</option>
                                         </select>
                                     ) : (
                                         <select className="form-control mb-4" value={selectedRegimen} onChange={e => setSelectedRegimen(e.target.value)}>
-                                            <option value="cv">สูตร CV Regimen: คาร์โบพลาติน + วินคริสทีน (CARBOPLATIN + VINCRISTINE)</option>
-                                            <option value="bc">สูตร BC Regimen: บลีโอมัยซิน + คาร์โบพลาติน (BLEOMYCIN + CARBOPLATIN)</option>
+                                            <option value="cv">α╕¬α╕╣α╕òα╕ú CV Regimen: α╕äα╕▓α╕úα╣îα╣éα╕Üα╕₧α╕Ñα╕▓α╕òα╕┤α╕Ö + α╕ºα╕┤α╕Öα╕äα╕úα╕┤α╕¬α╕ùα╕╡α╕Ö (CARBOPLATIN + VINCRISTINE)</option>
+                                            <option value="bc">α╕¬α╕╣α╕òα╕ú BC Regimen: α╕Üα╕Ñα╕╡α╣éα╕¡α╕íα╕▒α╕óα╕ïα╕┤α╕Ö + α╕äα╕▓α╕úα╣îα╣éα╕Üα╕₧α╕Ñα╕▓α╕òα╕┤α╕Ö (BLEOMYCIN + CARBOPLATIN)</option>
                                         </select>
                                     )}
 
@@ -1392,7 +1334,7 @@ function App() {
                                                                     ? 'bg-purple-500 text-white'
                                                                     : 'bg-emerald-500 text-slate-900'
                                                             }`}>
-                                                            ข้อมูลยาที่เลือก
+                                                            α╕éα╣ëα╕¡α╕íα╕╣α╕Ñα╕óα╕▓α╕ùα╕╡α╣êα╣Çα╕Ñα╕╖α╕¡α╕ü
                                                         </span>
                                                         <div className={`text-base font-black uppercase tracking-wider ${currentDrugInfo.color === 'sky'
                                                             ? 'text-sky-700 dark:text-sky-400'
@@ -1418,7 +1360,7 @@ function App() {
                                                 <div className="p-5 rounded-2xl border-2 border-indigo-400 dark:border-indigo-500/50 bg-indigo-50 dark:bg-indigo-950/40 transition-all shadow-md">
                                                     <div className="flex items-center gap-2 mb-2">
                                                         <span className="px-2 py-0.5 text-[10px] font-black uppercase rounded tracking-widest bg-indigo-500 text-white">
-                                                            ข้อมูลสูตรยาร่วม
+                                                            α╕éα╣ëα╕¡α╕íα╕╣α╕Ñα╕¬α╕╣α╕òα╕úα╕óα╕▓α╕úα╣êα╕ºα╕í
                                                         </span>
                                                         <div className="text-base font-black uppercase tracking-wider text-indigo-700 dark:text-indigo-400">
                                                             {selectedRegimen === 'cv' ? 'CV Regimen' : 'BC Regimen'}
@@ -1426,14 +1368,14 @@ function App() {
                                                     </div>
                                                     <p className="text-sm font-extrabold text-slate-800 dark:text-white leading-snug">
                                                         {selectedRegimen === 'cv'
-                                                            ? 'สูตรยาร่วมสำหรับ Carboplatin และ Vincristine'
-                                                            : 'สูตรยาร่วมสำหรับ Bleomycin และ Carboplatin'}
+                                                            ? 'α╕¬α╕╣α╕òα╕úα╕óα╕▓α╕úα╣êα╕ºα╕íα╕¬α╕│α╕½α╕úα╕▒α╕Ü Carboplatin α╣üα╕Ñα╕░ Vincristine'
+                                                            : 'α╕¬α╕╣α╕òα╕úα╕óα╕▓α╕úα╣êα╕ºα╕íα╕¬α╕│α╕½α╕úα╕▒α╕Ü Bleomycin α╣üα╕Ñα╕░ Carboplatin'}
                                                     </p>
                                                     <div className="mt-3 p-3 rounded-lg bg-white/60 dark:bg-black/30 border border-slate-200 dark:border-white/5">
                                                         <p className="text-xs font-semibold text-slate-700 dark:text-slate-200 leading-relaxed">
                                                             {selectedRegimen === 'cv'
-                                                                ? 'Carboplatin คำนวณตาม Calvert Formula (Target AUC × (eGFR + 25)) และ Vincristine คำนวณตามพื้นที่ผิว (BSA × 1.4 mg/m² พร้อม Dose Cap 2.0 mg)'
-                                                                : 'Bleomycin ถูกคำนวณตามขนาดยาคงที่ (Fixed Dose 30 units) และ Carboplatin คำนวณตาม Calvert Formula (Target AUC × (eGFR + 25))'}
+                                                                ? 'Carboplatin α╕äα╕│α╕Öα╕ºα╕ôα╕òα╕▓α╕í Calvert Formula (Target AUC ├ù (eGFR + 25)) α╣üα╕Ñα╕░ Vincristine α╕äα╕│α╕Öα╕ºα╕ôα╕òα╕▓α╕íα╕₧α╕╖α╣ëα╕Öα╕ùα╕╡α╣êα╕£α╕┤α╕º (BSA ├ù 1.4 mg/m┬▓ α╕₧α╕úα╣ëα╕¡α╕í Dose Cap 2.0 mg)'
+                                                                : 'Bleomycin α╕ûα╕╣α╕üα╕äα╕│α╕Öα╕ºα╕ôα╕òα╕▓α╕íα╕éα╕Öα╕▓α╕öα╕óα╕▓α╕äα╕çα╕ùα╕╡α╣ê (Fixed Dose 30 units) α╣üα╕Ñα╕░ Carboplatin α╕äα╕│α╕Öα╕ºα╕ôα╕òα╕▓α╕í Calvert Formula (Target AUC ├ù (eGFR + 25))'}
                                                         </p>
                                                     </div>
                                                 </div>
@@ -1445,22 +1387,22 @@ function App() {
                                         <div className="mt-6 p-5 rounded-2xl border-2 border-amber-500/20 bg-amber-500/5 space-y-4">
                                             <h3 className="text-sm font-black text-amber-500 uppercase tracking-wider flex items-center gap-2">
                                                 <span className="w-2 h-2 rounded-full bg-amber-500"></span>
-                                                การปรับขนาดยาตามค่าไต (Carboplatin Settings)
+                                                α╕üα╕▓α╕úα╕¢α╕úα╕▒α╕Üα╕éα╕Öα╕▓α╕öα╕óα╕▓α╕òα╕▓α╕íα╕äα╣êα╕▓α╣äα╕ò (Carboplatin Settings)
                                             </h3>
 
                                             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                                                 <div>
-                                                    <label className="block text-xs font-bold text-slate-400 mb-1">เป้าหมายค่า AUC (Target AUC)</label>
+                                                    <label className="block text-xs font-bold text-slate-400 mb-1">α╣Çα╕¢α╣ëα╕▓α╕½α╕íα╕▓α╕óα╕äα╣êα╕▓ AUC (Target AUC)</label>
                                                     <input
                                                         type="number"
-                                                        placeholder="ระบุค่า Target AUC"
+                                                        placeholder="α╕úα╕░α╕Üα╕╕α╕äα╣êα╕▓ Target AUC"
                                                         value={drugParams.auc}
                                                         className="form-control"
                                                         onChange={e => setDrugParams({ ...drugParams, auc: e.target.value })}
                                                     />
                                                 </div>
                                                 <div>
-                                                    <label className="block text-xs font-bold text-slate-400 mb-1.5">วิธีคำนวณการทำงานของไต (eGFR Mode)</label>
+                                                    <label className="block text-xs font-bold text-slate-400 mb-1.5">α╕ºα╕┤α╕ÿα╕╡α╕äα╕│α╕Öα╕ºα╕ôα╕üα╕▓α╕úα╕ùα╕│α╕çα╕▓α╕Öα╕éα╕¡α╕çα╣äα╕ò (eGFR Mode)</label>
                                                     <div className={`grid grid-cols-2 gap-2 p-1 rounded-xl border transition-all duration-300 ${theme === 'dark'
                                                         ? 'bg-slate-800/40 border-slate-700/30'
                                                         : 'bg-slate-100 border-slate-200'
@@ -1475,7 +1417,7 @@ function App() {
                                                                     : 'text-slate-600 hover:text-slate-900'
                                                                 }`}
                                                         >
-                                                            กรอก eGFR เอง (Manual eGFR)
+                                                            α╕üα╕úα╕¡α╕ü eGFR α╣Çα╕¡α╕ç (Manual eGFR)
                                                         </button>
                                                         <button
                                                             type="button"
@@ -1487,7 +1429,7 @@ function App() {
                                                                     : 'text-slate-600 hover:text-slate-900'
                                                                 }`}
                                                         >
-                                                            คำนวณอัตโนมัติ (Auto eGFR)
+                                                            α╕äα╕│α╕Öα╕ºα╕ôα╕¡α╕▒α╕òα╣éα╕Öα╕íα╕▒α╕òα╕┤ (Auto eGFR)
                                                         </button>
                                                     </div>
                                                 </div>
@@ -1495,27 +1437,27 @@ function App() {
 
                                             {!useAutoGfr ? (
                                                 <div className="space-y-2">
-                                                    <label className="block text-xs font-bold text-slate-400 mb-1">อัตราการกรองของไต (eGFR Value, ml/min)</label>
+                                                    <label className="block text-xs font-bold text-slate-400 mb-1">α╕¡α╕▒α╕òα╕úα╕▓α╕üα╕▓α╕úα╕üα╕úα╕¡α╕çα╕éα╕¡α╕çα╣äα╕ò (eGFR Value, ml/min)</label>
                                                     <input
                                                         type="number"
-                                                        placeholder="ระบุค่า eGFR (ml/min)"
+                                                        placeholder="α╕úα╕░α╕Üα╕╕α╕äα╣êα╕▓ eGFR (ml/min)"
                                                         value={drugParams.gfr}
                                                         className="form-control"
                                                         onChange={e => setDrugParams({ ...drugParams, gfr: e.target.value })}
                                                     />
                                                     {parseFloat(drugParams.gfr) > 125 && (
                                                         <div className="p-3 bg-amber-500/10 border border-amber-500/20 rounded-lg text-[11px] font-bold leading-normal text-amber-500">
-                                                            ⚠️ eGFR เกิน 125 ml/min: ถูกจำกัดไว้ที่ 125 ml/min ในสูตร Calvert เพื่อความปลอดภัย (Capped at 125)
+                                                            ΓÜá∩╕Å eGFR α╣Çα╕üα╕┤α╕Ö 125 ml/min: α╕ûα╕╣α╕üα╕êα╕│α╕üα╕▒α╕öα╣äα╕ºα╣ëα╕ùα╕╡α╣ê 125 ml/min α╣âα╕Öα╕¬α╕╣α╕òα╕ú Calvert α╣Çα╕₧α╕╖α╣êα╕¡α╕äα╕ºα╕▓α╕íα╕¢α╕Ñα╕¡α╕öα╕áα╕▒α╕ó (Capped at 125)
                                                         </div>
                                                     )}
                                                     {parseFloat(drugParams.gfr) < 15 && parseFloat(drugParams.gfr) > 0 && (
                                                         <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-[11px] font-bold leading-normal text-red-500">
-                                                            🚨 ไตเสื่อมระดับรุนแรง (eGFR &lt; 15 ml/min): โปรดระมัดระวังการใช้ยา Carboplatin
+                                                            ≡ƒÜ¿ α╣äα╕òα╣Çα╕¬α╕╖α╣êα╕¡α╕íα╕úα╕░α╕öα╕▒α╕Üα╕úα╕╕α╕Öα╣üα╕úα╕ç (eGFR &lt; 15 ml/min): α╣éα╕¢α╕úα╕öα╕úα╕░α╕íα╕▒α╕öα╕úα╕░α╕ºα╕▒α╕çα╕üα╕▓α╕úα╣âα╕èα╣ëα╕óα╕▓ Carboplatin
                                                         </div>
                                                     )}
                                                     {parseFloat(drugParams.gfr) < 0 && (
                                                         <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-[11px] font-bold leading-normal text-red-500">
-                                                            ❌ ค่า eGFR ไม่สามารถติดลบได้
+                                                            Γ¥î α╕äα╣êα╕▓ eGFR α╣äα╕íα╣êα╕¬α╕▓α╕íα╕▓α╕úα╕ûα╕òα╕┤α╕öα╕Ñα╕Üα╣äα╕öα╣ë
                                                         </div>
                                                     )}
                                                 </div>
@@ -1526,9 +1468,9 @@ function App() {
                                                     }`}>
                                                     <div className="space-y-1.5">
                                                         <div className="grid grid-cols-3 gap-3 items-end">
-                                                            <label className="block text-xs font-bold text-slate-400 ml-1">อายุ (ปี) (Age)</label>
-                                                            <label className="block text-xs font-bold text-slate-400 ml-1">ครีอะตินีนในเลือด (Scr, mg/dL)</label>
-                                                            <label className="block text-xs font-bold text-slate-400 ml-1">เพศ (Gender)</label>
+                                                            <label className="block text-xs font-bold text-slate-400 ml-1">α╕¡α╕▓α╕óα╕╕ (α╕¢α╕╡) (Age)</label>
+                                                            <label className="block text-xs font-bold text-slate-400 ml-1">α╕äα╕úα╕╡α╕¡α╕░α╕òα╕┤α╕Öα╕╡α╕Öα╣âα╕Öα╣Çα╕Ñα╕╖α╕¡α╕ö (Scr, mg/dL)</label>
+                                                            <label className="block text-xs font-bold text-slate-400 ml-1">α╣Çα╕₧α╕¿ (Gender)</label>
                                                         </div>
                                                         <div className="grid grid-cols-3 gap-3">
                                                             <input
@@ -1540,7 +1482,7 @@ function App() {
                                                             />
                                                             <input
                                                                 type="number"
-                                                                placeholder="ระบุค่า Scr"
+                                                                placeholder="α╕úα╕░α╕Üα╕╕α╕äα╣êα╕▓ Scr"
                                                                 step="0.01"
                                                                 value={patientScr}
                                                                 className="form-control text-sm"
@@ -1549,27 +1491,27 @@ function App() {
                                                             <input
                                                                 type="text"
                                                                 readOnly
-                                                                value={patient.gender === 'female' ? 'หญิง (Female)' : patient.gender === 'male' ? 'ชาย (Male)' : '-'}
+                                                                value={patient.gender === 'female' ? 'α╕½α╕ìα╕┤α╕ç (Female)' : patient.gender === 'male' ? 'α╕èα╕▓α╕ó (Male)' : '-'}
                                                                 className="form-control text-sm opacity-80"
                                                                 style={{ backgroundColor: 'rgba(0, 0, 0, 0.1)' }}
                                                             />
                                                         </div>
                                                     </div>
                                                     <div className="p-3 bg-emerald-500/10 border border-emerald-500/20 rounded-lg flex flex-col items-center justify-center gap-1 text-center">
-                                                        <span className={`text-xs font-bold ${theme === 'dark' ? 'text-emerald-400' : 'text-emerald-700'}`}>ผลการคำนวณ eGFR (Calculated eGFR)</span>
+                                                        <span className={`text-xs font-bold ${theme === 'dark' ? 'text-emerald-400' : 'text-emerald-700'}`}>α╕£α╕Ñα╕üα╕▓α╕úα╕äα╕│α╕Öα╕ºα╕ô eGFR (Calculated eGFR)</span>
                                                         <span className={`text-base font-black ${theme === 'dark' ? 'text-emerald-400' : 'text-emerald-700'}`}>
-                                                            {autoGfrValue !== null ? (isNaN(autoGfrValue) ? 'ว่าง' : `${autoGfrValue} ml/min`) : 'รอข้อมูลครบถ้วน... (Awaiting Data...)'}
+                                                            {autoGfrValue !== null ? (isNaN(autoGfrValue) ? 'α╕ºα╣êα╕▓α╕ç' : `${autoGfrValue} ml/min`) : 'α╕úα╕¡α╕éα╣ëα╕¡α╕íα╕╣α╕Ñα╕äα╕úα╕Üα╕ûα╣ëα╕ºα╕Ö... (Awaiting Data...)'}
                                                         </span>
                                                     </div>
                                                     {autoGfrValue > 125 && (
                                                         <div className={`p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-[11px] font-bold leading-normal ${theme === 'dark' ? 'text-red-400' : 'text-red-600'
                                                             }`}>
-                                                            ⚠️ eGFR เกิน 125 ml/min: ถูกจำกัดไว้ที่ 125 ml/min เพื่อความปลอดภัยในการคำนวณขนาดยา (Capped at 125)
+                                                            ΓÜá∩╕Å eGFR α╣Çα╕üα╕┤α╕Ö 125 ml/min: α╕ûα╕╣α╕üα╕êα╕│α╕üα╕▒α╕öα╣äα╕ºα╣ëα╕ùα╕╡α╣ê 125 ml/min α╣Çα╕₧α╕╖α╣êα╕¡α╕äα╕ºα╕▓α╕íα╕¢α╕Ñα╕¡α╕öα╕áα╕▒α╕óα╣âα╕Öα╕üα╕▓α╕úα╕äα╕│α╕Öα╕ºα╕ôα╕éα╕Öα╕▓α╕öα╕óα╕▓ (Capped at 125)
                                                         </div>
                                                     )}
                                                     {autoGfrValue < 15 && autoGfrValue > 0 && (
                                                         <div className="p-3 bg-red-500/10 border border-red-500/20 rounded-lg text-[11px] font-bold leading-normal text-red-500">
-                                                            🚨 ไตเสื่อมระดับรุนแรง (eGFR &lt; 15 ml/min): โปรดระมัดระวังการใช้ยา Carboplatin
+                                                            ≡ƒÜ¿ α╣äα╕òα╣Çα╕¬α╕╖α╣êα╕¡α╕íα╕úα╕░α╕öα╕▒α╕Üα╕úα╕╕α╕Öα╣üα╕úα╕ç (eGFR &lt; 15 ml/min): α╣éα╕¢α╕úα╕öα╕úα╕░α╕íα╕▒α╕öα╕úα╕░α╕ºα╕▒α╕çα╕üα╕▓α╕úα╣âα╕èα╣ëα╕óα╕▓ Carboplatin
                                                         </div>
                                                     )}
                                                 </div>
@@ -1582,11 +1524,11 @@ function App() {
 
                             <div className="lg:col-span-1">
                                 <div className="premium-card p-6 sticky top-6 border-sky-500/50">
-                                    <h2 className="text-center font-black mb-4 uppercase text-slate-400">สรุปผลการคำนวณ</h2>
+                                    <h2 className="text-center font-black mb-4 uppercase text-slate-400">α╕¬α╕úα╕╕α╕¢α╕£α╕Ñα╕üα╕▓α╕úα╕äα╕│α╕Öα╕ºα╕ô</h2>
                                     <div className="space-y-4 bg-sky-600/5 p-4 rounded-xl border border-sky-500/20">
                                         <div className="text-center">
                                             <span className="text-xs uppercase text-slate-500 font-black">BSA</span>
-                                            <div className="text-3xl font-black text-emerald-500">{formatBsa(bsa)} <span className="text-sm">m²</span></div>
+                                            <div className="text-3xl font-black text-emerald-500">{formatBsa(bsa)} <span className="text-sm">m┬▓</span></div>
                                         </div>
                                         {calcMode === 'single' ? (
                                             <div className="text-center border-t border-slate-700/20 pt-4">
@@ -1613,12 +1555,12 @@ function App() {
                                     <div className="space-y-2 mt-4">
                                         {(bsa > 3.0 || (bsa < 0.5 && bsa > 0)) && (
                                             <div className="p-3 bg-red-500/10 border border-red-500/30 rounded-lg text-red-500 text-[11px] font-bold leading-normal text-center">
-                                                ⚠️ ค่า BSA ({formatBsa(bsa)} m²) นอกช่วงปกติ (0.5 - 3.0 m²) โปรดตรวจสอบ ส่วนสูง / น้ำหนัก!
+                                                ΓÜá∩╕Å α╕äα╣êα╕▓ BSA ({formatBsa(bsa)} m┬▓) α╕Öα╕¡α╕üα╕èα╣êα╕ºα╕çα╕¢α╕üα╕òα╕┤ (0.5 - 3.0 m┬▓) α╣éα╕¢α╕úα╕öα╕òα╕úα╕ºα╕êα╕¬α╕¡α╕Ü α╕¬α╣êα╕ºα╕Öα╕¬α╕╣α╕ç / α╕Öα╣ëα╕│α╕½α╕Öα╕▒α╕ü!
                                             </div>
                                         )}
                                         {isIncompleteDose(finalDose) && (
                                             <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-lg text-rose-500 text-[11px] font-bold leading-normal text-center">
-                                                ⚠️ ขนาดยายังไม่สมบูรณ์ (ว่าง) โปรดระบุค่า GFR หรือ Creatinine เพื่อคำนวณยาให้สมบูรณ์
+                                                ΓÜá∩╕Å α╕éα╕Öα╕▓α╕öα╕óα╕▓α╕óα╕▒α╕çα╣äα╕íα╣êα╕¬α╕íα╕Üα╕╣α╕úα╕ôα╣î (α╕ºα╣êα╕▓α╕ç) α╣éα╕¢α╕úα╕öα╕úα╕░α╕Üα╕╕α╕äα╣êα╕▓ GFR α╕½α╕úα╕╖α╕¡ Creatinine α╣Çα╕₧α╕╖α╣êα╕¡α╕äα╕│α╕Öα╕ºα╕ôα╕óα╕▓α╣âα╕½α╣ëα╕¬α╕íα╕Üα╕╣α╕úα╕ôα╣î
                                             </div>
                                         )}
                                     </div>
@@ -1632,7 +1574,7 @@ function App() {
                                                 }`}
                                             disabled={isIncompleteDose(finalDose) || bsa > 4.5 || bsa < 0.3}
                                         >
-                                            บันทึก ➔
+                                            α╕Üα╕▒α╕Öα╕ùα╕╢α╕ü Γ₧ö
                                         </button>
                                     </div>
                                     {calculationDetails.pharmacistNote && (
@@ -1653,7 +1595,7 @@ function App() {
                         user={user}
                         onPasswordChanged={(updatedUser) => {
                             setUser(updatedUser);
-                            showNotification("เปลี่ยนรหัสผ่านเรียบร้อยแล้ว", "success");
+                            showNotification("α╣Çα╕¢α╕Ñα╕╡α╣êα╕óα╕Öα╕úα╕½α╕▒α╕¬α╕£α╣êα╕▓α╕Öα╣Çα╕úα╕╡α╕óα╕Üα╕úα╣ëα╕¡α╕óα╣üα╕Ñα╣ëα╕º", "success");
                         }}
                         onLogout={handleLogout}
                     />
@@ -1664,10 +1606,10 @@ function App() {
                     <div className="premium-card p-6 md:p-8 w-full max-w-sm animate-pop relative border-rose-500/30">
                         <h3 className="font-black text-lg mb-4 flex items-center gap-2 border-b border-slate-200 dark:border-slate-700/50 pb-3 text-rose-500">
                             <Trash2 size={18} />
-                            ยืนยันการลบประวัติ
+                            α╕óα╕╖α╕Öα╕óα╕▒α╕Öα╕üα╕▓α╕úα╕Ñα╕Üα╕¢α╕úα╕░α╕ºα╕▒α╕òα╕┤
                         </h3>
                         <p className="text-sm text-slate-400 mb-6 leading-relaxed">
-                            คุณแน่ใจหรือไม่ที่จะลบประวัติการคำนวณของ H.N.: <strong className="text-slate-200">{deleteConfirmLog.hn}</strong> ({deleteConfirmLog.patient_name || 'ไม่ระบุชื่อ'})? การกระทำนี้ไม่สามารถย้อนกลับได้
+                            α╕äα╕╕α╕ôα╣üα╕Öα╣êα╣âα╕êα╕½α╕úα╕╖α╕¡α╣äα╕íα╣êα╕ùα╕╡α╣êα╕êα╕░α╕Ñα╕Üα╕¢α╕úα╕░α╕ºα╕▒α╕òα╕┤α╕üα╕▓α╕úα╕äα╕│α╕Öα╕ºα╕ôα╕éα╕¡α╕ç H.N.: <strong className="text-slate-200">{deleteConfirmLog.hn}</strong> ({deleteConfirmLog.patient_name || 'α╣äα╕íα╣êα╕úα╕░α╕Üα╕╕α╕èα╕╖α╣êα╕¡'})? α╕üα╕▓α╕úα╕üα╕úα╕░α╕ùα╕│α╕Öα╕╡α╣ëα╣äα╕íα╣êα╕¬α╕▓α╕íα╕▓α╕úα╕ûα╕óα╣ëα╕¡α╕Öα╕üα╕Ñα╕▒α╕Üα╣äα╕öα╣ë
                         </p>
                         <div className="flex gap-3">
                             <button
@@ -1678,7 +1620,7 @@ function App() {
                                     : 'border-slate-200 hover:bg-slate-100 text-slate-600 shadow-sm'
                                     }`}
                             >
-                                ยกเลิก
+                                α╕óα╕üα╣Çα╕Ñα╕┤α╕ü
                             </button>
                             <button
                                 type="button"
@@ -1688,7 +1630,7 @@ function App() {
                                 }}
                                 className="w-1/2 bg-rose-600 hover:bg-rose-500 text-white text-sm font-black py-3 px-4 rounded-xl active:scale-95 cursor-pointer text-center transition-all shadow-md shadow-rose-900/10"
                             >
-                                ลบประวัติ
+                                α╕Ñα╕Üα╕¢α╕úα╕░α╕ºα╕▒α╕òα╕┤
                             </button>
                         </div>
                     </div>
@@ -1701,10 +1643,10 @@ function App() {
                             <Info size={28} className="animate-pulse" />
                         </div>
                         <h3 className="font-black text-xl mb-2 text-amber-500">
-                            การแจ้งเตือนการหมดเวลา
+                            α╕üα╕▓α╕úα╣üα╕êα╣ëα╕çα╣Çα╕òα╕╖α╕¡α╕Öα╕üα╕▓α╕úα╕½α╕íα╕öα╣Çα╕ºα╕Ñα╕▓
                         </h3>
                         <p className="text-sm text-slate-400 mb-4 leading-relaxed">
-                            ระบบกำลังจะออกจากระบบอัตโนมัติเนื่องจากไม่มีการใช้งานระบบเป็นเวลานาน โปรดยืนยันว่าคุณต้องการใช้งานระบบต่อหรือไม่
+                            α╕úα╕░α╕Üα╕Üα╕üα╕│α╕Ñα╕▒α╕çα╕êα╕░α╕¡α╕¡α╕üα╕êα╕▓α╕üα╕úα╕░α╕Üα╕Üα╕¡α╕▒α╕òα╣éα╕Öα╕íα╕▒α╕òα╕┤α╣Çα╕Öα╕╖α╣êα╕¡α╕çα╕êα╕▓α╕üα╣äα╕íα╣êα╕íα╕╡α╕üα╕▓α╕úα╣âα╕èα╣ëα╕çα╕▓α╕Öα╕úα╕░α╕Üα╕Üα╣Çα╕¢α╣çα╕Öα╣Çα╕ºα╕Ñα╕▓α╕Öα╕▓α╕Ö α╣éα╕¢α╕úα╕öα╕óα╕╖α╕Öα╕óα╕▒α╕Öα╕ºα╣êα╕▓α╕äα╕╕α╕ôα╕òα╣ëα╕¡α╕çα╕üα╕▓α╕úα╣âα╕èα╣ëα╕çα╕▓α╕Öα╕úα╕░α╕Üα╕Üα╕òα╣êα╕¡α╕½α╕úα╕╖α╕¡α╣äα╕íα╣ê
                         </p>
 
                         <div className="mb-6 flex flex-col items-center justify-center">
@@ -1713,7 +1655,7 @@ function App() {
                                     {timeoutCountdown}
                                 </span>
                             </div>
-                            <p className="text-[10px] text-amber-500/70 mt-2 font-bold uppercase tracking-wider">วินาทีสุดท้าย (Seconds Left)</p>
+                            <p className="text-[10px] text-amber-500/70 mt-2 font-bold uppercase tracking-wider">α╕ºα╕┤α╕Öα╕▓α╕ùα╕╡α╕¬α╕╕α╕öα╕ùα╣ëα╕▓α╕ó (Seconds Left)</p>
                         </div>
 
                         <div className="flex gap-3">
@@ -1728,7 +1670,7 @@ function App() {
                                     : 'border-slate-200 hover:bg-slate-100 text-slate-600 shadow-sm'
                                     }`}
                             >
-                                ออกจากระบบ
+                                α╕¡α╕¡α╕üα╕êα╕▓α╕üα╕úα╕░α╕Üα╕Ü
                             </button>
                             <button
                                 type="button"
@@ -1738,7 +1680,7 @@ function App() {
                                 }}
                                 className="w-1/2 bg-gradient-to-r from-amber-600 to-orange-500 hover:from-amber-500 hover:to-orange-400 text-white text-sm font-black py-3 px-4 rounded-xl active:scale-95 cursor-pointer text-center transition-all shadow-md shadow-orange-950/10"
                             >
-                                ใช้งานต่อ
+                                α╣âα╕èα╣ëα╕çα╕▓α╕Öα╕òα╣êα╕¡
                             </button>
                         </div>
                     </div>

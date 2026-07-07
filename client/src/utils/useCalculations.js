@@ -179,9 +179,9 @@ export const useCalculations = () => {
             }
         } 
         else if (calcType === 'CALVERT_FORMULA') {
-            const { auc = '', gfr = '' } = params;
+            const { auc = '', gfr = '' } = params; // gfr parameter holds the CrCl value
             let usedAuc = auc !== '' ? parseFloat(auc) : targetDose;
-            let usedGfr = parseFloat(gfr);
+            let usedGfr = parseFloat(gfr); // usedGfr represents CrCl
             
             if (isNaN(usedAuc)) {
                 dose = NaN;
