@@ -989,7 +989,7 @@ const AdminUsers = ({ currentUser, setCurrentUser, onBack, showNotification, the
                                             onChange={e => setCreateForm({ ...createForm, role: e.target.value })}
                                         >
                                             <option value="pharmacist">pharmacist (เภสัชกร)</option>
-                                            <option value="chief">chief (หัวหน้าเภสัชกร)</option>
+                                            <option value="head">head (หัวหน้าเภสัชกร)</option>
                                             <option value="admin">admin (ผู้ดูแลระบบ)</option>
                                         </select>
                                         <Shield size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />
@@ -1649,7 +1649,7 @@ const AdminUsers = ({ currentUser, setCurrentUser, onBack, showNotification, the
                                         onChange={e => setEditForm({ ...editForm, role: e.target.value })}
                                     >
                                         <option value="pharmacist">pharmacist (เภสัชกร)</option>
-                                        <option value="chief">chief (หัวหน้าเภสัชกร)</option>
+                                        <option value="head">head (หัวหน้าเภสัชกร)</option>
                                         <option value="admin">admin (ผู้ดูแลระบบ)</option>
                                     </select>
                                     <Shield size={16} className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400 dark:text-slate-500" />

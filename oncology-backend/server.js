@@ -107,6 +107,24 @@ const DosageLog = sequelize.define('DosageLog', {
     timestamps: false
 });
 
+const OrderLog = sequelize.define('OrderLog', {
+    id: {
+        type: DataTypes.INTEGER,
+        primaryKey: true,
+        autoIncrement: true
+    },
+    timestamp: DataTypes.STRING(50),
+    hn: DataTypes.STRING(20),
+    patient_name: DataTypes.STRING(255),
+    ward: DataTypes.STRING(100),
+    user_name: DataTypes.STRING(255),
+    doctor: DataTypes.STRING(255),
+    order_details: DataTypes.TEXT('long') // Stores adminRows JSON
+}, {
+    tableName: 'order_logs',
+    timestamps: false
+});
+
 const ActivityLog = sequelize.define('ActivityLog', {
     id: {
         type: DataTypes.INTEGER,
@@ -515,16 +533,16 @@ async function requireAdmin(req, res, next) {
     }
 }
 
-// Middleware to verify admin or chief role based on employee_id header
-async function requireChiefOrAdmin(req, res, next) {
+// Middleware to verify admin or head role based on employee_id header
+async function requireHeadOrAdmin(req, res, next) {
     try {
         const employeeId = req.headers['x-employee-id'];
         if (!employeeId) {
             return res.status(401).json({ success: false, message: 'Missing employee ID header' });
         }
         const user = await User.findOne({ where: { employee_id: employeeId } });
-        if (!user || (user.role.toUpperCase() !== 'ADMIN' && user.role.toUpperCase() !== 'CHIEF')) {
-            return res.status(403).json({ success: false, message: 'Admin or Chief Pharmacist access required' });
+        if (!user || (user.role.toUpperCase() !== 'ADMIN' && user.role.toUpperCase() !== 'HEAD')) {
+            return res.status(403).json({ success: false, message: 'Admin or Head Pharmacist access required' });
         }
         next();
     } catch (err) {
@@ -926,6 +944,90 @@ app.delete('/api/admin/logs/:id', requireAdmin, async (req, res) => {
     }
 });
 
+// ---------------- Order Logs API ---------------- //
+app.post('/api/order-logs', async (req, res) => {
+    try {
+        const orderData = req.body;
+        const newLog = await OrderLog.create(orderData);
+        res.status(201).json({ success: true, log: newLog });
+    } catch (err) {
+        console.error('❌ Save order log error:', err);
+        res.status(500).json({ success: false, message: 'Database Error: ' + err.message });
+    }
+});
+
+app.get('/api/order-logs', async (req, res) => {
+    try {
+        const logs = await OrderLog.findAll({
+            order: [['id', 'DESC']],
+            limit: 100
+        });
+        res.json(logs);
+    } catch (err) {
+        console.error('❌ Fetch order logs error:', err);
+        res.status(500).json({ success: false, message: 'Database Error: ' + err.message });
+    }
+});
+
+app.delete('/api/order-logs/:id', async (req, res) => {
+    try {
+        const logId = req.params.id;
+        const employeeId = req.headers['x-employee-id'] || 'system';
+        
+        await OrderLog.destroy({ where: { id: logId } });
+        logActivity(employeeId, 'DELETE_ORDER_LOG', `ลบบันทึกการสั่งยา ID ${logId}`);
+        
+        res.json({ success: true });
+    } catch (err) {
+        console.error('❌ Delete order log error:', err);
+        res.status(500).json({ success: false, message: 'Database Error: ' + err.message });
+    }
+});
+
+app.put('/api/order-logs/:id', async (req, res) => {
+    try {
+        const logId = req.params.id;
+        const employeeId = req.headers['x-employee-id'];
+        
+        if (!employeeId) {
+            return res.status(401).json({ success: false, message: 'Missing employee ID header' });
+        }
+
+        const user = await User.findOne({ where: { employee_id: employeeId } });
+        if (!user) {
+            return res.status(403).json({ success: false, message: 'Invalid user' });
+        }
+
+        const orderLog = await OrderLog.findOne({ where: { id: logId } });
+        if (!orderLog) {
+            return res.status(404).json({ success: false, message: 'Order log not found' });
+        }
+
+        const userRole = user.role.toLowerCase();
+        if (userRole === 'pharmacist') {
+            const logTime = new Date(orderLog.timestamp).getTime();
+            const now = Date.now();
+            const diffHours = (now - logTime) / (1000 * 60 * 60);
+            if (diffHours > 24) {
+                return res.status(403).json({ success: false, message: 'Pharmacists can only edit records within 24 hours of creation.' });
+            }
+        }
+
+        const { hn, patient_name, ward, doctor, order_details } = req.body;
+        
+        await orderLog.update({
+            hn, patient_name, ward, doctor, order_details
+        });
+
+        logActivity(employeeId, 'EDIT_ORDER_LOG', `แก้ไขบันทึกการสั่งยา ID ${logId}`);
+        
+        res.json({ success: true });
+    } catch (err) {
+        console.error('❌ Edit order log error:', err);
+        res.status(500).json({ success: false, message: 'Database Error: ' + err.message });
+    }
+});
+
 // 👤 API: ดึงข้อมูลคนไข้ทั้งหมด
 app.get('/api/patients', async (req, res) => {
     try {
@@ -1063,7 +1165,7 @@ app.get('/api/drugs', async (req, res) => {
 });
 
 // 👥 Admin Drug Management APIs
-app.post('/api/admin/drugs', requireChiefOrAdmin, async (req, res) => {
+app.post('/api/admin/drugs', requireHeadOrAdmin, async (req, res) => {
     try {
         const { drug_code, drug_name, drug_category, calculation_type, default_weight_type, standard_dose_value, standard_dose_unit, max_dose_cap, max_bsa_cap, max_gfr_cap, is_active } = req.body;
         const employeeId = req.headers['x-employee-id'];
@@ -1097,7 +1199,7 @@ app.post('/api/admin/drugs', requireChiefOrAdmin, async (req, res) => {
     }
 });
 
-app.put('/api/admin/drugs/:id', requireChiefOrAdmin, async (req, res) => {
+app.put('/api/admin/drugs/:id', requireHeadOrAdmin, async (req, res) => {
     try {
         const drugId = req.params.id;
         const { drug_code, drug_name, drug_category, calculation_type, default_weight_type, standard_dose_value, standard_dose_unit, max_dose_cap, max_bsa_cap, max_gfr_cap, is_active } = req.body;
@@ -1132,7 +1234,7 @@ app.put('/api/admin/drugs/:id', requireChiefOrAdmin, async (req, res) => {
     }
 });
 
-app.delete('/api/admin/drugs/:id', requireChiefOrAdmin, async (req, res) => {
+app.delete('/api/admin/drugs/:id', requireHeadOrAdmin, async (req, res) => {
     try {
         const drugId = req.params.id;
         const employeeId = req.headers['x-employee-id'];

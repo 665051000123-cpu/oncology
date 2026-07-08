@@ -9,7 +9,7 @@ const DrugsInfo = ({ currentUser, onBack, showNotification, theme }) => {
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
     const isDark = theme === 'dark';
-    const isAdmin = currentUser?.role?.toUpperCase() === 'ADMIN' || currentUser?.role?.toUpperCase() === 'CHIEF';
+    const isAdmin = currentUser?.role?.toUpperCase() === 'ADMIN' || currentUser?.role?.toUpperCase() === 'HEAD';
 
     // Form Modal states
     const [showFormModal, setShowFormModal] = useState(false);

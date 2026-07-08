@@ -1,10 +1,11 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useCalculations } from './utils/useCalculations';
-import { Moon, Sun, ChevronRight, ArrowLeft, Printer, Trash2, History, User, Info, LogOut, ArrowUpDown, ChevronUp, ChevronDown, Filter, X, Settings, Pill, Search, Calendar } from 'lucide-react';
+import { Moon, Sun, ChevronRight, ArrowLeft, Printer, Trash2, History, User, Info, LogOut, ArrowUpDown, ChevronUp, ChevronDown, Filter, X, Settings, Pill, Search, Calendar, ClipboardList } from 'lucide-react';
 import axios from 'axios';
 import Login from './components/Login';
 import Notification from './components/Notification';
 import AdminUsers from './components/AdminUsers';
+import AdminOrderHistory from './components/AdminOrderHistory';
 import ChangePassword from './components/ChangePassword';
 import DrugsInfo from './components/DrugsInfo';
 import { DRUG_SOLVENT_RULES } from './drugRules';
@@ -238,6 +239,7 @@ function App() {
     const [endDateFilter, setEndDateFilter] = useState('');
     const [showFilterPanel, setShowFilterPanel] = useState(false);
     const [drugDropdownOpen, setDrugDropdownOpen] = useState(false);
+    const [editingOrderLogId, setEditingOrderLogId] = useState(null);
     const [customSolvents, setCustomSolvents] = useState(() => {
         try {
             const saved = localStorage.getItem('customSolvents');
@@ -581,6 +583,75 @@ function App() {
 
     const handleUnitChange = (drugId, newUnit) => {
         setSingleDrugResults(prev => prev.map(item => item.id === drugId ? { ...item, unit: newUnit } : item));
+    };
+
+    const handleSaveOrder = async () => {
+        const activeRows = adminRows.filter(r => !r.skipped);
+        if (activeRows.length === 0) {
+            showNotification('ไม่มีข้อมูลยาที่เลือก', 'error');
+            return;
+        }
+
+        try {
+            const orderData = {
+                timestamp: new Date().toISOString(),
+                hn: patient.hn || '-',
+                patient_name: patient.name || '-',
+                ward: patient.ward || '-',
+                user_name: user?.username || 'Guest',
+                doctor: patient.doctor || '-',
+                order_details: JSON.stringify(activeRows)
+            };
+
+            let response;
+            if (editingOrderLogId) {
+                response = await axios.put(`${API_BASE}/order-logs/${editingOrderLogId}`, orderData, {
+                    headers: { 'x-employee-id': user?.employee_id || '' }
+                });
+            } else {
+                response = await axios.post(`${API_BASE}/order-logs`, orderData, {
+                    headers: { 'x-employee-id': user?.employee_id || '' }
+                });
+            }
+
+            if (response.data.success) {
+                showNotification(editingOrderLogId ? 'อัปเดตข้อมูลการสั่งยาสำเร็จ!' : 'บันทึกข้อมูลการสั่งยาสำเร็จ!', 'success');
+                if (editingOrderLogId) {
+                    setEditingOrderLogId(null);
+                    setStep('admin-order-history');
+                }
+            } else {
+                showNotification(editingOrderLogId ? 'ไม่สามารถอัปเดตได้' : 'ไม่สามารถบันทึกได้', 'error');
+            }
+        } catch (error) {
+            console.error('Error saving order log:', error);
+            if (error.response && error.response.status === 403) {
+                showNotification(error.response.data.message || 'ไม่มีสิทธิ์ในการแก้ไข (เกิน 24 ชั่วโมง)', 'error');
+            } else {
+                showNotification('เกิดข้อผิดพลาดในการบันทึกข้อมูล', 'error');
+            }
+        }
+    };
+
+    const handleEditOrder = (log) => {
+        setEditingOrderLogId(log.id);
+        setPatient(prev => ({
+            ...prev,
+            hn: log.hn !== '-' ? log.hn : '',
+            name: log.patient_name !== '-' ? log.patient_name : '',
+            ward: log.ward !== '-' ? log.ward : '',
+            doctor: log.doctor !== '-' ? log.doctor : ''
+        }));
+        
+        try {
+            const parsedRows = JSON.parse(log.order_details);
+            setAdminRows(parsedRows);
+        } catch (e) {
+            console.error('Failed to parse order_details', e);
+        }
+        
+        setStep('main');
+        showNotification('โหลดข้อมูลสำหรับการแก้ไขแล้ว', 'success');
     };
 
     const printStickers = () => {
@@ -1422,6 +1493,14 @@ function App() {
                                     <History size={14} /> ประวัติการคำนวณ (History)
                                 </button>
                             )}
+                            {step !== 'admin-order-history' && (
+                                <button
+                                    onClick={() => setStep('admin-order-history')}
+                                    className="flex items-center gap-1.5 text-xs font-black text-rose-500 hover:text-rose-400 transition-colors uppercase tracking-widest text-left cursor-pointer border-l border-slate-700/50 pl-3 whitespace-nowrap"
+                                >
+                                    <ClipboardList size={14} /> บันทึกการสั่งยา (Orders)
+                                </button>
+                            )}
                             {user.role?.toUpperCase() === 'ADMIN' && step !== 'admin-users' && (
                                 <button
                                     onClick={() => setStep('admin-users')}
@@ -1998,6 +2077,14 @@ function App() {
                              )}
                         </div>
                     </div>
+                ) : step === 'admin-order-history' ? (
+                    <AdminOrderHistory
+                        currentUser={user}
+                        onBack={handleBackFromHistory}
+                        showNotification={showNotification}
+                        theme={theme}
+                        onEdit={handleEditOrder}
+                    />
                 ) : (
                     <div className="animate-row-in space-y-6">
                         {/* Medical Record View */}
@@ -2679,6 +2766,7 @@ function App() {
                                             </div>
                                             )}
                                         </div>
+
                                     </div>
 
                                     {/* Warnings list in Section 05 */}
@@ -2794,6 +2882,14 @@ function App() {
                                             </button>
                                             <button
                                                 type="button"
+                                                onClick={handleSaveOrder}
+                                                className={`btn btn-secondary text-xs flex items-center gap-1 py-1.5 px-3 rounded-xl border transition-all cursor-pointer font-bold no-print ${editingOrderLogId ? 'bg-amber-500/10 text-amber-600 border-amber-500/30 hover:bg-amber-500 hover:text-white' : 'bg-teal-500/10 text-teal-600 border-teal-500/30 hover:bg-teal-500 hover:text-white'}`}
+                                                title={editingOrderLogId ? 'อัปเดตข้อมูล' : 'บันทึกข้อมูลการสั่งยา'}
+                                            >
+                                                {editingOrderLogId ? 'อัปเดตข้อมูล' : '+ บันทึก'}
+                                            </button>
+                                            <button
+                                                type="button"
                                                 onClick={handleAddRow}
                                                 className="btn btn-primary text-xs flex items-center gap-1 py-1.5 px-3 rounded-xl bg-sky-500 hover:bg-sky-600 text-white shadow-sm transition-all cursor-pointer font-bold no-print"
                                             >
@@ -2802,7 +2898,7 @@ function App() {
                                         </div>
                                     </div>
 
-                                    <div className="overflow-x-auto">
+                                    <div className="overflow-x-auto min-h-[300px] pb-16">
                                         <table className="w-full text-left border-collapse">
                                             <thead>
                                                 <tr className="border-b border-slate-700/20 text-[11px] font-bold uppercase text-slate-400">
