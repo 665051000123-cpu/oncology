@@ -119,7 +119,11 @@ const OrderLog = sequelize.define('OrderLog', {
     ward: DataTypes.STRING(100),
     user_name: DataTypes.STRING(255),
     doctor: DataTypes.STRING(255),
-    order_details: DataTypes.TEXT('long') // Stores adminRows JSON
+    order_details: DataTypes.TEXT('long'), // Stores adminRows JSON
+    is_date_unlocked: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false
+    }
 }, {
     tableName: 'order_logs',
     timestamps: false
@@ -268,6 +272,21 @@ async function initializeDatabase() {
                 allowNull: true
             });
             console.log('✅ Column title added successfully to patients table.');
+        }
+
+        // Check if is_date_unlocked column exists in order_logs table, if not add it
+        try {
+            const orderLogTableInfo = await queryInterface.describeTable('order_logs');
+            if (orderLogTableInfo && !orderLogTableInfo.is_date_unlocked) {
+                console.log('Adding is_date_unlocked column to order_logs table...');
+                await queryInterface.addColumn('order_logs', 'is_date_unlocked', {
+                    type: DataTypes.BOOLEAN,
+                    defaultValue: false
+                });
+                console.log('✅ Column is_date_unlocked added successfully to order_logs table.');
+            }
+        } catch(e) {
+            console.log('Table order_logs may not exist yet, skipping alter column check.');
         }
 
         // Seed unique patients from dosage_logs if patients table is empty
@@ -980,6 +999,33 @@ app.delete('/api/order-logs/:id', async (req, res) => {
         res.json({ success: true });
     } catch (err) {
         console.error('❌ Delete order log error:', err);
+        res.status(500).json({ success: false, message: 'Database Error: ' + err.message });
+    }
+});
+
+app.put('/api/admin/order-logs/:id/toggle-date-unlock', async (req, res) => {
+    try {
+        const logId = req.params.id;
+        const employeeId = req.headers['x-employee-id'];
+        
+        if (!employeeId) return res.status(401).json({ success: false, message: 'Missing employee ID header' });
+
+        const user = await User.findOne({ where: { employee_id: employeeId } });
+        if (!user || user.role.toUpperCase() !== 'ADMIN') {
+            return res.status(403).json({ success: false, message: 'Only Admin can unlock date editing' });
+        }
+
+        const orderLog = await OrderLog.findOne({ where: { id: logId } });
+        if (!orderLog) return res.status(404).json({ success: false, message: 'Order log not found' });
+
+        const { is_date_unlocked } = req.body;
+        
+        await orderLog.update({ is_date_unlocked });
+        logActivity(employeeId, 'TOGGLE_DATE_UNLOCK', `${is_date_unlocked ? 'เปิด' : 'ปิด'}การแก้ไขวันที่ของบันทึก ID ${logId}`);
+        
+        res.json({ success: true });
+    } catch (err) {
+        console.error('❌ Toggle date unlock error:', err);
         res.status(500).json({ success: false, message: 'Database Error: ' + err.message });
     }
 });

@@ -1,0 +1,286 @@
+[
+    {
+        "drugName": "5-FU",
+        "prohibitedKeywords": [],
+        "message": "คำเตือนสำหรับ 5-FU:\\n❌ ห้ามผสมรวมในถุง/สายเดียวกับ Leucovorin (ตกตะกอน)\\n⚠️ ห้ามผสมรวมในถุง/สายเดียวกับ Leucovorin (ตกตะกอน)"
+    },
+    {
+        "drugName": "6-MP",
+        "prohibitedKeywords": [
+            "*"
+        ],
+        "message": "คำเตือนสำหรับ 6-MP:\\n❌ ห้ามนำมาผสมฉีด\\n⚠️ เป็นยาเม็ดสำหรับกินเท่านั้น"
+    },
+    {
+        "drugName": "6-Thioguanine",
+        "prohibitedKeywords": [
+            "*"
+        ],
+        "message": "คำเตือนสำหรับ 6-Thioguanine:\\n❌ ห้ามนำมาผสมฉีด\\n⚠️ เป็นยาเม็ดสำหรับกินเท่านั้น"
+    },
+    {
+        "drugName": "Actinomycin-D",
+        "prohibitedKeywords": [
+            "bacteriostatic",
+            "กันเสีย"
+        ],
+        "message": "คำเตือนสำหรับ Actinomycin-D:\\n❌ ห้ามใช้ WFI ที่มีสารกันเสีย\\n⚠️ ละลายด้วย WFI ก่อน แล้วเจือจางต่อด้วย NSS หรือ D5W"
+    },
+    {
+        "drugName": "Asparaginase",
+        "prohibitedKeywords": [],
+        "message": "คำเตือนสำหรับ Asparaginase:\\n❌ -\\n⚠️ ตอนละลายห้ามเขย่าแรง (ทำให้เกิดฟองและยาเสื่อมสภาพ) ให้หมุนขวดเบาๆ"
+    },
+    {
+        "drugName": "Bevacizumab (Avastin)",
+        "prohibitedKeywords": [
+            "d5w",
+            "d-5-w",
+            "dextrose",
+            "d5"
+        ],
+        "message": "คำเตือนสำหรับ Bevacizumab (Avastin):\\n❌ ห้ามใช้ D5W เด็ดขาด\\n⚠️ สารน้ำน้ำตาลจะทำลายโครงสร้างโปรตีนของยา"
+    },
+    {
+        "drugName": "Bleomycin",
+        "prohibitedKeywords": [],
+        "message": "คำเตือนสำหรับ Bleomycin:\\n❌ -\\n⚠️ แนะนำ NSS เพื่อความคงตัว (เสถียรน้อยใน D5W)"
+    },
+    {
+        "drugName": "Bortezomib (VELCADE)",
+        "prohibitedKeywords": [],
+        "message": "คำเตือนสำหรับ Bortezomib (VELCADE):\\n❌ ห้ามใช้ตัวทำละลายอื่น\\n⚠️ ต้องใช้ NSS ในปริมาณที่กำหนดเป๊ะๆ ในการละลาย"
+    },
+    {
+        "drugName": "Capecitabine",
+        "prohibitedKeywords": [
+            "*"
+        ],
+        "message": "คำเตือนสำหรับ Capecitabine:\\n❌ ห้ามนำมาผสมฉีด\\n⚠️ เป็นยาเม็ดสำหรับกินหลังอาหาร"
+    },
+    {
+        "drugName": "Carboplatin",
+        "prohibitedKeywords": [],
+        "message": "คำเตือนสำหรับ Carboplatin:\\n❌ -\\n⚠️ ห้ามใช้เข็มหรืออุปกรณ์ที่มีอลูมิเนียม (Aluminum) ยาจะดำและตกตะกอน"
+    },
+    {
+        "drugName": "CCNU",
+        "prohibitedKeywords": [
+            "*"
+        ],
+        "message": "คำเตือนสำหรับ CCNU:\\n❌ ห้ามนำมาผสมฉีด\\n⚠️ เป็นยาแคปซูลสำหรับกิน"
+    },
+    {
+        "drugName": "Cisplatin",
+        "prohibitedKeywords": [
+            "d5w",
+            "d-5-w",
+            "dextrose",
+            "d5"
+        ],
+        "message": "คำเตือนสำหรับ Cisplatin:\\n❌ ห้ามใช้ D5W เพียวๆ\\n⚠️ ต้องมี Chloride ในสารน้ำเสมอ ไม่งั้นจะเกิดพิษต่อไตสูงมาก ห้ามใช้อุปกรณ์อลูมิเนียม"
+    },
+    {
+        "drugName": "Cotrimoxazole",
+        "prohibitedKeywords": [],
+        "message": "คำเตือนสำหรับ Cotrimoxazole:\\n❌ -\\n⚠️ ยาตกตะกอนง่ายมาก ต้องผสมตามสัดส่วนปริมาตรน้ำที่กำหนดในเอกสารอย่างเคร่งครัด"
+    },
+    {
+        "drugName": "Cyclophosphamide",
+        "prohibitedKeywords": [],
+        "message": "คำเตือนสำหรับ Cyclophosphamide:\\n❌ -\\n⚠️ หากละลายด้วย WFI ให้เจือจางต่อด้วย NSS/D5W ก่อนให้"
+    },
+    {
+        "drugName": "Cytarabine",
+        "prohibitedKeywords": [],
+        "message": "คำเตือนสำหรับ Cytarabine:\\n❌ -\\n⚠️ มีความคงตัวดีในสารน้ำมาตรฐาน"
+    },
+    {
+        "drugName": "Dexamethasone",
+        "prohibitedKeywords": [],
+        "message": "คำเตือนสำหรับ Dexamethasone:\\n❌ -\\n⚠️ ยาสเตียรอยด์ ผสมสารน้ำฉีดเข้าเส้นได้ทั่วไป"
+    },
+    {
+        "drugName": "Docetaxel",
+        "prohibitedKeywords": [],
+        "message": "คำเตือนสำหรับ Docetaxel:\\n❌ ห้ามใช้ถุง/สายพลาสติก PVC\\n⚠️ ยาจะกัดพลาสติก PVC ต้องใช้ขวดแก้ว หรือถุง Non-PVC"
+    },
+    {
+        "drugName": "Docetaxel (Taxotere)",
+        "prohibitedKeywords": [],
+        "message": "คำเตือนสำหรับ Docetaxel (Taxotere):\\n❌ ห้ามใช้ถุง/สายพลาสติก PVC\\n⚠️ (เหมือนลำดับ 17) ต้องใช้ขวดแก้ว หรือถุง Non-PVC"
+    },
+    {
+        "drugName": "Doxorubicin",
+        "prohibitedKeywords": [],
+        "message": "คำเตือนสำหรับ Doxorubicin:\\n❌ -\\n⚠️ ตัวยาเป็นสีแดงเข้ม ละลายได้ทั้งน้ำเกลือและน้ำตาล"
+    },
+    {
+        "drugName": "Doxorubicin (Lipodox)",
+        "prohibitedKeywords": [
+            "nss",
+            "nacl",
+            "0.9%",
+            "chloride",
+            "0.9"
+        ],
+        "message": "คำเตือนสำหรับ Doxorubicin (Lipodox):\\n❌ ห้ามใช้ NSS หรือสารน้ำอื่น\\n⚠️ รูปแบบ Liposomal ต้องใช้ D5W เท่านั้น ไม่งั้นระบบนำส่งยาจะแตกตัว"
+    },
+    {
+        "drugName": "Epirubicin",
+        "prohibitedKeywords": [],
+        "message": "คำเตือนสำหรับ Epirubicin:\\n❌ -\\n⚠️ ตัวยาสีแดง ละลายคล้าย Doxorubicin ปกติ"
+    },
+    {
+        "drugName": "Etoposide",
+        "prohibitedKeywords": [],
+        "message": "คำเตือนสำหรับ Etoposide:\\n❌ -\\n⚠️ ยาตกตะกอนง่ายมาก ห้ามผสมเข้มข้นเกินไป และควรหลีกเลี่ยง PVC"
+    },
+    {
+        "drugName": "FLUDARABINE",
+        "prohibitedKeywords": [],
+        "message": "คำเตือนสำหรับ FLUDARABINE:\\n❌ -\\n⚠️ ละลายผงยาด้วย WFI ก่อน แล้วเจือจางต่อด้วย NSS"
+    },
+    {
+        "drugName": "Gemcitabine",
+        "prohibitedKeywords": [],
+        "message": "คำเตือนสำหรับ Gemcitabine:\\n❌ -\\n⚠️ แนะนำให้ละลายผงยาด้วย NSS เพียวๆ ก่อนเจือจาง"
+    },
+    {
+        "drugName": "HD-Cytarabine",
+        "prohibitedKeywords": [],
+        "message": "คำเตือนสำหรับ HD-Cytarabine:\\n❌ -\\n⚠️ (Cytarabine ขนาดสูง) ระวังเรื่องความเข้มข้นและการล้างสาย"
+    },
+    {
+        "drugName": "HD-Methotrexate",
+        "prohibitedKeywords": [],
+        "message": "คำเตือนสำหรับ HD-Methotrexate:\\n❌ -\\n⚠️ (Methotrexate ขนาดสูง) มักต้องผสมสารสเตอริไลซ์ที่มีโซเดียมไบคาร์บอเนตเพื่อปรับปัสสาวะให้เป็นด่าง"
+    },
+    {
+        "drugName": "Hydrocortisone",
+        "prohibitedKeywords": [],
+        "message": "คำเตือนสำหรับ Hydrocortisone:\\n❌ -\\n⚠️ ยาสเตียรอยด์ ผสมสารน้ำมาตรฐานได้"
+    },
+    {
+        "drugName": "Idarubicin",
+        "prohibitedKeywords": [],
+        "message": "คำเตือนสำหรับ Idarubicin:\\n❌ ห้ามผสมร่วมกับยาอื่น\\n⚠️ แนะนำใช้ NSS เจือจาง (ห้ามผสมในสารน้ำที่เป็นด่างสูง)"
+    },
+    {
+        "drugName": "Ifosfamide",
+        "prohibitedKeywords": [],
+        "message": "คำเตือนสำหรับ Ifosfamide:\\n❌ -\\n⚠️ มักต้องให้ร่วมกับ Mesna เสมอเพื่อป้องกันกระเพาะปัสสาวะอักเสบ"
+    },
+    {
+        "drugName": "Irinotecan",
+        "prohibitedKeywords": [],
+        "message": "คำเตือนสำหรับ Irinotecan:\\n❌ -\\n⚠️ แนะนำให้ผสมใน D5W จะมีความคงตัวทางเคมีที่ดีกว่า"
+    },
+    {
+        "drugName": "Mesna",
+        "prohibitedKeywords": [],
+        "message": "คำเตือนสำหรับ Mesna:\\n❌ -\\n⚠️ สามารถผสมรวมในถุงเดียวกับ Ifosfamide หรือ Cyclophosphamide ได้ตามสูตร"
+    },
+    {
+        "drugName": "Methotrexate",
+        "prohibitedKeywords": [],
+        "message": "คำเตือนสำหรับ Methotrexate:\\n❌ -\\n⚠️ ยาไวต่อแสง ควรหลีกเลี่ยงการโดนแสงแดดจัดเป็นเวลานาน"
+    },
+    {
+        "drugName": "Methylprednisolone",
+        "prohibitedKeywords": [],
+        "message": "คำเตือนสำหรับ Methylprednisolone:\\n❌ -\\n⚠️ ยาสเตียรอยด์ ผสมสารน้ำฉีดทั่วไปได้"
+    },
+    {
+        "drugName": "Mitomycin C",
+        "prohibitedKeywords": [
+            "d5w",
+            "d-5-w",
+            "dextrose",
+            "d5"
+        ],
+        "message": "คำเตือนสำหรับ Mitomycin C:\\n❌ ไม่แนะนำให้ใช้ D5W\\n⚠️ ยาสลายตัวง่ายมากในสภาวะเป็นกรด (D5W เป็นกรดอ่อนๆ) ควรใช้ NSS"
+    },
+    {
+        "drugName": "Mitoxantrone",
+        "prohibitedKeywords": [],
+        "message": "คำเตือนสำหรับ Mitoxantrone:\\n❌ -\\n⚠️ ตัวยาสีน้ำเงินเข้ม เจือจางใน NSS หรือ D5W ก็ได้"
+    },
+    {
+        "drugName": "Nitrogen mustard",
+        "prohibitedKeywords": [],
+        "message": "คำเตือนสำหรับ Nitrogen mustard:\\n❌ -\\n⚠️ ยาสลายตัวเร็วมากหลังจากผสม ต้องรีบให้ผู้ป่วยทันทีหลังผสมเสร็จ"
+    },
+    {
+        "drugName": "Oxaliplatin",
+        "prohibitedKeywords": [
+            "nss",
+            "nacl",
+            "0.9%",
+            "chloride",
+            "0.9"
+        ],
+        "message": "คำเตือนสำหรับ Oxaliplatin:\\n❌ ห้ามใช้ NSS หรือสารที่มี Chloride เด็ดขาด\\n⚠️ ยาจะตกตะกอนและเสื่อมสภาพทันที ต้องใช้ D5W เท่านั้น"
+    },
+    {
+        "drugName": "Paclitaxel (Taxol)",
+        "prohibitedKeywords": [],
+        "message": "คำเตือนสำหรับ Paclitaxel (Taxol):\\n❌ ห้ามใช้ถุง/สายพลาสติก PVC\\n⚠️ ยาจะกัดพลาสติกและปล่อยสารพิษ ต้องใช้ขวดแก้ว หรือถุง Non-PVC และต้องมี Inline filter"
+    },
+    {
+        "drugName": "Pamidronate disodium",
+        "prohibitedKeywords": [],
+        "message": "คำเตือนสำหรับ Pamidronate disodium:\\n❌ ห้ามใช้สารน้ำที่มีแคลเซียม (เช่น Ringer's)\\n⚠️ ยาจะจับกับแคลเซียมแล้วตกตะกอน"
+    },
+    {
+        "drugName": "Prednisolone",
+        "prohibitedKeywords": [
+            "*"
+        ],
+        "message": "คำเตือนสำหรับ Prednisolone:\\n❌ ห้ามนำมาผสมฉีด\\n⚠️ (ยกเว้นรูปแบบฉีดเฉพาะทาง แต่ในรายชื่อทั่วไปคือยาทาน)"
+    },
+    {
+        "drugName": "Rescuvolin",
+        "prohibitedKeywords": [],
+        "message": "คำเตือนสำหรับ Rescuvolin:\\n❌ ห้ามผสมรวมถุง/สายเดียวกับ 5-FU\\n⚠️ (Leucovorin) ละลายทั่วไปได้ แต่ตอนบริหารยาต้องระวังการตกตะกอนกับ 5-FU"
+    },
+    {
+        "drugName": "Rituximab",
+        "prohibitedKeywords": [
+            "d5w",
+            "d-5-w",
+            "dextrose",
+            "d5"
+        ],
+        "message": "คำเตือนสำหรับ Rituximab:\\n❌ ห้ามใช้ D5W เด็ดขาด\\n⚠️ สารน้ำน้ำตาลทำให้โปรตีนเกาะกลุ่มกันเป็นก้อน"
+    },
+    {
+        "drugName": "Trastuzumab (Herceptin)",
+        "prohibitedKeywords": [
+            "d5w",
+            "d-5-w",
+            "dextrose",
+            "d5"
+        ],
+        "message": "คำเตือนสำหรับ Trastuzumab (Herceptin):\\n❌ ห้ามใช้ D5W เด็ดขาด\\n⚠️ สารน้ำน้ำตาลทำให้โปรตีนเกาะกลุ่มกันเป็นก้อน"
+    },
+    {
+        "drugName": "UFT",
+        "prohibitedKeywords": [
+            "*"
+        ],
+        "message": "คำเตือนสำหรับ UFT:\\n❌ ห้ามนำมาผสมฉีด\\n⚠️ เป็นยาแคปซูลสำหรับกิน"
+    },
+    {
+        "drugName": "UFT",
+        "prohibitedKeywords": [
+            "*"
+        ],
+        "message": "คำเตือนสำหรับ UFT:\\n❌ ห้ามนำมาผสมฉีด\\n⚠️ (ซ้ำกับลำดับ 44)"
+    },
+    {
+        "drugName": "Vinblastine",
+        "prohibitedKeywords": [],
+        "message": "คำเตือนสำหรับ Vinblastine:\\n❌ ห้ามใช้สารน้ำปริมาณมากๆ หยดเข้าเส้น\\n⚠️ -"
+    }
+]

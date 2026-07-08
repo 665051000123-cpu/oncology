@@ -118,6 +118,7 @@ function App() {
     const [user, setUser] = useState(null);
     const [loginData, setLoginData] = useState({ username: '', password: '' });
     const [patient, setPatient] = useState({ hn: '', title: '', name: '', height: '', weight: '', gender: '', age: '', allergies: '', ward: '', doctor: '' });
+    const [isDateEditable, setIsDateEditable] = useState(false);
     const [logs, setLogs] = useState([]);
     const [notification, setNotification] = useState(null);
     const [searchQuery, setSearchQuery] = useState('');
@@ -643,6 +644,7 @@ function App() {
             doctor: log.doctor !== '-' ? log.doctor : ''
         }));
         
+        setIsDateEditable(log.is_date_unlocked || false);
         try {
             const parsedRows = JSON.parse(log.order_details);
             setAdminRows(parsedRows);
@@ -2853,7 +2855,7 @@ function App() {
                                             onClick={printCalculationA4}
                                             className="w-full btn btn-secondary text-sm flex items-center justify-center gap-2 py-3 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all cursor-pointer font-bold no-print text-slate-700 dark:text-slate-300"
                                         >
-                                            <Printer size={18} /> พิมพ์ผลการคำนวณ (A4)
+                                            <Printer size={18} /> พิมพ์ผลการคำนวณ (A5)
                                         </button>
                                     </div>
                                     {calculationDetails.pharmacistNote && (
@@ -2871,6 +2873,27 @@ function App() {
                                         <div className="flex items-center gap-3">
                                             <div className="w-8 h-8 rounded-full bg-sky-600 text-white flex items-center justify-center font-black text-xs">06</div>
                                             <h2 className="text-lg font-black uppercase">รายละเอียดการให้ยา (DRUG ADMINISTRATION)</h2>
+                                            {!!editingOrderLogId && user?.role?.toUpperCase() === 'ADMIN' && (
+                                                <button
+                                                    type="button"
+                                                    onClick={async () => {
+                                                        try {
+                                                            const res = await axios.put(`${API_BASE}/admin/order-logs/${editingOrderLogId}/toggle-date-unlock`, {
+                                                                is_date_unlocked: !isDateEditable
+                                                            }, { headers: { 'x-employee-id': user?.employee_id } });
+                                                            if (res.data.success) {
+                                                                setIsDateEditable(!isDateEditable);
+                                                                showNotification(!isDateEditable ? 'เปิดสิทธิ์แก้ไขวันที่เรียบร้อย' : 'ปิดสิทธิ์แก้ไขวันที่เรียบร้อย', 'success');
+                                                            }
+                                                        } catch(err) {
+                                                            showNotification('เกิดข้อผิดพลาดในการเปลี่ยนสิทธิ์: ' + (err.response?.data?.message || err.message), 'error');
+                                                        }
+                                                    }}
+                                                    className={`ml-3 text-[10px] px-2 py-1 rounded-md font-bold transition-all border ${isDateEditable ? 'bg-amber-100 text-amber-700 border-amber-300' : 'bg-slate-100 text-slate-500 border-slate-300 dark:bg-slate-800 dark:border-slate-600'}`}
+                                                >
+                                                    {isDateEditable ? 'ปิดแก้ไขวัน' : 'เปิดแก้ไขวัน'}
+                                                </button>
+                                            )}
                                         </div>
                                         <div className="flex items-center gap-2">
                                             <button
@@ -3015,13 +3038,15 @@ function App() {
                                                                     placeholder="วว/ดด/ปปปป"
                                                                     value={row.startDate}
                                                                     onChange={e => handleAdminDateChange(e.target.value, row.startDate, idx, 'startDate')}
-                                                                    className="form-control py-1.5 px-3 text-xs rounded-lg font-bold min-w-[140px]"
+                                                                    disabled={!!editingOrderLogId && !isDateEditable}
+                                                                    className={`form-control py-1.5 px-3 text-xs rounded-lg font-bold min-w-[140px] ${(!!editingOrderLogId && !isDateEditable) ? 'opacity-70 cursor-not-allowed bg-slate-50 dark:bg-slate-900/50' : ''}`}
                                                                     maxLength={10}
                                                                 />
                                                                 <input
                                                                     type="date"
-                                                                    className="absolute left-0 right-0 top-0 bottom-0 opacity-0 cursor-pointer w-full h-full"
-                                                                    onClick={(e) => { try { e.target.showPicker(); } catch(err){} }}
+                                                                    disabled={!!editingOrderLogId && !isDateEditable}
+                                                                    className={`absolute left-0 right-0 top-0 bottom-0 opacity-0 w-full h-full ${(!!editingOrderLogId && !isDateEditable) ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+                                                                    onClick={(e) => { if (!editingOrderLogId || isDateEditable) { try { e.target.showPicker(); } catch(err){} } }}
                                                                     value={(() => {
                                                                         if (row.startDate && row.startDate.length === 10) {
                                                                             const d = row.startDate.substring(0, 2);
@@ -3051,13 +3076,15 @@ function App() {
                                                                     placeholder="วว/ดด/ปปปป"
                                                                     value={row.endDate}
                                                                     onChange={e => handleAdminDateChange(e.target.value, row.endDate, idx, 'endDate')}
-                                                                    className="form-control py-1.5 px-3 text-xs rounded-lg font-bold min-w-[140px]"
+                                                                    disabled={!!editingOrderLogId && !isDateEditable}
+                                                                    className={`form-control py-1.5 px-3 text-xs rounded-lg font-bold min-w-[140px] ${(!!editingOrderLogId && !isDateEditable) ? 'opacity-70 cursor-not-allowed bg-slate-50 dark:bg-slate-900/50' : ''}`}
                                                                     maxLength={10}
                                                                 />
                                                                 <input
                                                                     type="date"
-                                                                    className="absolute left-0 right-0 top-0 bottom-0 opacity-0 cursor-pointer w-full h-full"
-                                                                    onClick={(e) => { try { e.target.showPicker(); } catch(err){} }}
+                                                                    disabled={!!editingOrderLogId && !isDateEditable}
+                                                                    className={`absolute left-0 right-0 top-0 bottom-0 opacity-0 w-full h-full ${(!!editingOrderLogId && !isDateEditable) ? 'cursor-not-allowed' : 'cursor-pointer'}`}
+                                                                    onClick={(e) => { if (!editingOrderLogId || isDateEditable) { try { e.target.showPicker(); } catch(err){} } }}
                                                                     value={(() => {
                                                                         if (row.endDate && row.endDate.length === 10) {
                                                                             const d = row.endDate.substring(0, 2);

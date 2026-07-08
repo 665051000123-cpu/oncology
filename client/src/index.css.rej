@@ -1,0 +1,30 @@
+diff a/client/src/index.css b/client/src/index.css	(rejected hunks)
+@@ -178,11 +178,28 @@ body.light-mode {
+     visibility: visible !important;
+   }
+ 
++  .print-only {
++    display: inline !important;
++    visibility: visible !important;
++  }
++
++  .history-child-row {
++    display: table-row !important;
++  }
++
+   @page {
+     margin: 0.4cm 0.8cm !important;
+   }
+ }
+ 
++.history-collapsed {
++  display: none;
++}
++
++.print-only {
++  display: none !important;
++}
++
+ /* Custom Styles from index.html */
+ input[type="number"]::-webkit-outer-spin-button,
+ input[type="number"]::-webkit-inner-spin-button {
