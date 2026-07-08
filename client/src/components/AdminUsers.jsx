@@ -1,5 +1,5 @@
 import React, { useState, useEffect, useMemo } from 'react';
-import { ArrowLeft, UserPlus, Edit2, Trash2, Shield, User, Lock, Save, X, Eye, EyeOff, Search, FileText, LogIn, PenLine, LayoutDashboard, TrendingUp, Users, Activity, Filter } from 'lucide-react';
+import { ArrowLeft, UserPlus, Edit2, Trash2, Shield, User, Lock, Save, X, Eye, EyeOff, Search, FileText, LogIn, PenLine, LayoutDashboard, TrendingUp, Users, Activity, Filter, Calendar } from 'lucide-react';
 import axios from 'axios';
 
 const API_BASE = '/api';
@@ -583,28 +583,78 @@ const AdminUsers = ({ currentUser, setCurrentUser, onBack, showNotification, the
                         <div className="flex-1 grid grid-cols-1 sm:grid-cols-2 gap-4">
                             <div>
                                 <label className="block text-[11px] font-black text-slate-400 mb-1.5 uppercase ml-1">วันที่เริ่มต้น (Start Date)</label>
-                                <div className="relative">
+                                <div className="relative flex items-center">
                                     <input
                                         type="text"
-                                        placeholder="วว/ดด/ปปปป (เช่น 24/06/2569)"
+                                        placeholder="วว/ดด/ปปปป"
                                         value={statsStartDate}
                                         onChange={e => handleDateInputChange(e.target.value, statsStartDate, setStatsStartDate)}
-                                        className="form-control py-2.5 pl-10 pr-4 text-sm rounded-xl font-bold"
+                                        className="form-control py-2.5 pl-10 pr-10 text-sm rounded-xl font-bold w-full"
+                                        maxLength={10}
                                     />
-                                    <Filter size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                                    <Filter size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                                    <input
+                                        type="date"
+                                        className="absolute left-0 right-0 top-0 bottom-0 opacity-0 cursor-pointer w-full h-full"
+                                        onClick={(e) => { try { e.target.showPicker(); } catch(err){} }}
+                                        value={(() => {
+                                            if (statsStartDate && statsStartDate.length === 10) {
+                                                const d = statsStartDate.substring(0, 2);
+                                                const m = statsStartDate.substring(3, 5);
+                                                const yNum = parseInt(statsStartDate.substring(6, 10), 10);
+                                                if (!isNaN(yNum)) {
+                                                    const gYear = yNum > 2400 ? yNum - 543 : yNum;
+                                                    return `${gYear}-${m}-${d}`;
+                                                }
+                                            }
+                                            return '';
+                                        })()}
+                                        onChange={(e) => {
+                                            if (!e.target.value) return;
+                                            const [y, m, d] = e.target.value.split('-');
+                                            const thaiYear = parseInt(y, 10) < 2400 ? parseInt(y, 10) + 543 : parseInt(y, 10);
+                                            handleDateInputChange(`${d}/${m}/${thaiYear}`, statsStartDate, setStatsStartDate);
+                                        }}
+                                    />
+                                    <Calendar size={16} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                                 </div>
                             </div>
                             <div>
                                 <label className="block text-[11px] font-black text-slate-400 mb-1.5 uppercase ml-1">วันที่สิ้นสุด (End Date)</label>
-                                <div className="relative">
+                                <div className="relative flex items-center">
                                     <input
                                         type="text"
-                                        placeholder="วว/ดด/ปปปป (เช่น 29/06/2569)"
+                                        placeholder="วว/ดด/ปปปป"
                                         value={statsEndDate}
                                         onChange={e => handleDateInputChange(e.target.value, statsEndDate, setStatsEndDate)}
-                                        className="form-control py-2.5 pl-10 pr-4 text-sm rounded-xl font-bold"
+                                        className="form-control py-2.5 pl-10 pr-10 text-sm rounded-xl font-bold w-full"
+                                        maxLength={10}
                                     />
-                                    <Filter size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400" />
+                                    <Filter size={16} className="absolute left-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
+                                    <input
+                                        type="date"
+                                        className="absolute left-0 right-0 top-0 bottom-0 opacity-0 cursor-pointer w-full h-full"
+                                        onClick={(e) => { try { e.target.showPicker(); } catch(err){} }}
+                                        value={(() => {
+                                            if (statsEndDate && statsEndDate.length === 10) {
+                                                const d = statsEndDate.substring(0, 2);
+                                                const m = statsEndDate.substring(3, 5);
+                                                const yNum = parseInt(statsEndDate.substring(6, 10), 10);
+                                                if (!isNaN(yNum)) {
+                                                    const gYear = yNum > 2400 ? yNum - 543 : yNum;
+                                                    return `${gYear}-${m}-${d}`;
+                                                }
+                                            }
+                                            return '';
+                                        })()}
+                                        onChange={(e) => {
+                                            if (!e.target.value) return;
+                                            const [y, m, d] = e.target.value.split('-');
+                                            const thaiYear = parseInt(y, 10) < 2400 ? parseInt(y, 10) + 543 : parseInt(y, 10);
+                                            handleDateInputChange(`${d}/${m}/${thaiYear}`, statsEndDate, setStatsEndDate);
+                                        }}
+                                    />
+                                    <Calendar size={16} className="absolute right-3.5 top-1/2 -translate-y-1/2 text-slate-400 pointer-events-none" />
                                 </div>
                             </div>
                         </div>
@@ -1142,23 +1192,77 @@ const AdminUsers = ({ currentUser, setCurrentUser, onBack, showNotification, the
                             }`}>
                             <div>
                                 <label className="block text-xs font-black text-slate-400 mb-1.5 uppercase">วันที่เริ่มต้น (Start Date)</label>
-                                <input
-                                    type="text"
-                                    placeholder="วว/ดด/ปปปป (เช่น 24/06/2569)"
-                                    value={logStartDateFilter}
-                                    onChange={e => handleDateInputChange(e.target.value, logStartDateFilter, setLogStartDateFilter)}
-                                    className="form-control py-1.5 px-3 text-xs rounded-xl font-bold"
-                                />
+                                <div className="relative flex items-center">
+                                    <input
+                                        type="text"
+                                        placeholder="วว/ดด/ปปปป"
+                                        value={logStartDateFilter}
+                                        onChange={e => handleDateInputChange(e.target.value, logStartDateFilter, setLogStartDateFilter)}
+                                        className="form-control py-1.5 px-3 text-xs rounded-xl font-bold w-full"
+                                        maxLength={10}
+                                    />
+                                    <input
+                                        type="date"
+                                        className="absolute left-0 right-0 top-0 bottom-0 opacity-0 cursor-pointer w-full h-full"
+                                        onClick={(e) => { try { e.target.showPicker(); } catch(err){} }}
+                                        value={(() => {
+                                            if (logStartDateFilter && logStartDateFilter.length === 10) {
+                                                const d = logStartDateFilter.substring(0, 2);
+                                                const m = logStartDateFilter.substring(3, 5);
+                                                const yNum = parseInt(logStartDateFilter.substring(6, 10), 10);
+                                                if (!isNaN(yNum)) {
+                                                    const gYear = yNum > 2400 ? yNum - 543 : yNum;
+                                                    return `${gYear}-${m}-${d}`;
+                                                }
+                                            }
+                                            return '';
+                                        })()}
+                                        onChange={(e) => {
+                                            if (!e.target.value) return;
+                                            const [y, m, d] = e.target.value.split('-');
+                                            const thaiYear = parseInt(y, 10) < 2400 ? parseInt(y, 10) + 543 : parseInt(y, 10);
+                                            handleDateInputChange(`${d}/${m}/${thaiYear}`, logStartDateFilter, setLogStartDateFilter);
+                                        }}
+                                    />
+                                    <Calendar size={14} className="absolute right-3 text-slate-400 pointer-events-none" />
+                                </div>
                             </div>
                             <div>
                                 <label className="block text-xs font-black text-slate-400 mb-1.5 uppercase">วันที่สิ้นสุด (End Date)</label>
-                                <input
-                                    type="text"
-                                    placeholder="วว/ดด/ปปปป (เช่น 24/06/2569)"
-                                    value={logEndDateFilter}
-                                    onChange={e => handleDateInputChange(e.target.value, logEndDateFilter, setLogEndDateFilter)}
-                                    className="form-control py-1.5 px-3 text-xs rounded-xl font-bold"
-                                />
+                                <div className="relative flex items-center">
+                                    <input
+                                        type="text"
+                                        placeholder="วว/ดด/ปปปป"
+                                        value={logEndDateFilter}
+                                        onChange={e => handleDateInputChange(e.target.value, logEndDateFilter, setLogEndDateFilter)}
+                                        className="form-control py-1.5 px-3 text-xs rounded-xl font-bold w-full"
+                                        maxLength={10}
+                                    />
+                                    <input
+                                        type="date"
+                                        className="absolute left-0 right-0 top-0 bottom-0 opacity-0 cursor-pointer w-full h-full"
+                                        onClick={(e) => { try { e.target.showPicker(); } catch(err){} }}
+                                        value={(() => {
+                                            if (logEndDateFilter && logEndDateFilter.length === 10) {
+                                                const d = logEndDateFilter.substring(0, 2);
+                                                const m = logEndDateFilter.substring(3, 5);
+                                                const yNum = parseInt(logEndDateFilter.substring(6, 10), 10);
+                                                if (!isNaN(yNum)) {
+                                                    const gYear = yNum > 2400 ? yNum - 543 : yNum;
+                                                    return `${gYear}-${m}-${d}`;
+                                                }
+                                            }
+                                            return '';
+                                        })()}
+                                        onChange={(e) => {
+                                            if (!e.target.value) return;
+                                            const [y, m, d] = e.target.value.split('-');
+                                            const thaiYear = parseInt(y, 10) < 2400 ? parseInt(y, 10) + 543 : parseInt(y, 10);
+                                            handleDateInputChange(`${d}/${m}/${thaiYear}`, logEndDateFilter, setLogEndDateFilter);
+                                        }}
+                                    />
+                                    <Calendar size={14} className="absolute right-3 text-slate-400 pointer-events-none" />
+                                </div>
                             </div>
                             <div>
                                 <label className="block text-xs font-black text-slate-400 mb-1.5 uppercase">บทบาท (Role)</label>
@@ -1307,23 +1411,77 @@ const AdminUsers = ({ currentUser, setCurrentUser, onBack, showNotification, the
                 }`}>
                 <div>
                     <label className="block text-xs font-black text-slate-400 mb-1.5 uppercase">วันที่เริ่มต้น (Start Date)</label>
-                    <input
-                        type="text"
-                        placeholder="วว/ดด/ปปปป (เช่น 24/06/2569)"
-                        value={activityStartDateFilter}
-                        onChange={e => handleDateInputChange(e.target.value, activityStartDateFilter, setActivityStartDateFilter)}
-                        className="form-control py-1.5 px-3 text-xs rounded-xl font-bold"
-                    />
+                    <div className="relative flex items-center">
+                        <input
+                            type="text"
+                            placeholder="วว/ดด/ปปปป"
+                            value={activityStartDateFilter}
+                            onChange={e => handleDateInputChange(e.target.value, activityStartDateFilter, setActivityStartDateFilter)}
+                            className="form-control py-1.5 px-3 text-xs rounded-xl font-bold w-full"
+                            maxLength={10}
+                        />
+                        <input
+                            type="date"
+                            className="absolute left-0 right-0 top-0 bottom-0 opacity-0 cursor-pointer w-full h-full"
+                            onClick={(e) => { try { e.target.showPicker(); } catch(err){} }}
+                            value={(() => {
+                                if (activityStartDateFilter && activityStartDateFilter.length === 10) {
+                                    const d = activityStartDateFilter.substring(0, 2);
+                                    const m = activityStartDateFilter.substring(3, 5);
+                                    const yNum = parseInt(activityStartDateFilter.substring(6, 10), 10);
+                                    if (!isNaN(yNum)) {
+                                        const gYear = yNum > 2400 ? yNum - 543 : yNum;
+                                        return `${gYear}-${m}-${d}`;
+                                    }
+                                }
+                                return '';
+                            })()}
+                            onChange={(e) => {
+                                if (!e.target.value) return;
+                                const [y, m, d] = e.target.value.split('-');
+                                const thaiYear = parseInt(y, 10) < 2400 ? parseInt(y, 10) + 543 : parseInt(y, 10);
+                                handleDateInputChange(`${d}/${m}/${thaiYear}`, activityStartDateFilter, setActivityStartDateFilter);
+                            }}
+                        />
+                        <Calendar size={14} className="absolute right-3 text-slate-400 pointer-events-none" />
+                    </div>
                 </div>
                 <div>
                     <label className="block text-xs font-black text-slate-400 mb-1.5 uppercase">วันที่สิ้นสุด (End Date)</label>
-                    <input
-                        type="text"
-                        placeholder="วว/ดด/ปปปป (เช่น 24/06/2569)"
-                        value={activityEndDateFilter}
-                        onChange={e => handleDateInputChange(e.target.value, activityEndDateFilter, setActivityEndDateFilter)}
-                        className="form-control py-1.5 px-3 text-xs rounded-xl font-bold"
-                    />
+                    <div className="relative flex items-center">
+                        <input
+                            type="text"
+                            placeholder="วว/ดด/ปปปป"
+                            value={activityEndDateFilter}
+                            onChange={e => handleDateInputChange(e.target.value, activityEndDateFilter, setActivityEndDateFilter)}
+                            className="form-control py-1.5 px-3 text-xs rounded-xl font-bold w-full"
+                            maxLength={10}
+                        />
+                        <input
+                            type="date"
+                            className="absolute left-0 right-0 top-0 bottom-0 opacity-0 cursor-pointer w-full h-full"
+                            onClick={(e) => { try { e.target.showPicker(); } catch(err){} }}
+                            value={(() => {
+                                if (activityEndDateFilter && activityEndDateFilter.length === 10) {
+                                    const d = activityEndDateFilter.substring(0, 2);
+                                    const m = activityEndDateFilter.substring(3, 5);
+                                    const yNum = parseInt(activityEndDateFilter.substring(6, 10), 10);
+                                    if (!isNaN(yNum)) {
+                                        const gYear = yNum > 2400 ? yNum - 543 : yNum;
+                                        return `${gYear}-${m}-${d}`;
+                                    }
+                                }
+                                return '';
+                            })()}
+                            onChange={(e) => {
+                                if (!e.target.value) return;
+                                const [y, m, d] = e.target.value.split('-');
+                                const thaiYear = parseInt(y, 10) < 2400 ? parseInt(y, 10) + 543 : parseInt(y, 10);
+                                handleDateInputChange(`${d}/${m}/${thaiYear}`, activityEndDateFilter, setActivityEndDateFilter);
+                            }}
+                        />
+                        <Calendar size={14} className="absolute right-3 text-slate-400 pointer-events-none" />
+                    </div>
                 </div>
                 <div>
                     <label className="block text-xs font-black text-slate-400 mb-1.5 uppercase">ประเภทการแก้ไข</label>

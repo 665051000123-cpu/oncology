@@ -3,6 +3,7 @@ import { CheckCircle, AlertCircle, XCircle, Info, X } from 'lucide-react';
 
 const Notification = ({ message, type = 'info', onClose, duration = 3000 }) => {
     useEffect(() => {
+        if (duration === 0) return;
         const timer = setTimeout(() => {
             onClose();
         }, duration);
@@ -28,7 +29,7 @@ const Notification = ({ message, type = 'info', onClose, duration = 3000 }) => {
             <div className="shrink-0 flex items-center justify-center w-12 h-12 rounded-2xl bg-white/10 shadow-inner">
                 {icons[type] || icons.info}
             </div>
-            <p className="text-lg font-black text-white leading-tight flex-1 text-center px-2">{message}</p>
+            <p className="text-lg font-black text-white leading-tight flex-1 text-center px-2 whitespace-pre-line">{message}</p>
             <button
                 onClick={onClose}
                 className="p-2 hover:bg-white/20 rounded-xl transition-colors text-slate-300 hover:text-white"

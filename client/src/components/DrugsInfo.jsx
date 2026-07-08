@@ -184,9 +184,9 @@ const DrugsInfo = ({ currentUser, onBack, showNotification, theme }) => {
 
     const getCategoryLabel = (cat) => {
         switch (cat) {
-            case 'CHEMOTHERAPY':    return '💊 ยาเคมีบำบัด';
+            case 'CHEMOTHERAPY': return '💊 ยาเคมีบำบัด';
             case 'TARGETED_THERAPY': return '🎯 ยามุ่งเป้า';
-            case 'IMMUNOTHERAPY':   return '🛡️ ภูมิคุ้มกันบำบัด';
+            case 'IMMUNOTHERAPY': return '🛡️ ภูมิคุ้มกันบำบัด';
             case 'SUPPORTIVE_CARE': return '🩺 ยาประคับประคอง';
             default: return cat || 'ยาเคมีบำบัด';
         }
@@ -194,10 +194,10 @@ const DrugsInfo = ({ currentUser, onBack, showNotification, theme }) => {
 
     const getCategoryColor = (cat) => {
         switch (cat) {
-            case 'CHEMOTHERAPY':    return isDark ? 'bg-rose-950/50 text-rose-400 border-rose-800/50'    : 'bg-rose-50 text-rose-700 border-rose-200';
+            case 'CHEMOTHERAPY': return isDark ? 'bg-rose-950/50 text-rose-400 border-rose-800/50' : 'bg-rose-50 text-rose-700 border-rose-200';
             case 'TARGETED_THERAPY': return isDark ? 'bg-amber-950/50 text-amber-400 border-amber-800/50' : 'bg-amber-50 text-amber-700 border-amber-200';
-            case 'IMMUNOTHERAPY':   return isDark ? 'bg-emerald-950/50 text-emerald-400 border-emerald-800/50' : 'bg-emerald-50 text-emerald-700 border-emerald-200';
-            case 'SUPPORTIVE_CARE': return isDark ? 'bg-sky-950/50 text-sky-400 border-sky-800/50'       : 'bg-sky-50 text-sky-700 border-sky-200';
+            case 'IMMUNOTHERAPY': return isDark ? 'bg-emerald-950/50 text-emerald-400 border-emerald-800/50' : 'bg-emerald-50 text-emerald-700 border-emerald-200';
+            case 'SUPPORTIVE_CARE': return isDark ? 'bg-sky-950/50 text-sky-400 border-sky-800/50' : 'bg-sky-50 text-sky-700 border-sky-200';
             default: return isDark ? 'bg-slate-800 text-slate-300 border-slate-700' : 'bg-slate-100 text-slate-600 border-slate-200';
         }
     };
@@ -205,17 +205,15 @@ const DrugsInfo = ({ currentUser, onBack, showNotification, theme }) => {
     const getStatusBadge = (isActive) => {
         if (isActive === 1 || isActive === true || isActive === '1') {
             return (
-                <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border whitespace-nowrap ${
-                    isDark ? 'bg-emerald-950/50 text-emerald-400 border-emerald-800/50' : 'bg-emerald-50 text-emerald-700 border-emerald-200'
-                }`}>
+                <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border whitespace-nowrap ${isDark ? 'bg-emerald-950/50 text-emerald-400 border-emerald-800/50' : 'bg-emerald-50 text-emerald-700 border-emerald-200'
+                    }`}>
                     เปิดใช้งาน
                 </span>
             );
         }
         return (
-            <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border whitespace-nowrap ${
-                isDark ? 'bg-red-950/50 text-red-400 border-red-800/50' : 'bg-red-50 text-red-700 border-red-200'
-            }`}>
+            <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border whitespace-nowrap ${isDark ? 'bg-red-950/50 text-red-400 border-red-800/50' : 'bg-red-50 text-red-700 border-red-200'
+                }`}>
                 ปิดใช้งาน
             </span>
         );
@@ -231,7 +229,7 @@ const DrugsInfo = ({ currentUser, onBack, showNotification, theme }) => {
                         className={`p-2.5 rounded-xl border transition-all active:scale-95 cursor-pointer shadow-md ${isDark
                             ? 'bg-slate-800 hover:bg-slate-700 text-sky-400 border-slate-700'
                             : 'bg-slate-100 hover:bg-slate-200 text-sky-600 border-slate-200 shadow-sm'
-                        }`}
+                            }`}
                     >
                         <ArrowLeft size={16} />
                     </button>
@@ -254,7 +252,7 @@ const DrugsInfo = ({ currentUser, onBack, showNotification, theme }) => {
                             className={`pl-9 pr-4 py-2 rounded-xl text-sm font-bold border transition-all w-full md:w-[220px] ${isDark
                                 ? 'bg-slate-800 border-slate-700 text-white placeholder:text-slate-500 focus:border-sky-500'
                                 : 'bg-white border-slate-200 text-slate-900 placeholder:text-slate-400 focus:border-sky-500 shadow-sm'
-                            }`}
+                                }`}
                         />
                     </div>
                     {isAdmin && (
@@ -348,7 +346,7 @@ const DrugsInfo = ({ currentUser, onBack, showNotification, theme }) => {
                                         className={`border-b transition-colors ${isDark
                                             ? 'border-slate-700/30 hover:bg-slate-800/40'
                                             : 'border-slate-100 hover:bg-sky-50/50'
-                                        }`}
+                                            }`}
                                     >
                                         <td className="px-2.5 py-3 font-mono text-xs opacity-50">{idx + 1}</td>
                                         <td className="px-2.5 py-3 font-bold text-xs text-sky-500 dark:text-sky-400">
@@ -356,12 +354,11 @@ const DrugsInfo = ({ currentUser, onBack, showNotification, theme }) => {
                                         </td>
                                         <td className="px-2.5 py-3">
                                             <div className="flex items-center gap-2">
-                                                <div className={`w-7.5 h-7.5 rounded-lg flex items-center justify-center font-black text-xs shrink-0 ${
-                                                    drug.calculation_type === 'BSA' ? (isDark ? 'bg-sky-950/60 text-sky-400' : 'bg-sky-100 text-sky-600')
+                                                <div className={`w-7.5 h-7.5 rounded-lg flex items-center justify-center font-black text-xs shrink-0 ${drug.calculation_type === 'BSA' ? (isDark ? 'bg-sky-950/60 text-sky-400' : 'bg-sky-100 text-sky-600')
                                                     : drug.calculation_type === 'CALVERT_FORMULA' ? (isDark ? 'bg-amber-950/60 text-amber-400' : 'bg-amber-100 text-amber-600')
-                                                    : drug.calculation_type === 'FIXED_DOSE' ? (isDark ? 'bg-purple-950/60 text-purple-400' : 'bg-purple-100 text-purple-600')
-                                                    : (isDark ? 'bg-emerald-950/60 text-emerald-400' : 'bg-emerald-100 text-emerald-600')
-                                                }`}>
+                                                        : drug.calculation_type === 'FIXED_DOSE' ? (isDark ? 'bg-purple-950/60 text-purple-400' : 'bg-purple-100 text-purple-600')
+                                                            : (isDark ? 'bg-emerald-950/60 text-emerald-400' : 'bg-emerald-100 text-emerald-600')
+                                                    }`}>
                                                     <Pill size={14} />
                                                 </div>
                                                 <div>
@@ -389,9 +386,8 @@ const DrugsInfo = ({ currentUser, onBack, showNotification, theme }) => {
                                         </td>
                                         <td className="px-2.5 py-3 text-center">
                                             {drug.max_dose_cap !== null && drug.max_dose_cap !== undefined ? (
-                                                <span className={`px-2 py-0.5 rounded-lg text-xs font-black border whitespace-nowrap ${
-                                                    isDark ? 'bg-rose-950/40 text-rose-400 border-rose-800/40' : 'bg-rose-50 text-rose-600 border-rose-200'
-                                                }`}>
+                                                <span className={`px-2 py-0.5 rounded-lg text-xs font-black border whitespace-nowrap ${isDark ? 'bg-rose-950/40 text-rose-400 border-rose-800/40' : 'bg-rose-50 text-rose-600 border-rose-200'
+                                                    }`}>
                                                     {parseFloat(drug.max_dose_cap).toFixed(2)} mg
                                                 </span>
                                             ) : (
@@ -400,9 +396,8 @@ const DrugsInfo = ({ currentUser, onBack, showNotification, theme }) => {
                                         </td>
                                         <td className="px-2.5 py-3 text-center">
                                             {drug.max_gfr_cap !== null && drug.max_gfr_cap !== undefined ? (
-                                                <span className={`px-2 py-0.5 rounded-lg text-xs font-black border whitespace-nowrap ${
-                                                    isDark ? 'bg-amber-950/40 text-amber-400 border-amber-800/40' : 'bg-amber-50 text-amber-600 border-amber-200'
-                                                }`}>
+                                                <span className={`px-2 py-0.5 rounded-lg text-xs font-black border whitespace-nowrap ${isDark ? 'bg-amber-950/40 text-amber-400 border-amber-800/40' : 'bg-amber-50 text-amber-600 border-amber-200'
+                                                    }`}>
                                                     {drug.max_gfr_cap} ml/min
                                                 </span>
                                             ) : (
@@ -423,7 +418,7 @@ const DrugsInfo = ({ currentUser, onBack, showNotification, theme }) => {
                                                         className={`p-1.5 rounded-lg border transition-all active:scale-95 cursor-pointer ${isDark
                                                             ? 'bg-sky-950/30 hover:bg-sky-900/40 text-sky-400 hover:text-sky-300 border-sky-900/50'
                                                             : 'bg-sky-50 hover:bg-sky-100 text-sky-600 hover:text-sky-700 border-sky-200 shadow-sm'
-                                                        }`}
+                                                            }`}
                                                         title="แก้ไข"
                                                     >
                                                         <Edit2 size={14} />
@@ -433,7 +428,7 @@ const DrugsInfo = ({ currentUser, onBack, showNotification, theme }) => {
                                                         className={`p-1.5 rounded-lg border transition-all active:scale-95 cursor-pointer ${isDark
                                                             ? 'bg-rose-950/30 hover:bg-rose-900/40 text-rose-400 hover:text-rose-300 border-rose-900/50'
                                                             : 'bg-rose-50 hover:bg-rose-100 text-rose-600 hover:text-rose-700 border-rose-200 shadow-sm'
-                                                        }`}
+                                                            }`}
                                                         title="ลบ"
                                                     >
                                                         <Trash2 size={14} />
@@ -451,8 +446,9 @@ const DrugsInfo = ({ currentUser, onBack, showNotification, theme }) => {
 
             {/* Form Modal (Add / Edit) */}
             {showFormModal && (
-                <div className="fixed inset-0 z-[999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in">
-                    <div className="premium-card p-6 md:p-8 w-full max-w-[75%] md:max-w-[75%] animate-pop relative border-sky-500/50 overflow-y-auto max-h-[90vh]">
+                <div className="fixed inset-0 z-[999] overflow-y-auto bg-black/60 backdrop-blur-sm animate-fade-in">
+                    <div className="flex min-h-full items-start justify-center p-4 md:p-10">
+                        <div className="premium-card p-6 md:p-8 w-full max-w-[75%] animate-pop relative border-sky-500/50">
                         <button
                             onClick={() => setShowFormModal(false)}
                             className="absolute top-4 right-4 text-slate-500 hover:text-slate-300 p-1.5 rounded-lg hover:bg-slate-800 transition-colors"
@@ -608,7 +604,7 @@ const DrugsInfo = ({ currentUser, onBack, showNotification, theme }) => {
                                     className={`w-1/2 py-3 px-4 rounded-xl border text-sm font-bold transition-all active:scale-95 cursor-pointer text-center ${isDark
                                         ? 'border-slate-700 hover:bg-slate-800 text-slate-300'
                                         : 'border-slate-200 hover:bg-slate-100 text-slate-600 shadow-sm'
-                                    }`}
+                                        }`}
                                 >
                                     ยกเลิก
                                 </button>
@@ -621,6 +617,7 @@ const DrugsInfo = ({ currentUser, onBack, showNotification, theme }) => {
                             </div>
                         </form>
                     </div>
+                </div>
                 </div>
             )}
 
@@ -642,7 +639,7 @@ const DrugsInfo = ({ currentUser, onBack, showNotification, theme }) => {
                                 className={`w-1/2 py-3 px-4 rounded-xl border text-sm font-bold transition-all active:scale-95 cursor-pointer text-center ${isDark
                                     ? 'border-slate-700 hover:bg-slate-800 text-slate-300'
                                     : 'border-slate-200 hover:bg-slate-100 text-slate-600 shadow-sm'
-                                }`}
+                                    }`}
                             >
                                 ยกเลิก
                             </button>

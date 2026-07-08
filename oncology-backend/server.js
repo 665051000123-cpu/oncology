@@ -192,15 +192,23 @@ const Patient = sequelize.define('Patient', {
 });
 
 const Solvent = sequelize.define('Solvent', {
-    id: {
+    solvent_id: {
         type: DataTypes.INTEGER,
         primaryKey: true,
         autoIncrement: true
     },
-    name: {
+    solvent_name: {
         type: DataTypes.STRING(100),
         allowNull: false,
         unique: true
+    },
+    is_active: {
+        type: DataTypes.TINYINT,
+        defaultValue: 1
+    },
+    created_at: {
+        type: DataTypes.DATE,
+        defaultValue: DataTypes.NOW
     }
 }, {
     tableName: 'solvents',
@@ -284,7 +292,7 @@ async function initializeDatabase() {
                 "NSS(แก้ว) 100", "NSS(แก้ว) 1000", "NSS(แก้ว) 500", "NSS. 10",
                 "WFI 10", "WFI 20", "WFI 50", "ขวด Doxo 0"
             ];
-            await Solvent.bulkCreate(defaultSolvents.map(name => ({ name })));
+            await Solvent.bulkCreate(defaultSolvents.map(n => ({ solvent_name: n })), { ignoreDuplicates: true });
             console.log('✅ Default solvents seeded.');
         }
 
@@ -996,7 +1004,7 @@ app.post('/api/patients', async (req, res) => {
 app.get('/api/solvents', async (req, res) => {
     try {
         const solvents = await Solvent.findAll({
-            order: [['name', 'ASC']]
+            order: [['solvent_name', 'ASC']]
         });
         res.json({ success: true, solvents });
     } catch (err) {
@@ -1023,7 +1031,7 @@ app.post('/api/solvents', async (req, res) => {
         // Check duplicates case-insensitively
         const existing = await Solvent.findOne({
             where: sequelize.where(
-                sequelize.fn('lower', sequelize.col('name')),
+                sequelize.fn('lower', sequelize.col('solvent_name')),
                 name.toLowerCase()
             )
         });
@@ -1032,7 +1040,7 @@ app.post('/api/solvents', async (req, res) => {
             return res.status(400).json({ success: false, message: 'ตัวทำละลายนี้มีอยู่ในระบบแล้ว' });
         }
 
-        const newSolvent = await Solvent.create({ name });
+        const newSolvent = await Solvent.create({ solvent_name: name });
         logActivity(employeeId, 'ADD_SOLVENT', `เพิ่มตัวทำละลายใหม่: ${name}`);
         res.json({ success: true, solvent: newSolvent });
     } catch (err) {

@@ -355,6 +355,19 @@ body:not(.light-mode) .gender-text-highlight {
     display: block !important;
   }
 }
+/* Single Drug Prescriptions Print Support */
+#single-drug-print-template {
+  display: none;
+}
+
+@media print {
+  body.printing-single-drug #root {
+    display: none !important;
+  }
+  body.printing-single-drug #single-drug-print-template {
+    display: block !important;
+  }
+}
 
 /* Chemotherapy Box/IV Bag Sticker Print Style */
 .sticker-print-template {
