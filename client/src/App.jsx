@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useCalculations } from './utils/useCalculations';
-import { Moon, Sun, ChevronRight, ArrowLeft, Printer, Trash2, History, User, Info, LogOut, ArrowUpDown, ChevronUp, ChevronDown, Filter, X, Settings, Pill, Search, Calendar, ClipboardList, AlertTriangle, AlertCircle, CheckCircle, Syringe, Package } from 'lucide-react';
+import { Moon, Sun, ChevronRight, ArrowLeft, ArrowRight, Printer, Trash2, History, User, Info, LogOut, ArrowUpDown, ChevronUp, ChevronDown, Filter, X, Settings, Pill, Search, Calendar, ClipboardList, AlertTriangle, AlertCircle, CheckCircle, Syringe, Package } from 'lucide-react';
 import axios from 'axios';
 import Login from './components/Login';
 import Notification from './components/Notification';
@@ -11,8 +11,9 @@ import DrugsInfo from './components/DrugsInfo';
 import { DRUG_SOLVENT_RULES } from './drugRules';
 import { DRUG_CONCENTRATION_DATA } from './drugData';
 import PrinterSettings from './components/PrinterSettings';
+
 import InventoryManagement from './components/InventoryManagement';
-import qz from 'qz-tray';
+
 
 const API_BASE = '/api';
 
@@ -385,8 +386,24 @@ function App() {
     useEffect(() => {
         if (step === 'login') {
             fetchPatients();
+            fetchAllOrderLogs();
         }
     }, [step]);
+
+    const [allOrderLogs, setAllOrderLogs] = useState([]);
+    
+    const fetchAllOrderLogs = async () => {
+        try {
+            const res = await axios.get(`${API_BASE}/order-logs`);
+            if (res.data.success) {
+                // sort desc by id (assuming higher id is newer)
+                const sorted = res.data.orderLogs.sort((a, b) => b.id - a.id);
+                setAllOrderLogs(sorted);
+            }
+        } catch (err) {
+            console.error("Failed to fetch order logs", err);
+        }
+    };
 
     const filteredPatients = useMemo(() => {
         if (!patientSearch.trim()) return patients;
@@ -525,7 +542,11 @@ function App() {
 
         const params = { ...drugParams, gfr: useAutoGfr ? effectiveGfr : drugParams.gfr };
         const results = selectedDrugs.map(drugId => {
-            const { dose, note } = calculateDose(currentBsa, drugId, params);
+            const currentParams = { ...params };
+            if (drugParams.customTargetDoses && drugParams.customTargetDoses[drugId] !== undefined) {
+                currentParams.targetDose = drugParams.customTargetDoses[drugId];
+            }
+            const { dose, note } = calculateDose(currentBsa, drugId, currentParams);
             const drugInfo = drugsInfo.find(d => d.id === drugId);
             const drugName = drugInfo?.name || drugId.toUpperCase();
             let unit = 'mg';
@@ -771,24 +792,21 @@ function App() {
 
         const printStickersAsync = async () => {
             if (user?.default_printer) {
+                showNotification('กำลังส่งข้อมูลไปยังเครื่องพิมพ์สติ๊กเกอร์...', 'info');
                 try {
-                    if (!qz.websocket.isActive()) {
-                        await qz.websocket.connect({ retries: 2, delay: 1 });
+                    const res = await axios.post(`${API_BASE}/print`, {
+                        html: htmlContent,
+                        printerName: user.default_printer,
+                        paperSize: 'Sticker'
+                    });
+                    
+                    if (res.data.success) {
+                        showNotification(`พิมพ์สติ๊กเกอร์ไปที่ ${user.default_printer} สำเร็จ`, 'success');
+                        return; // Stop here, no browser dialog
                     }
-                    const config = qz.configs.create(user.default_printer);
-                    
-                    const data = [{
-                        type: 'html',
-                        format: 'plain',
-                        data: htmlContent
-                    }];
-                    
-                    await qz.print(config, data);
-                    showNotification('ส่งคำสั่งพิมพ์ไปยังเครื่อง ' + user.default_printer + ' แล้ว', 'success');
-                    return; 
                 } catch (err) {
-                    console.error('QZ Print error', err);
-                    showNotification('เกิดข้อผิดพลาดจาก QZ Tray: ' + err.message + ' (ระบบจะเปิดหน้าต่างปกติแทน)', 'warning');
+                    console.error('Local Print Server error', err);
+                    showNotification('ไม่สามารถพิมพ์ผ่านระบบอัตโนมัติได้ กำลังเปลี่ยนไปพิมพ์ผ่านเบราว์เซอร์...', 'warning');
                 }
             }
 
@@ -817,16 +835,10 @@ function App() {
         printStickersAsync();
     };
 
-    const printWorkingFormula = () => {
+    const printWorkingFormula = async () => {
         const activeRows = adminRows.filter(r => !r.skipped);
         if (activeRows.length === 0) {
             showNotification('ไม่มีรายการยาสำหรับพิมพ์', 'warning');
-            return;
-        }
-
-        const printWindow = window.open('', '_blank', 'width=1000,height=800');
-        if (!printWindow) {
-            showNotification('โปรดอนุญาตให้เบราว์เซอร์เปิดหน้าต่าง Pop-up เพื่อพิมพ์', 'warning');
             return;
         }
 
@@ -985,7 +997,36 @@ function App() {
                     <p>วันที่ ______/______/______</p>
                 </div>
             </div>
+        </body>
+        </html>
+        `;
 
+        if (user?.a4_printer) {
+            showNotification('กำลังส่งข้อมูลไปยังเครื่องพิมพ์เอกสาร...', 'info');
+            try {
+                const res = await axios.post(`${API_BASE}/print`, {
+                    html: htmlContent,
+                    printerName: user.a4_printer,
+                    paperSize: 'A4'
+                });
+                
+                if (res.data.success) {
+                    showNotification(`พิมพ์ใบเตรียมยาไปที่ ${user.a4_printer} สำเร็จ`, 'success');
+                    return; // Stop here, no browser dialog
+                }
+            } catch (err) {
+                console.error('Local Print Server error', err);
+                showNotification('ไม่สามารถพิมพ์ผ่านระบบอัตโนมัติได้ กำลังเปลี่ยนไปพิมพ์ผ่านเบราว์เซอร์...', 'warning');
+            }
+        }
+
+        const printWindow = window.open('', '_blank', 'width=1000,height=800');
+        if (!printWindow) {
+            showNotification('โปรดอนุญาตให้เบราว์เซอร์เปิดหน้าต่าง Pop-up เพื่อพิมพ์', 'warning');
+            return;
+        }
+
+        const fallbackHtml = htmlContent.replace('</body>', `
             <script>
                 window.onload = () => {
                     setTimeout(() => {
@@ -995,22 +1036,15 @@ function App() {
                 };
             </script>
         </body>
-        </html>
-        `;
+        `);
 
-        printWindow.document.write(htmlContent);
+        printWindow.document.write(fallbackHtml);
         printWindow.document.close();
     };
 
-    const printCalculationA4 = () => {
+    const printCalculationA4 = async () => {
         if (!patient.hn) {
             showNotification('กรุณาระบุข้อมูลผู้ป่วย (HN) เพื่อพิมพ์ใบสรุป', 'warning');
-            return;
-        }
-
-        const printWindow = window.open('', '_blank', 'width=800,height=800');
-        if (!printWindow) {
-            showNotification('โปรดอนุญาตให้เบราว์เซอร์เปิดหน้าต่าง Pop-up เพื่อพิมพ์', 'warning');
             return;
         }
 
@@ -1112,7 +1146,36 @@ function App() {
                     <span style="display: inline-block; margin-top: 5px;">ผู้รับรอง/ผู้เตรียมยา</span>
                 </div>
             </div>
-            
+        </body>
+        </html>
+        `;
+
+        if (user?.a4_printer) {
+            showNotification('กำลังส่งข้อมูลไปยังเครื่องพิมพ์เอกสาร...', 'info');
+            try {
+                const res = await axios.post(`${API_BASE}/print`, {
+                    html: htmlContent,
+                    printerName: user.a4_printer,
+                    paperSize: 'A4'
+                });
+                
+                if (res.data.success) {
+                    showNotification(`พิมพ์ผลการคำนวณไปที่ ${user.a4_printer} สำเร็จ`, 'success');
+                    return; // Stop here, no browser dialog
+                }
+            } catch (err) {
+                console.error('Local Print Server error', err);
+                showNotification('ไม่สามารถพิมพ์ผ่านระบบอัตโนมัติได้ กำลังเปลี่ยนไปพิมพ์ผ่านเบราว์เซอร์...', 'warning');
+            }
+        }
+
+        const printWindow = window.open('', '_blank', 'width=800,height=800');
+        if (!printWindow) {
+            showNotification('โปรดอนุญาตให้เบราว์เซอร์เปิดหน้าต่าง Pop-up เพื่อพิมพ์', 'warning');
+            return;
+        }
+
+        const fallbackHtml = htmlContent.replace('</body>', `
             <script>
                 window.onload = () => {
                     setTimeout(() => {
@@ -1122,10 +1185,9 @@ function App() {
                 };
             </script>
         </body>
-        </html>
-        `;
+        `);
 
-        printWindow.document.write(htmlContent);
+        printWindow.document.write(fallbackHtml);
         printWindow.document.close();
     };
 
@@ -1345,6 +1407,29 @@ function App() {
         setUser(null);
         setStep('auth');
     };
+
+    // Auto-adjust admin rows based on Cycle input
+    useEffect(() => {
+        if (patient.cycle) {
+            const match = patient.cycle.match(/\d+/);
+            if (match) {
+                const targetCount = parseInt(match[0], 10);
+                if (targetCount > 0 && targetCount <= 20) {
+                    setAdminRows(prev => {
+                        if (prev.length === targetCount) return prev;
+                        if (prev.length < targetCount) {
+                            const newRows = [];
+                            for (let i = prev.length; i < targetCount; i++) {
+                                newRows.push({ id: Date.now() + i, drugName: '', route: '', solvent: '', startDate: '', endDate: '', rate: '', order: i + 1, skipped: false, dose: '', calculatedDose: '', volume: '', storage: '', warning: '' });
+                            }
+                            return [...prev, ...newRows];
+                        }
+                        return prev;
+                    });
+                }
+            }
+        }
+    }, [patient.cycle]);
 
     const lastActivityRef = useRef(Date.now());
 
@@ -2186,85 +2271,120 @@ function App() {
                                          const hnLogs = filteredLogs.filter(l => l.hn === selectedHnDetail);
                                          const latestLog = hnLogs[0] || {};
                                          return (
-                                             <>
-                                                 <div className={`p-4 rounded-2xl border flex flex-wrap gap-4 items-center ${theme === 'dark' ? 'bg-slate-800/50 border-slate-700/30' : 'bg-sky-50 border-sky-200'}`}>
-                                                     <div className={`w-12 h-12 rounded-full flex items-center justify-center shrink-0 font-black text-xl ${
-                                                         latestLog.gender === 'female'
-                                                             ? 'bg-rose-500/15 text-rose-500 border border-rose-500/20'
-                                                             : 'bg-sky-500/15 text-sky-500 border border-sky-500/20'
-                                                     }`}>
-                                                         {latestLog.gender === 'female' ? '♀' : '♂'}
-                                                     </div>
-                                                     <div>
-                                                         <p className="font-black text-lg uppercase">{latestLog.patient_name || '-'}</p>
-                                                         <p className="text-slate-400 text-sm">
-                                                             {latestLog.gender === 'female' ? 'หญิง' : latestLog.gender === 'male' ? 'ชาย' : '-'}
-                                                             {latestLog.age ? ` | ${latestLog.age} ปี` : ''}
-                                                             {latestLog.ward ? ' | ' + latestLog.ward : ''}
-                                                         </p>
-                                                     </div>
-                                                     <div className="ml-auto text-right">
-                                                         <div className="text-3xl font-black text-sky-500">{hnLogs.length}</div>
-                                                         <div className="text-xs text-slate-400">ครั้งที่คำนวณ</div>
-                                                     </div>
-                                                 </div>
-                                                 <div className="overflow-x-auto overflow-y-auto max-h-[500px] rounded-lg border border-slate-700/20 shadow-inner scrollable-table-container">
-                                                     <table className="w-full text-left text-sm md:text-base print-table">
-                                                         <thead className="sticky top-0 z-10" style={{ backgroundColor: 'var(--table-header-bg)' }}>
-                                                             <tr className="bg-sky-600/10 text-slate-400 border-b border-slate-700/20">
-                                                                 {renderTableHeader('วันที่บันทึก', 'w-[12%] whitespace-nowrap')}
-                                                                 {renderTableHeader('หอผู้ป่วย', 'w-[10%] whitespace-nowrap')}
-                                                                 {renderTableHeader('ประวัติแพ้ยา', 'w-[15%] whitespace-nowrap')}
-                                                                 {renderTableHeader('BSA', 'w-[8%] whitespace-nowrap', 'justify-center')}
-                                                                 {renderTableHeader('สูตรการคำนวณ', 'w-[18%] whitespace-nowrap')}
-                                                                 {renderTableHeader('ยาที่ใช้', 'w-[12%] whitespace-nowrap')}
-                                                                 {renderTableHeader('Dose', 'w-[12%] whitespace-nowrap', 'justify-end')}
-                                                                 {renderTableHeader('แพทย์ผู้สั่ง', 'w-[12%] whitespace-nowrap')}
-                                                                 {renderTableHeader('ผู้บันทึก', 'w-[11%] whitespace-nowrap', 'justify-center')}
-                                                                 {user?.role?.toUpperCase() === 'ADMIN' && renderTableHeader('จัดการ', 'w-[8%] whitespace-nowrap no-print', 'justify-center')}
-                                                             </tr>
-                                                         </thead>
-                                                         <tbody>
-                                                             {hnLogs.map(log => (
-                                                                 <tr key={log.id} className="border-b border-slate-700/10 hover:bg-sky-600/5 transition-colors">
-                                                                     <td className="p-4 font-mono opacity-70 whitespace-nowrap">{log.timestamp}</td>
-                                                                     <td className="p-4 font-bold text-slate-600 dark:text-slate-300">{log.ward || '-'}</td>
-                                                                     <td className="p-4 font-bold">
-                                                                         {log.allergies ? (
-                                                                             <div className="flex flex-wrap gap-1">
-                                                                                 {log.allergies.split(',').map(a => a.trim()).filter(Boolean).map((a, i) => (
-                                                                                     <span key={i} className="text-red-500 bg-red-500/10 px-2 py-0.5 rounded text-[11px] inline-block font-black">
-                                                                                         ⚠️ {a}
-                                                                                     </span>
-                                                                                 ))}
-                                                                             </div>
-                                                                         ) : (
-                                                                             <span className="text-slate-400 font-normal">-</span>
-                                                                         )}
-                                                                     </td>
-                                                                     <td className="p-4 text-center text-emerald-500 font-bold whitespace-nowrap">{sanitizeNaN(log.calculated_bsa)}</td>
-                                                                     <td className="p-4 text-slate-400 font-bold uppercase leading-snug">{sanitizeNaN(log.formula_used)}</td>
-                                                                     <td className="p-4 font-bold text-sky-500 uppercase">{log.drugs_used || '-'}</td>
-                                                                     <td className="p-4 text-right text-amber-500 font-black whitespace-nowrap">{sanitizeNaN(log.prescribed_dose)}</td>
-                                                                     <td className="p-4 text-slate-500 dark:text-slate-400 font-bold truncate max-w-[120px]">{log.doctor || '-'}</td>
-                                                                     <td className="p-4 text-center text-sky-400 font-bold uppercase truncate max-w-[120px]">{log.user_name || '-'}</td>
-                                                                     {user?.role?.toUpperCase() === 'ADMIN' && (
-                                                                         <td className="p-4 text-center no-print">
-                                                                             <button
-                                                                                 onClick={() => handleDeleteLog(log)}
-                                                                                 className="text-red-500 hover:text-red-400 p-1.5 rounded-lg hover:bg-red-500/10 transition-all active:scale-95 cursor-pointer flex items-center justify-center mx-auto"
-                                                                                 title="ลบรายการบันทึกประวัตินี้"
-                                                                             >
-                                                                                 <Trash2 size={16} />
-                                                                             </button>
-                                                                         </td>
-                                                                     )}
-                                                                 </tr>
-                                                             ))}
-                                                         </tbody>
-                                                     </table>
-                                                 </div>
-                                             </>
+                                            <>
+                                                <div className={`p-6 rounded-3xl border flex flex-wrap gap-5 items-center mb-6 shadow-sm backdrop-blur-sm relative overflow-hidden ${theme === 'dark' ? 'bg-gradient-to-r from-slate-800/80 to-slate-800/40 border-slate-700/50' : 'bg-gradient-to-r from-sky-50 to-white border-sky-200/60'}`}>
+                                                    <div className="absolute top-0 right-0 w-48 h-48 bg-sky-400/10 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none"></div>
+                                                    <div className={`w-14 h-14 rounded-2xl shadow-sm flex items-center justify-center shrink-0 font-black text-2xl relative z-10 ${
+                                                        latestLog.gender === 'female'
+                                                            ? 'bg-gradient-to-br from-rose-400/20 to-rose-500/10 text-rose-500 border border-rose-500/20'
+                                                            : 'bg-gradient-to-br from-sky-400/20 to-sky-500/10 text-sky-500 border border-sky-500/20'
+                                                    }`}>
+                                                        {latestLog.gender === 'female' ? '♀' : '♂'}
+                                                    </div>
+                                                    <div className="relative z-10">
+                                                        <p className="font-black text-xl uppercase tracking-tight text-slate-800 dark:text-white mb-0.5">{latestLog.patient_name || '-'}</p>
+                                                        <p className="text-slate-500 dark:text-slate-400 text-sm font-medium flex items-center gap-2">
+                                                            <span className="px-2 py-0.5 rounded-md bg-slate-200/50 dark:bg-slate-700/50 text-xs font-bold">{latestLog.gender === 'female' ? 'หญิง' : latestLog.gender === 'male' ? 'ชาย' : '-'}</span>
+                                                            {latestLog.age && <span className="px-2 py-0.5 rounded-md bg-slate-200/50 dark:bg-slate-700/50 text-xs font-bold">{latestLog.age} ปี</span>}
+                                                            {latestLog.ward && <span className="px-2 py-0.5 rounded-md bg-slate-200/50 dark:bg-slate-700/50 text-xs font-bold">{latestLog.ward}</span>}
+                                                        </p>
+                                                    </div>
+                                                    <div className="ml-auto text-right relative z-10 flex flex-col items-end">
+                                                        <div className="text-4xl font-black text-transparent bg-clip-text bg-gradient-to-br from-sky-400 to-sky-600 leading-none mb-1">{hnLogs.length}</div>
+                                                        <div className="text-xs text-slate-400 uppercase tracking-widest font-bold">ครั้งที่คำนวณ</div>
+                                                    </div>
+                                                </div>
+                                                
+                                                <div className="relative border-l-2 border-slate-200 dark:border-slate-700 ml-3 md:ml-4 space-y-5 pb-8 mt-6">
+                                                    {hnLogs.map((log, idx) => (
+                                                        <div key={log.id} className="relative pl-5 md:pl-8 group">
+                                                            {/* Timeline dot */}
+                                                            <div className="absolute -left-[9px] top-1.5 w-4 h-4 rounded-full bg-sky-500 border-4 border-white dark:border-slate-900 shadow-sm group-hover:scale-125 transition-transform duration-300 ring-2 ring-transparent group-hover:ring-sky-200 dark:group-hover:ring-sky-900/50"></div>
+                                                            
+                                                            {/* Card Content */}
+                                                            <div className="bg-white dark:bg-slate-800/80 p-3.5 md:p-4 rounded-xl border border-slate-200/60 dark:border-slate-700/50 shadow-sm hover:shadow-md transition-all duration-300 hover:-translate-y-0.5 relative overflow-hidden">
+                                                                <div className="flex flex-col md:flex-row justify-between items-start md:items-center mb-3 pb-3 border-b border-slate-100 dark:border-slate-700/50 gap-3">
+                                                                    <div className="flex items-center gap-2">
+                                                                        <div className="p-1.5 bg-sky-50 dark:bg-sky-900/30 rounded-lg text-sky-500">
+                                                                            <Calendar size={14} />
+                                                                        </div>
+                                                                        <div className="flex flex-col sm:flex-row sm:items-baseline gap-1 sm:gap-2">
+                                                                            <span className="font-mono text-[13px] font-bold text-slate-700 dark:text-slate-300">{log.timestamp}</span>
+                                                                            <span className="text-[10px] text-slate-400">บันทึกโดย: <span className="font-bold text-sky-500 uppercase">{log.user_name || '-'}</span></span>
+                                                                        </div>
+                                                                    </div>
+                                                                    <div className="flex gap-2 items-center flex-wrap">
+                                                                        {log.ward && (
+                                                                            <span className="px-2 py-0.5 text-[10px] font-bold rounded-md bg-slate-100 dark:bg-slate-700 text-slate-500 dark:text-slate-400 flex items-center gap-1">
+                                                                                <Activity size={10} /> {log.ward}
+                                                                            </span>
+                                                                        )}
+                                                                        {user?.role?.toUpperCase() === 'ADMIN' && (
+                                                                            <button
+                                                                                onClick={() => handleDeleteLog(log)}
+                                                                                className="text-slate-400 hover:text-rose-500 p-1 rounded-md hover:bg-rose-500/10 transition-colors active:scale-95 no-print ml-1"
+                                                                                title="ลบรายการบันทึกประวัตินี้"
+                                                                            >
+                                                                                <Trash2 size={12} />
+                                                                            </button>
+                                                                        )}
+                                                                    </div>
+                                                                </div>
+
+                                                                <div className="flex flex-col lg:flex-row gap-4 relative z-10">
+                                                                    {/* Patient Status */}
+                                                                    <div className="flex lg:flex-col gap-4 lg:gap-2 min-w-[120px]">
+                                                                        <div>
+                                                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-0.5">พื้นที่ผิว (BSA)</p>
+                                                                            <p className="text-sm font-black text-emerald-500">{sanitizeNaN(log.calculated_bsa)} <span className="text-[10px] font-bold text-slate-400">m²</span></p>
+                                                                        </div>
+                                                                        <div>
+                                                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-0.5">ประวัติแพ้ยา</p>
+                                                                            {log.allergies ? (
+                                                                                <div className="flex flex-wrap gap-1">
+                                                                                    {log.allergies.split(',').map(a => a.trim()).filter(Boolean).map((a, i) => (
+                                                                                        <span key={i} className="text-rose-500 bg-rose-500/10 px-1.5 py-0.5 rounded text-[9px] font-black border border-rose-500/20">
+                                                                                            ⚠️ {a}
+                                                                                        </span>
+                                                                                    ))}
+                                                                                </div>
+                                                                            ) : (
+                                                                                <span className="text-xs font-bold italic text-slate-400/70">-</span>
+                                                                            )}
+                                                                        </div>
+                                                                    </div>
+
+                                                                    {/* Regimen */}
+                                                                    <div className="flex-1 bg-slate-50/50 dark:bg-slate-800/40 p-3 rounded-lg border border-slate-100 dark:border-slate-700/50 group-hover:bg-sky-50/30 dark:group-hover:bg-sky-900/10 transition-colors">
+                                                                        <div className="flex flex-col sm:flex-row gap-3 sm:items-start justify-between">
+                                                                            <div>
+                                                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1 flex items-center gap-1"><Pill size={10}/> สูตรยาที่ใช้ (Regimen)</p>
+                                                                                <p className="font-black text-sky-600 dark:text-sky-400 uppercase text-sm leading-snug">{log.drugs_used || '-'}</p>
+                                                                            </div>
+                                                                            <div className="text-left sm:text-right mt-1 sm:mt-0">
+                                                                                <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1">วิธีการคำนวณ</p>
+                                                                                <p className="text-[9px] font-bold text-slate-500 bg-slate-200/50 dark:bg-slate-700/50 px-1.5 py-0.5 rounded inline-block uppercase">{sanitizeNaN(log.formula_used)}</p>
+                                                                            </div>
+                                                                        </div>
+                                                                        
+                                                                        <div className="border-t border-slate-200/50 dark:border-slate-700/50 pt-2 mt-2">
+                                                                            <p className="text-[10px] font-black text-slate-400 uppercase tracking-wider mb-1">ขนาดยาสุทธิ (Final Dose)</p>
+                                                                            <p className="text-sm font-black text-amber-600 dark:text-amber-500 bg-amber-500/10 inline-block px-2 py-0.5 rounded-md border border-amber-500/20">{sanitizeNaN(log.prescribed_dose)}</p>
+                                                                        </div>
+                                                                    </div>
+                                                                </div>
+
+                                                                {log.doctor && (
+                                                                    <div className="mt-3 pt-2 border-t border-slate-100 dark:border-slate-700/50 flex items-center gap-2 relative z-10">
+                                                                        <span className="text-[9px] font-black text-slate-400 uppercase bg-slate-100 dark:bg-slate-700 px-1.5 py-0.5 rounded">แพทย์ผู้สั่งยา</span>
+                                                                        <span className="text-[11px] font-bold text-slate-600 dark:text-slate-300">{log.doctor}</span>
+                                                                    </div>
+                                                                )}
+                                                            </div>
+                                                        </div>
+                                                    ))}
+                                                </div>
+                                            </>
                                          );
                                      })()}
                                  </div>
@@ -2289,7 +2409,7 @@ function App() {
                                      const patientList = Object.values(grouped).sort((a, b) => (b.logs[0]?.timestamp || '').localeCompare(a.logs[0]?.timestamp || ''));
                                      if (patientList.length === 0) return <div className="p-12 text-center text-slate-400 font-bold italic text-lg">ไม่พบประวัติการคำนวณที่ตรงกับการค้นหา</div>;
                                      return (
-                                         <div className="grid grid-cols-1 sm:grid-cols-2 xl:grid-cols-3 gap-4">
+                                         <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-5">
                                              {patientList.map(p => {
                                                  const latestLog = p.logs[0] || {};
                                                  const allergyList = latestLog.allergies ? latestLog.allergies.split(',').map(x => x.trim()).filter(Boolean) : [];
@@ -2298,51 +2418,53 @@ function App() {
                                                          key={p.hn}
                                                          type="button"
                                                          onClick={() => setSelectedHnDetail(p.hn)}
-                                                         className={`w-full text-left p-5 rounded-2xl border transition-all duration-200 hover:scale-[1.02] hover:shadow-xl active:scale-[0.98] cursor-pointer ${
+                                                         className={`w-full text-left p-6 rounded-3xl border transition-all duration-300 hover:-translate-y-1 hover:shadow-xl active:scale-95 cursor-pointer relative overflow-hidden group ${
                                                              theme === 'dark'
-                                                                 ? 'bg-slate-800/60 border-slate-700/40 hover:border-sky-500/60 hover:bg-slate-800'
-                                                                 : 'bg-white border-slate-200 hover:border-sky-400 shadow-sm hover:shadow-sky-100'
+                                                                 ? 'bg-gradient-to-br from-slate-800/80 to-slate-900/80 border-slate-700/50 hover:border-sky-500/50 hover:from-slate-800 hover:to-sky-900/20 shadow-lg'
+                                                                 : 'bg-gradient-to-br from-white to-slate-50/80 border-slate-200/60 hover:border-sky-400/50 shadow-md hover:shadow-sky-100/80 hover:from-sky-50/30 hover:to-white'
                                                          }`}
                                                      >
-                                                         <div className="flex items-start gap-3">
-                                                             <div className={`w-10 h-10 rounded-full flex items-center justify-center shrink-0 font-black text-lg ${
+                                                         <div className="absolute top-0 right-0 w-32 h-32 bg-sky-400/5 rounded-full blur-2xl -mr-10 -mt-10 pointer-events-none group-hover:bg-sky-400/10 transition-all"></div>
+                                                         
+                                                         <div className="flex items-start gap-4 relative z-10">
+                                                             <div className={`w-12 h-12 rounded-2xl shadow-sm flex items-center justify-center shrink-0 font-black text-xl transition-transform duration-300 group-hover:rotate-[5deg] ${
                                                                  p.gender === 'female'
-                                                                     ? 'bg-rose-500/15 text-rose-500 border border-rose-500/20'
-                                                                     : 'bg-sky-500/15 text-sky-500 border border-sky-500/20'
+                                                                     ? 'bg-gradient-to-br from-rose-400/20 to-rose-500/10 text-rose-500 border border-rose-500/20'
+                                                                     : 'bg-gradient-to-br from-sky-400/20 to-sky-500/10 text-sky-500 border border-sky-500/20'
                                                              }`}>
                                                                  {p.gender === 'female' ? '♀' : '♂'}
                                                              </div>
                                                              <div className="flex-1 min-w-0">
-                                                                 <div className="flex items-center justify-between gap-2 flex-wrap mb-1">
-                                                                     <span className="text-[11px] font-black px-2 py-0.5 rounded-lg bg-sky-500/15 text-sky-500 border border-sky-500/20">
+                                                                 <div className="flex items-center justify-between gap-2 flex-wrap mb-2">
+                                                                     <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-slate-200/50 dark:bg-slate-700/50 text-slate-600 dark:text-slate-300 tracking-wider">
                                                                          H.N. {p.hn}
                                                                      </span>
-                                                                     <span className="text-[11px] font-black px-2 py-0.5 rounded-lg bg-emerald-500/15 text-emerald-600 border border-emerald-500/20">
-                                                                         {p.logs.length} ครั้ง
+                                                                     <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-sky-500/10 text-sky-600 dark:text-sky-400 border border-sky-500/20 flex items-center gap-1">
+                                                                         <History size={10} /> {p.logs.length} ครั้ง
                                                                      </span>
                                                                  </div>
-                                                                 <p className="font-black text-sm uppercase truncate mb-1.5">{p.name || '-'}</p>
-                                                                 <div className="flex flex-wrap gap-1 mb-2">
-                                                                     <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-slate-500/10 text-slate-500 border border-slate-500/10">
+                                                                 <p className="font-black text-base uppercase truncate mb-1.5 text-slate-800 dark:text-white group-hover:text-sky-600 dark:group-hover:text-sky-400 transition-colors">{p.name || '-'}</p>
+                                                                 <div className="flex flex-wrap gap-1.5 mb-2">
+                                                                     <span className="text-[10px] font-bold px-2 py-0.5 rounded text-slate-500 bg-slate-100 dark:bg-slate-800 dark:text-slate-400">
                                                                          {p.gender === 'female' ? 'หญิง' : p.gender === 'male' ? 'ชาย' : '-'}
                                                                      </span>
                                                                      {latestLog.age && (
-                                                                         <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-slate-500/10 text-slate-500 border border-slate-500/10">
+                                                                         <span className="text-[10px] font-bold px-2 py-0.5 rounded text-slate-500 bg-slate-100 dark:bg-slate-800 dark:text-slate-400">
                                                                              {latestLog.age} ปี
                                                                          </span>
                                                                      )}
                                                                      {p.ward && (
-                                                                         <span className="text-[10px] font-black px-2 py-0.5 rounded-md bg-slate-500/10 text-slate-500 border border-slate-500/10">
+                                                                         <span className="text-[10px] font-bold px-2 py-0.5 rounded text-slate-500 bg-slate-100 dark:bg-slate-800 dark:text-slate-400">
                                                                              {p.ward}
                                                                          </span>
                                                                      )}
                                                                  </div>
-                                                                 <div className="text-[11px] font-bold text-slate-400 border-t border-slate-700/5 pt-2 mt-2">
+                                                                 <div className="text-[11px] font-bold text-slate-400 border-t border-slate-100 dark:border-slate-700/50 pt-2.5 mt-2.5">
                                                                      {allergyList.length > 0 ? (
                                                                          <div className="flex flex-wrap gap-1 items-center">
                                                                              <span className="text-slate-500 mr-1 text-xs">แพ้:</span>
                                                                              {allergyList.map((a, i) => (
-                                                                                 <span key={i} className="text-red-500 bg-red-500/10 px-1.5 py-0.5 rounded text-[10px] font-black border border-red-500/10">
+                                                                                 <span key={i} className="text-rose-600 dark:text-rose-400 bg-rose-500/10 px-1.5 py-0.5 rounded text-[10px] font-black border border-rose-500/10">
                                                                                      ⚠️ {a}
                                                                                  </span>
                                                                              ))}
@@ -2353,9 +2475,9 @@ function App() {
                                                                  </div>
                                                              </div>
                                                          </div>
-                                                         <div className="text-[10px] text-slate-400 font-bold border-t border-slate-700/5 pt-2 mt-3 flex items-center justify-between">
-                                                             <span>ล่าสุด: {p.logs[0]?.timestamp || '-'}</span>
-                                                             <span className="text-sky-500 font-black">ดูประวัติ →</span>
+                                                         <div className="text-[10px] text-slate-400 font-bold border-t border-slate-100 dark:border-slate-700/50 pt-2.5 mt-3.5 flex items-center justify-between relative z-10">
+                                                             <span className="opacity-70">ล่าสุด: {p.logs[0]?.timestamp || '-'}</span>
+                                                             <span className="text-sky-500 font-black flex items-center gap-1 group-hover:translate-x-1 transition-transform">ดูประวัติ <ArrowRight size={12} /></span>
                                                          </div>
                                                      </button>
                                                  );
@@ -2530,206 +2652,187 @@ function App() {
                             </div>
                         </div>
 
-                        <div className="grid grid-cols-1 lg:grid-cols-3 gap-6 workspace-section">
-                            <div className="lg:col-span-2 space-y-6">
-                                <div className="premium-card p-6">
-                                    <div className="flex items-center justify-between mb-4">
-                                        <div className="flex items-center gap-3">
-                                            <h2 className="text-lg font-black text-sky-700 dark:text-sky-300">เลือกสูตรคำนวณพื้นที่ผิวร่างกาย (BSA)</h2>
+                        <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 workspace-section">
+                            <div className="lg:col-span-8 space-y-5">
+                                {/* Group BSA and Amputation in one row */}
+                                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
+                                    {/* BSA Selection */}
+                                    <div className="premium-card p-5">
+                                        <div className="flex items-center justify-between mb-4">
+                                            <div className="flex items-center gap-2">
+                                                <h2 className="text-sm font-black text-sky-700 dark:text-sky-300">เลือกสูตรคำนวณพื้นที่ผิวร่างกาย (BSA)</h2>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowBsaInfo(!showBsaInfo)}
+                                                className="flex items-center gap-1.5 text-[10px] font-black text-sky-500 hover:text-sky-400 p-1.5 bg-sky-600/5 rounded-lg border border-sky-500/20 transition-all no-print"
+                                            >
+                                                <Info size={12} /> ข้อมูลสูตร
+                                            </button>
                                         </div>
-                                        <button
-                                            type="button"
-                                            onClick={() => setShowBsaInfo(!showBsaInfo)}
-                                            className="flex items-center gap-2 text-xs font-black text-sky-500 hover:text-sky-400 p-2 bg-sky-600/5 rounded-lg border border-sky-500/20 transition-all no-print"
-                                        >
-                                            <Info size={14} /> ข้อมูลสูตร
-                                        </button>
+                                        <div className="grid grid-cols-1 gap-3">
+                                            {[
+                                                { id: 'mosteller', label: 'มอสเตลเลอร์ (Mosteller)' },
+                                                { id: 'dubois', label: 'ดูบัวส์ (DuBois)' }
+                                            ].map(f => (
+                                                <label key={f.id} className={`p-3 rounded-xl border-2 transition-all cursor-pointer flex items-center gap-3 ${formula === f.id ? 'bg-sky-50 dark:bg-sky-900/20 border-sky-500' : 'bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 hover:border-sky-300'}`}>
+                                                    <input 
+                                                        type="radio" 
+                                                        name="bsaFormula" 
+                                                        checked={formula === f.id} 
+                                                        onChange={() => setFormula(f.id)} 
+                                                        className="w-4 h-4 text-sky-600 border-slate-300 focus:ring-sky-500 cursor-pointer" 
+                                                    />
+                                                    <span className={`text-sm font-black uppercase ${formula === f.id ? 'text-sky-700 dark:text-sky-300' : 'text-slate-600 dark:text-slate-400'}`}>
+                                                        {f.label}
+                                                    </span>
+                                                </label>
+                                            ))}
+                                        </div>
+                                        {showBsaInfo && (
+                                            <div className="animate-pop mt-3 p-4 rounded-xl border bg-sky-50/80 dark:bg-sky-950/40 border-sky-200 dark:border-sky-500/30">
+                                                <h3 className="font-bold text-sky-700 dark:text-sky-300 mb-2 text-xs flex items-center gap-1.5">
+                                                    <Info size={14} /> รายละเอียดสูตร
+                                                </h3>
+                                                <div className="space-y-3 text-[10px] text-slate-600 dark:text-slate-400">
+                                                    <div className="border-b border-sky-200/60 dark:border-sky-800/40 pb-2">
+                                                        <span className="font-bold text-sky-600 dark:text-sky-400">MOSTELLER Formula</span>
+                                                        <p className="mt-1 font-mono bg-white/60 dark:bg-slate-900/60 p-2 rounded text-slate-800 dark:text-slate-200">BSA (m²) = √[ (ส่วนสูง × น้ำหนัก) / 3600 ]</p>
+                                                    </div>
+                                                    <div>
+                                                        <span className="font-bold text-sky-600 dark:text-sky-400">DUBOIS & DUBOIS Formula</span>
+                                                        <p className="mt-1 font-mono bg-white/60 dark:bg-slate-900/60 p-2 rounded text-slate-800 dark:text-slate-200">BSA (m²) = 0.20247 × (ส่วนสูง^0.725) × (น้ำหนัก^0.425)</p>
+                                                    </div>
+                                                </div>
+                                            </div>
+                                        )}
                                     </div>
-                                    <div className="grid grid-cols-2 gap-4">
-                                        {[
-                                            { id: 'mosteller', label: 'มอสเตลเลอร์ (Mosteller)' },
-                                            { id: 'dubois', label: 'ดูบัวส์ (DuBois)' }
-                                        ].map(f => (
-                                            <label key={f.id} className={`p-4 rounded-xl border-2 transition-all cursor-pointer flex items-center gap-3 ${formula === f.id ? 'bg-sky-50 dark:bg-sky-900/20 border-sky-500' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-sky-300'}`}>
-                                                <input 
-                                                    type="radio" 
-                                                    name="bsaFormula" 
-                                                    checked={formula === f.id} 
-                                                    onChange={() => setFormula(f.id)} 
-                                                    className="w-5 h-5 text-sky-600 border-slate-300 focus:ring-sky-500 cursor-pointer" 
-                                                />
-                                                <span className={`font-black uppercase ${formula === f.id ? 'text-sky-700 dark:text-sky-300' : 'text-slate-600 dark:text-slate-400'}`}>
-                                                    {f.label}
-                                                </span>
-                                            </label>
-                                        ))}
-                                    </div>
-                                    {showBsaInfo && (
-                                        <div className="animate-pop mt-4 p-5 rounded-2xl border-2 bg-sky-50 dark:bg-sky-950/40 border-sky-400 dark:border-sky-500/50 shadow-md">
-                                            <h3 className="font-bold text-sky-700 dark:text-sky-300 mb-3 text-sm flex items-center gap-2">
-                                                <Info size={16} /> รายละเอียดสูตรการคำนวณพื้นที่ผิวร่างกาย (BSA)
-                                            </h3>
-                                            <div className="space-y-4 text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
-                                                <div className="border-b border-sky-200/60 dark:border-sky-800/40 pb-3">
-                                                    <span className="font-bold text-sky-600 dark:text-sky-400 text-[13px]">1. MOSTELLER Formula</span>
-                                                    <p className="mt-1 font-mono text-[11px] bg-slate-100 dark:bg-slate-900/60 p-2.5 rounded-lg text-slate-800 dark:text-slate-200">
-                                                        BSA (m²) = √[ (ส่วนสูง (cm) × น้ำหนัก (kg)) / 3600 ]
-                                                    </p>
-                                                    <p className="mt-1.5 text-[11px] text-slate-500 dark:text-slate-400">
-                                                        สูตรยอดนิยมและใช้งานง่ายที่สุด มีความคลาดเคลื่อนต่ำ เหมาะสำหรับการคำนวณทั่วไปในทางปฏิบัติการแพทย์
-                                                    </p>
+
+                                    {/* Amputation Selection */}
+                                    <div className="premium-card p-5">
+                                        <div className="flex items-center justify-between mb-4">
+                                            <div className="flex items-center gap-2">
+                                                <h2 className="text-sm font-black text-sky-700 dark:text-sky-300">ประวัติการสูญเสียอวัยวะ (แขน/ขา)</h2>
+                                            </div>
+                                            <button
+                                                type="button"
+                                                onClick={() => setShowAmpInfo(!showAmpInfo)}
+                                                className="flex items-center gap-1.5 text-[10px] font-black text-sky-500 hover:text-sky-400 p-1.5 bg-sky-600/5 rounded-lg border border-sky-500/20 transition-all no-print"
+                                            >
+                                                <Info size={12} /> ข้อมูลสูตร
+                                            </button>
+                                        </div>
+                                        <div className="grid grid-cols-1 gap-3 mb-3">
+                                            {[
+                                                { id: 'none', label: 'ปกติ (None)' },
+                                                { id: 'amputee', label: 'มีประวัติตัดแขนขา (Amputee)' }
+                                            ].map(opt => (
+                                                <label key={opt.id} className={`p-3 rounded-xl border-2 transition-all cursor-pointer flex items-center gap-3 ${amputation === opt.id ? 'bg-sky-50 dark:bg-sky-900/20 border-sky-500' : 'bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 hover:border-sky-300'}`}>
+                                                    <input 
+                                                        type="radio" 
+                                                        name="amputationStatus" 
+                                                        checked={amputation === opt.id} 
+                                                        onChange={() => setAmputation(opt.id)} 
+                                                        className="w-4 h-4 text-sky-600 border-slate-300 focus:ring-sky-500 cursor-pointer" 
+                                                    />
+                                                    <span className={`text-sm font-black ${amputation === opt.id ? 'text-sky-700 dark:text-sky-300' : 'text-slate-600 dark:text-slate-400'}`}>
+                                                        {opt.label}
+                                                    </span>
+                                                </label>
+                                            ))}
+                                        </div>
+                                        {amputation === 'amputee' && (
+                                            <div className="p-3 bg-sky-50/50 dark:bg-sky-900/10 rounded-xl border border-sky-100 dark:border-sky-800 space-y-3">
+                                                <div>
+                                                    <div className="text-[10px] font-bold text-sky-700 dark:text-sky-400 mb-1.5">ระบุตำแหน่งที่สูญเสีย:</div>
+                                                    <div className="grid grid-cols-2 gap-2">
+                                                        {[
+                                                            { id: 'below_knee', label: 'ใต้เข่า (BK)' },
+                                                            { id: 'above_knee', label: 'เหนือเข่า (AK)' },
+                                                            { id: 'below_elbow', label: 'ใต้ศอก (BE)' },
+                                                            { id: 'above_elbow', label: 'เหนือศอก (AE)' }
+                                                        ].map(opt => (
+                                                            <label key={opt.id} className={`px-2 py-1.5 rounded border transition-all cursor-pointer flex items-center gap-1.5 ${ampDetails.level === opt.id ? 'bg-white dark:bg-slate-800 border-sky-400 shadow-sm' : 'bg-white/60 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 hover:border-sky-300'}`}>
+                                                                <input 
+                                                                    type="radio" 
+                                                                    name="ampLevel" 
+                                                                    checked={ampDetails.level === opt.id} 
+                                                                    onChange={() => setAmpDetails({ ...ampDetails, level: opt.id })} 
+                                                                    className="w-3 h-3 text-sky-600 cursor-pointer" 
+                                                                />
+                                                                <span className={`text-[10px] font-bold ${ampDetails.level === opt.id ? 'text-sky-700 dark:text-sky-300' : 'text-slate-600 dark:text-slate-400'}`}>
+                                                                    {opt.label}
+                                                                </span>
+                                                            </label>
+                                                        ))}
+                                                    </div>
                                                 </div>
                                                 <div>
-                                                    <span className="font-bold text-sky-600 dark:text-sky-400 text-[13px]">2. DUBOIS & DUBOIS Formula</span>
-                                                    <p className="mt-1 font-mono text-[11px] bg-slate-100 dark:bg-slate-900/60 p-2.5 rounded-lg text-slate-800 dark:text-slate-200">
-                                                        BSA (m²) = 0.20247 × (ส่วนสูง (m))^0.725 × (น้ำหนัก (kg))^0.425
-                                                    </p>
-                                                    <p className="mt-1.5 text-[11px] text-slate-500 dark:text-slate-400">
-                                                        สูตรดั้งเดิมที่มีความเที่ยงตรงสูงในกลุ่มผู้ป่วยที่มีรูปร่างและสัดส่วนน้ำหนัก/ส่วนสูงตามมาตรฐานทั่วไป
-                                                    </p>
+                                                    <div className="text-[10px] font-bold text-sky-700 dark:text-sky-400 mb-1.5">วิธีปรับคำนวณ:</div>
+                                                    <div className="grid grid-cols-1 gap-2">
+                                                        {[
+                                                            { id: 'weight_method', label: 'ปรับตามน้ำหนัก (Weight)' },
+                                                            { id: 'bsa_method', label: 'ปรับตามพื้นที่ผิว (BSA)' }
+                                                        ].map(opt => (
+                                                            <label key={opt.id} className={`px-2 py-1.5 rounded border transition-all cursor-pointer flex items-center gap-1.5 ${ampDetails.method === opt.id ? 'bg-white dark:bg-slate-800 border-sky-400 shadow-sm' : 'bg-white/60 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 hover:border-sky-300'}`}>
+                                                                <input 
+                                                                    type="radio" 
+                                                                    name="ampMethod" 
+                                                                    checked={ampDetails.method === opt.id} 
+                                                                    onChange={() => setAmpDetails({ ...ampDetails, method: opt.id })} 
+                                                                    className="w-3 h-3 text-sky-600 cursor-pointer" 
+                                                                />
+                                                                <span className={`text-[10px] font-bold ${ampDetails.method === opt.id ? 'text-sky-700 dark:text-sky-300' : 'text-slate-600 dark:text-slate-400'}`}>
+                                                                    {opt.label}
+                                                                </span>
+                                                            </label>
+                                                        ))}
+                                                    </div>
                                                 </div>
                                             </div>
-                                        </div>
-                                    )}
+                                        )}
+                                        {showAmpInfo && (
+                                            <div className="animate-pop mt-3 p-4 rounded-xl border bg-sky-50/80 dark:bg-sky-950/40 border-sky-200 dark:border-sky-500/30">
+                                                <h3 className="font-bold text-sky-700 dark:text-sky-300 mb-2 text-xs flex items-center gap-1.5">
+                                                    <Info size={14} /> รายละเอียดการสูญเสียอวัยวะ
+                                                </h3>
+                                                <div className="space-y-2 text-[10px] text-slate-600 dark:text-slate-400">
+                                                    <p><b>ตัดตามน้ำหนัก:</b> หักสัดส่วน % น้ำหนักอวัยวะที่หายไป</p>
+                                                    <p><b>ตัดตาม BSA:</b> ลด BSA ตามสัดส่วนพื้นที่อวัยวะ</p>
+                                                </div>
+                                            </div>
+                                        )}
+                                    </div>
                                 </div>
 
-                                <div className="premium-card p-6">
+                                <div className="premium-card p-5 relative z-50">
                                     <div className="flex items-center justify-between mb-4">
                                         <div className="flex items-center gap-3">
-                                            <h2 className="text-lg font-black text-sky-700 dark:text-sky-300">ประวัติการสูญเสียอวัยวะ (แขน/ขา)</h2>
-                                        </div>
-                                        <button
-                                            type="button"
-                                            onClick={() => setShowAmpInfo(!showAmpInfo)}
-                                            className="flex items-center gap-2 text-xs font-black text-sky-500 hover:text-sky-400 p-2 bg-sky-600/5 rounded-lg border border-sky-500/20 transition-all no-print"
-                                        >
-                                            <Info size={14} /> ข้อมูลสูตร
-                                        </button>
-                                    </div>
-                                    <div className="grid grid-cols-2 gap-4 mb-4">
-                                        {[
-                                            { id: 'none', label: 'ปกติ (None)' },
-                                            { id: 'amputee', label: 'มีประวัติตัดแขนขา (Amputee)' }
-                                        ].map(opt => (
-                                            <label key={opt.id} className={`p-4 rounded-xl border-2 transition-all cursor-pointer flex items-center gap-3 ${amputation === opt.id ? 'bg-sky-50 dark:bg-sky-900/20 border-sky-500' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-sky-300'}`}>
-                                                <input 
-                                                    type="radio" 
-                                                    name="amputationStatus" 
-                                                    checked={amputation === opt.id} 
-                                                    onChange={() => setAmputation(opt.id)} 
-                                                    className="w-5 h-5 text-sky-600 border-slate-300 focus:ring-sky-500 cursor-pointer" 
-                                                />
-                                                <span className={`font-black ${amputation === opt.id ? 'text-sky-700 dark:text-sky-300' : 'text-slate-600 dark:text-slate-400'}`}>
-                                                    {opt.label}
-                                                </span>
-                                            </label>
-                                        ))}
-                                    </div>
-                                    {amputation === 'amputee' && (
-                                        <div className="p-4 bg-sky-50 dark:bg-sky-900/10 rounded-xl mb-4 border border-sky-100 dark:border-sky-800 space-y-4">
-                                            <div>
-                                                <div className="text-xs font-bold text-sky-700 dark:text-sky-400 mb-2">ระบุตำแหน่งที่สูญเสีย:</div>
-                                                <div className="grid grid-cols-2 gap-3">
-                                                    {[
-                                                        { id: 'below_knee', label: 'ตัดขาใต้เข่า (Below Knee)' },
-                                                        { id: 'above_knee', label: 'ตัดขาเหนือเข่า (Above Knee)' },
-                                                        { id: 'below_elbow', label: 'ตัดแขนท่อนล่าง (Below Elbow)' },
-                                                        { id: 'above_elbow', label: 'ตัดแขนท่อนบน (Above Elbow)' }
-                                                    ].map(opt => (
-                                                        <label key={opt.id} className={`px-3 py-2.5 rounded-lg border transition-all cursor-pointer flex items-center gap-2 ${ampDetails.level === opt.id ? 'bg-white dark:bg-slate-800 border-sky-400 shadow-sm' : 'bg-white/60 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 hover:border-sky-300'}`}>
-                                                            <input 
-                                                                type="radio" 
-                                                                name="ampLevel" 
-                                                                checked={ampDetails.level === opt.id} 
-                                                                onChange={() => setAmpDetails({ ...ampDetails, level: opt.id })} 
-                                                                className="w-4 h-4 text-sky-600 cursor-pointer" 
-                                                            />
-                                                            <span className={`text-sm font-bold ${ampDetails.level === opt.id ? 'text-sky-700 dark:text-sky-300' : 'text-slate-600 dark:text-slate-400'}`}>
-                                                                {opt.label}
-                                                            </span>
-                                                        </label>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                            <div>
-                                                <div className="text-xs font-bold text-sky-700 dark:text-sky-400 mb-2">วิธีปรับคำนวณ:</div>
-                                                <div className="grid grid-cols-2 gap-3">
-                                                    {[
-                                                        { id: 'weight_method', label: 'ปรับตามน้ำหนัก (Weight Method)' },
-                                                        { id: 'bsa_method', label: 'ปรับตามพื้นที่ผิว (BSA Method)' }
-                                                    ].map(opt => (
-                                                        <label key={opt.id} className={`px-3 py-2.5 rounded-lg border transition-all cursor-pointer flex items-center gap-2 ${ampDetails.method === opt.id ? 'bg-white dark:bg-slate-800 border-sky-400 shadow-sm' : 'bg-white/60 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 hover:border-sky-300'}`}>
-                                                            <input 
-                                                                type="radio" 
-                                                                name="ampMethod" 
-                                                                checked={ampDetails.method === opt.id} 
-                                                                onChange={() => setAmpDetails({ ...ampDetails, method: opt.id })} 
-                                                                className="w-4 h-4 text-sky-600 cursor-pointer" 
-                                                            />
-                                                            <span className={`text-sm font-bold ${ampDetails.method === opt.id ? 'text-sky-700 dark:text-sky-300' : 'text-slate-600 dark:text-slate-400'}`}>
-                                                                {opt.label}
-                                                            </span>
-                                                        </label>
-                                                    ))}
-                                                </div>
-                                            </div>
-                                        </div>
-                                    )}
-                                    {showAmpInfo && (
-                                        <div className="animate-pop mt-4 p-5 rounded-2xl border-2 bg-sky-50 dark:bg-sky-950/40 border-sky-400 dark:border-sky-500/50 shadow-md">
-                                            <h3 className="font-bold text-sky-700 dark:text-sky-300 mb-3 text-sm flex items-center gap-2">
-                                                <Info size={16} /> รายละเอียดการปรับคำนวณกรณีสูญเสียอวัยวะ (Amputation)
-                                            </h3>
-                                            <div className="space-y-4 text-xs text-slate-700 dark:text-slate-300 leading-relaxed">
-                                                <div className="border-b border-sky-200/60 dark:border-sky-800/40 pb-3">
-                                                    <span className="font-bold text-sky-600 dark:text-sky-400 text-[13px]">1. ปรับตามน้ำหนัก (Weight Method)</span>
-                                                    <p className="mt-1 font-mono text-[11px] bg-slate-100 dark:bg-slate-900/60 p-2.5 rounded-lg text-slate-800 dark:text-slate-200">
-                                                        น้ำหนักสุทธิ = น้ำหนักตัวจริง × (1 - สัดส่วนน้ำหนักอวัยวะ)
-                                                    </p>
-                                                    <ul className="mt-1.5 list-disc pl-5 text-[11px] text-slate-500 dark:text-slate-400 space-y-1">
-                                                        <li>ตัดขาใต้เข่า (Below Knee): หักออก 6% ของน้ำหนักตัว (คิดเป็น 94% ของน้ำหนักจริง)</li>
-                                                        <li>ตัดขาเหนือเข่า (Above Knee): หักออก 15% ของน้ำหนักตัว (คิดเป็น 85% ของน้ำหนักจริง)</li>
-                                                        <li>ตัดแขนท่อนล่าง (Below Elbow): หักออก 3% ของน้ำหนักตัว (คิดเป็น 97% ของน้ำหนักจริง)</li>
-                                                        <li>ตัดแขนท่อนบน (Above Elbow): หักออก 5% ของน้ำหนักตัว (คิดเป็น 95% ของน้ำหนักจริง)</li>
-                                                    </ul>
-                                                </div>
-                                                <div>
-                                                    <span className="font-bold text-sky-600 dark:text-sky-400 text-[13px]">2. ปรับตามพื้นที่ผิว (BSA Method)</span>
-                                                    <p className="mt-1 font-mono text-[11px] bg-slate-100 dark:bg-slate-900/60 p-2.5 rounded-lg text-slate-800 dark:text-slate-200">
-                                                        BSA สุทธิ = BSA ปกติ × (1 - สัดส่วนพื้นที่ผิวอวัยวะ)
-                                                    </p>
-                                                    <ul className="mt-1.5 list-disc pl-5 text-[11px] text-slate-500 dark:text-slate-400 space-y-1">
-                                                        <li>ตัดขาใต้เข่า (Below Knee): ปรับลดค่า BSA ลง 9%</li>
-                                                        <li>ตัดขาเหนือเข่า (Above Knee): ปรับลดค่า BSA ลง 18%</li>
-                                                        <li>ตัดแขนท่อนล่าง (Below Elbow): ปรับลดค่า BSA ลง 4%</li>
-                                                        <li>ตัดแขนท่อนบน (Above Elbow): ปรับลดค่า BSA ลง 9%</li>
-                                                     </ul>
-                                                 </div>
-                                             </div>
-                                         </div>
-                                     )}
-                                </div>
-
-                                <div className="premium-card p-6 relative z-50">
-                                    <div className="flex items-center justify-between mb-4">
-                                        <div className="flex items-center gap-3">
-                                            <h2 className="text-lg font-black text-sky-700 dark:text-sky-300">ระบุรายชื่อยาที่ต้องการคำนวณ</h2>
+                                            <h2 className="text-sm font-black text-sky-700 dark:text-sky-300">ระบุรายชื่อยาที่ต้องการคำนวณ</h2>
                                         </div>
                                         <button
                                             onClick={() => setShowDrugInfo(!showDrugInfo)}
-                                            className="flex items-center gap-2 text-xs font-black text-sky-500 hover:text-sky-400 p-2 bg-sky-600/5 rounded-lg border border-sky-500/20 transition-all no-print"
+                                            className="flex items-center gap-2 text-[10px] font-black text-sky-500 hover:text-sky-400 p-1.5 bg-sky-600/5 rounded-lg border border-sky-500/20 transition-all no-print"
                                         >
-                                            <Info size={14} /> ข้อมูลยา
-                                        </button>                                    </div>
+                                            <Info size={12} /> ข้อมูลยา
+                                        </button>                                    
+                                    </div>
 
-                                    <div className="mb-4 flex items-center gap-3 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-200 dark:border-slate-700">
-                                        <label className="text-sm font-bold text-slate-700 dark:text-slate-300">จำนวนรอบการให้ยา (Cycle):</label>
+                                    <div className="mb-4 flex items-center gap-3 bg-slate-50 dark:bg-slate-800/50 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700">
+                                        <label className="text-xs font-bold text-slate-700 dark:text-slate-300">จำนวนรอบการให้ยา (Cycle):</label>
                                         <input 
                                             type="text" 
-                                            className="form-control text-sm w-32 px-3 py-2 bg-white dark:bg-slate-900" 
+                                            className="form-control text-xs w-28 px-3 py-1.5 bg-white dark:bg-slate-900" 
                                             placeholder="เช่น 1/6" 
                                             value={patient.cycle || ''}
-                                            onChange={e => setPatient({ ...patient, cycle: e.target.value })}
+                                            onChange={e => {
+                                                let val = e.target.value;
+                                                const oldVal = patient.cycle || '';
+                                                if (val.length === 1 && oldVal.length === 0 && /^\d$/.test(val)) {
+                                                    val = val + '/';
+                                                }
+                                                setPatient({ ...patient, cycle: val });
+                                            }}
                                         />
                                     </div>
 
@@ -2758,30 +2861,30 @@ function App() {
                                                 <button
                                                     type="button"
                                                     onClick={() => setDrugDropdownOpen(!drugDropdownOpen)}
-                                                    className="w-full text-left px-5 py-3.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 focus:outline-none focus:border-sky-500 focus:ring-4 focus:ring-sky-500/10 transition-all flex items-center justify-between shadow-sm"
+                                                    className="w-full text-left px-4 py-2.5 rounded-xl border border-slate-300 dark:border-slate-600 bg-white dark:bg-slate-800 focus:outline-none focus:border-sky-500 focus:ring-4 focus:ring-sky-500/10 transition-all flex items-center justify-between shadow-sm"
                                                 >
-                                                    <span className="truncate pr-4 font-bold text-slate-700 dark:text-slate-200">
+                                                    <span className="truncate pr-4 text-xs font-bold text-slate-700 dark:text-slate-200">
                                                         {selectedDrugs.length > 0
                                                             ? `เลือกยาแล้ว ${selectedDrugs.length} ชนิด (${selectedDrugs.map(id => drugsInfo.find(d => d.id === id)?.name || id).join(', ')})`
                                                             : 'โปรดเลือกยาอย่างน้อย 1 ชนิด'}
                                                     </span>
-                                                    <ChevronDown size={18} className={`text-slate-400 transition-transform ${drugDropdownOpen ? 'rotate-180' : ''}`} />
+                                                    <ChevronDown size={14} className={`text-slate-400 transition-transform ${drugDropdownOpen ? 'rotate-180' : ''}`} />
                                                 </button>
                                                 {drugDropdownOpen && (
-                                                    <div className="absolute top-full left-0 mt-2 w-full max-h-[400px] flex flex-col bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 z-50 p-3 animate-in fade-in slide-in-from-top-2 duration-200">
-                                                        <div className="mb-3 sticky top-0 z-20">
+                                                    <div className="absolute top-full left-0 mt-2 w-full max-h-[300px] flex flex-col bg-white dark:bg-slate-800 rounded-xl shadow-xl border border-slate-200 dark:border-slate-700 z-50 p-2 animate-in fade-in slide-in-from-top-2 duration-200">
+                                                        <div className="mb-2 sticky top-0 z-20">
                                                             <div className="relative">
-                                                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={16} />
+                                                                <Search className="absolute left-3 top-1/2 -translate-y-1/2 text-slate-400" size={14} />
                                                                 <input
                                                                     type="text"
                                                                     placeholder="ค้นหาชื่อยา..."
                                                                     value={drugSearchTerm}
                                                                     onChange={e => setDrugSearchTerm(e.target.value)}
-                                                                    className="w-full pl-9 pr-4 py-2 text-sm font-bold border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-900 focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 text-slate-700 dark:text-slate-200"
+                                                                    className="w-full pl-8 pr-4 py-1.5 text-xs font-bold border border-slate-300 dark:border-slate-600 rounded-lg bg-slate-50 dark:bg-slate-900 focus:outline-none focus:border-sky-500 focus:ring-2 focus:ring-sky-500/20 text-slate-700 dark:text-slate-200"
                                                                 />
                                                             </div>
                                                         </div>
-                                                        <div className="overflow-y-auto flex-1 pr-1 scrollbar-thin" style={{ maxHeight: '320px' }}>
+                                                        <div className="overflow-y-auto flex-1 pr-1 scrollbar-thin" style={{ maxHeight: '250px' }}>
                                                             {Object.entries(grouped).map(([cat, catDrugs]) => {
                                                                 const filteredDrugs = catDrugs.filter(d => {
                                                                     const label = d.name;
@@ -2792,11 +2895,11 @@ function App() {
 
                                                                 const cfg = categoryConfig[cat] || categoryConfig['CHEMOTHERAPY'];
                                                                 return (
-                                                                    <div key={cat} className="mb-3 last:mb-0">
-                                                                        <div className="px-3 py-1.5 text-xs font-black text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-900/50 rounded-lg mb-2 uppercase tracking-wider sticky top-0 z-10 backdrop-blur-md">
+                                                                    <div key={cat} className="mb-2 last:mb-0">
+                                                                        <div className="px-2 py-1 text-[9px] font-black text-slate-500 dark:text-slate-400 bg-slate-100 dark:bg-slate-900/50 rounded-md mb-1 uppercase tracking-wider sticky top-0 z-10 backdrop-blur-md">
                                                                             {cfg.label}
                                                                         </div>
-                                                                        <div className="space-y-1">
+                                                                        <div className="space-y-0.5">
                                                                             {filteredDrugs.map(d => {
                                                                                 const label = d.name;
                                                                                 const calcLabel = calcTypeMap[d.raw?.calculation_type] || d.desc;
@@ -2805,12 +2908,12 @@ function App() {
                                                                                 return (
                                                                                     <label
                                                                                         key={d.id}
-                                                                                        className={`flex items-start gap-3 p-3 rounded-lg cursor-pointer transition-all border ${isChecked ? 'bg-sky-50 dark:bg-sky-900/20 border-sky-200 dark:border-sky-800' : 'border-transparent hover:bg-slate-50 dark:hover:bg-slate-700/50'}`}
+                                                                                        className={`flex items-start gap-2 p-2 rounded-lg cursor-pointer transition-all border ${isChecked ? 'bg-sky-50 dark:bg-sky-900/20 border-sky-200 dark:border-sky-800' : 'border-transparent hover:bg-slate-50 dark:hover:bg-slate-700/50'}`}
                                                                                     >
                                                                                         <div className="flex-shrink-0 mt-0.5">
                                                                                             <input
                                                                                                 type="checkbox"
-                                                                                                className="w-4 h-4 text-sky-500 rounded border-slate-300 focus:ring-sky-500 dark:border-slate-600 dark:bg-slate-700 cursor-pointer"
+                                                                                                className="w-3.5 h-3.5 text-sky-500 rounded border-slate-300 focus:ring-sky-500 dark:border-slate-600 dark:bg-slate-700 cursor-pointer"
                                                                                                 checked={isChecked}
                                                                                                 onChange={(e) => {
                                                                                                     if (e.target.checked) {
@@ -2822,10 +2925,10 @@ function App() {
                                                                                             />
                                                                                         </div>
                                                                                         <div className="flex-1 min-w-0">
-                                                                                            <div className={`font-bold text-sm ${isChecked ? 'text-sky-700 dark:text-sky-400' : 'text-slate-700 dark:text-slate-200'}`}>
+                                                                                            <div className={`font-bold text-xs ${isChecked ? 'text-sky-700 dark:text-sky-400' : 'text-slate-700 dark:text-slate-200'}`}>
                                                                                                 {cfg.prefix}{label}
                                                                                             </div>
-                                                                                            <div className="text-xs text-slate-500 dark:text-slate-400 mt-1">
+                                                                                            <div className="text-[10px] text-slate-500 dark:text-slate-400">
                                                                                                 {calcLabel}{limitLabel}
                                                                                             </div>
                                                                                         </div>
@@ -2913,38 +3016,38 @@ function App() {
                                     )}
                                 </div>
                                 {/* Section 05: Lab Results & Safety Checks */}
-                                <div className="premium-card p-6">
-                                    <div className="flex items-center justify-between mb-4">
-                                        <div className="flex items-center gap-3">
-                                            <h2 className="text-lg font-black text-sky-700 dark:text-sky-300">ผลตรวจเลือดและการทำงานของอวัยวะ (Lab)</h2>
+                                <div className="premium-card p-5">
+                                    <div className="flex items-center justify-between mb-3">
+                                        <div className="flex items-center gap-2">
+                                            <h2 className="text-sm font-black text-sky-700 dark:text-sky-300">ผลตรวจเลือดและการทำงานของอวัยวะ (Lab)</h2>
                                         </div>
                                     </div>
 
-                                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-6">
+                                    <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
                                         {/* Card 1: Hematology */}
-                                        <div className="p-4 rounded-xl border border-slate-700/20 bg-slate-800/10 space-y-4">
-                                            <h3 className="text-xs font-black text-sky-500 uppercase tracking-wider flex items-center justify-between border-b border-slate-700/20 pb-2">
-                                                <span>ผลเลือดทางโลหิตวิทยา (Hematology)</span>
+                                        <div className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-700/50 bg-slate-50 dark:bg-slate-800/20 space-y-3">
+                                            <h3 className="text-[10px] font-black text-sky-600 dark:text-sky-500 uppercase tracking-wider flex items-center justify-between border-b border-slate-200 dark:border-slate-700/50 pb-2">
+                                                <span>ผลเลือดโลหิตวิทยา (Hematology)</span>
                                                 <label className="flex items-center cursor-pointer">
                                                     <div className="relative">
                                                         <input type="checkbox" className="sr-only" checked={enableHematology} onChange={(e) => {
                                                             setEnableHematology(e.target.checked);
                                                             if (!e.target.checked) { setWbc(''); setAnc(''); setPlt(''); }
                                                         }} />
-                                                        <div className={`block w-8 h-4 rounded-full transition-colors ${enableHematology ? 'bg-sky-500' : 'bg-slate-300 dark:bg-slate-600'}`}></div>
-                                                        <div className={`dot absolute left-1 top-0.5 bg-white w-3 h-3 rounded-full transition-transform duration-200 ${enableHematology ? 'transform translate-x-4' : ''}`}></div>
+                                                        <div className={`block w-7 h-3.5 rounded-full transition-colors ${enableHematology ? 'bg-sky-500' : 'bg-slate-300 dark:bg-slate-600'}`}></div>
+                                                        <div className={`dot absolute left-1 top-0.5 bg-white w-2.5 h-2.5 rounded-full transition-transform duration-200 ${enableHematology ? 'transform translate-x-3.5' : ''}`}></div>
                                                     </div>
                                                 </label>
                                             </h3>
                                             {enableHematology && (
-                                            <div className="space-y-3 pt-1 animate-in fade-in slide-in-from-top-2">
+                                            <div className="space-y-2.5 pt-1 animate-in fade-in slide-in-from-top-2">
                                                 <div>
-                                                    <label className="block text-[10px] font-bold text-slate-400 mb-1">WBC (cells/mm³)</label>
+                                                    <label className="block text-[10px] font-bold text-slate-500 mb-1">WBC (cells/mm³)</label>
                                                     <input
                                                         type="number"
                                                         placeholder="ระบุค่า WBC"
                                                         value={wbc}
-                                                        className="form-control text-xs"
+                                                        className="form-control text-xs py-1.5"
                                                         onChange={e => {
                                                             const val = e.target.value;
                                                             setWbc(val);
@@ -2957,22 +3060,22 @@ function App() {
                                                     />
                                                 </div>
                                                 <div>
-                                                    <label className="block text-[10px] font-bold text-slate-400 mb-1">ANC (cells/mm³)</label>
+                                                    <label className="block text-[10px] font-bold text-slate-500 mb-1">ANC (cells/mm³)</label>
                                                     <input
                                                         type="number"
                                                         placeholder="คำนวณจาก WBC อัตโนมัติ"
                                                         value={anc}
-                                                        className="form-control text-xs bg-slate-100 dark:bg-slate-800/50 text-slate-500 cursor-not-allowed"
+                                                        className="form-control text-xs py-1.5 bg-slate-100 dark:bg-slate-800/50 text-slate-500 cursor-not-allowed"
                                                         readOnly
                                                     />
                                                 </div>
                                                 <div>
-                                                    <label className="block text-[10px] font-bold text-slate-400 mb-1">Platelets (cells/mm³)</label>
+                                                    <label className="block text-[10px] font-bold text-slate-500 mb-1">Platelets (cells/mm³)</label>
                                                     <input
                                                         type="number"
                                                         placeholder="ระบุค่า Platelets"
                                                         value={plt}
-                                                        className="form-control text-xs"
+                                                        className="form-control text-xs py-1.5"
                                                         onChange={e => setPlt(e.target.value)}
                                                     />
                                                 </div>
@@ -2981,29 +3084,29 @@ function App() {
                                         </div>
 
                                         {/* Card 2: Liver Function */}
-                                        <div className="p-4 rounded-xl border border-slate-700/20 bg-slate-800/10 space-y-4">
-                                            <h3 className="text-xs font-black text-amber-500 uppercase tracking-wider flex items-center justify-between border-b border-slate-700/20 pb-2">
-                                                <span>การทำงานของตับ (Liver Function)</span>
+                                        <div className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-700/50 bg-slate-50 dark:bg-slate-800/20 space-y-3">
+                                            <h3 className="text-[10px] font-black text-amber-600 dark:text-amber-500 uppercase tracking-wider flex items-center justify-between border-b border-slate-200 dark:border-slate-700/50 pb-2">
+                                                <span>การทำงานของตับ (Liver)</span>
                                                 <label className="flex items-center cursor-pointer">
                                                     <div className="relative">
                                                         <input type="checkbox" className="sr-only" checked={enableLiver} onChange={(e) => {
                                                             setEnableLiver(e.target.checked);
                                                             if (!e.target.checked) { setTbili(''); setAst(''); setAlt(''); setAlp(''); }
                                                         }} />
-                                                        <div className={`block w-8 h-4 rounded-full transition-colors ${enableLiver ? 'bg-amber-500' : 'bg-slate-300 dark:bg-slate-600'}`}></div>
-                                                        <div className={`dot absolute left-1 top-0.5 bg-white w-3 h-3 rounded-full transition-transform duration-200 ${enableLiver ? 'transform translate-x-4' : ''}`}></div>
+                                                        <div className={`block w-7 h-3.5 rounded-full transition-colors ${enableLiver ? 'bg-amber-500' : 'bg-slate-300 dark:bg-slate-600'}`}></div>
+                                                        <div className={`dot absolute left-1 top-0.5 bg-white w-2.5 h-2.5 rounded-full transition-transform duration-200 ${enableLiver ? 'transform translate-x-3.5' : ''}`}></div>
                                                     </div>
                                                 </label>
                                             </h3>
                                             {enableLiver && (
-                                            <div className="space-y-3 pt-1 animate-in fade-in slide-in-from-top-2">
+                                            <div className="space-y-2.5 pt-1 animate-in fade-in slide-in-from-top-2">
                                                 <div>
                                                     <label className="flex items-center gap-1.5 mb-1 cursor-pointer w-fit">
                                                         <input type="checkbox" checked={enableTbili} onChange={(e) => {
                                                             setEnableTbili(e.target.checked);
                                                             if (!e.target.checked) setTbili('');
                                                         }} className="w-3 h-3 cursor-pointer" />
-                                                        <span className="text-[10px] font-bold text-slate-400">Total Bilirubin (mg/dL)</span>
+                                                        <span className="text-[10px] font-bold text-slate-500">T.Bilirubin (mg/dL)</span>
                                                     </label>
                                                     {enableTbili && (
                                                         <input
@@ -3011,40 +3114,40 @@ function App() {
                                                             placeholder="ระบุค่า T.Bili"
                                                             step="0.1"
                                                             value={tbili}
-                                                            className="form-control text-xs mt-1 animate-in fade-in slide-in-from-top-1"
+                                                            className="form-control text-xs py-1.5 mt-1 animate-in fade-in slide-in-from-top-1"
                                                             onChange={e => setTbili(e.target.value)}
                                                         />
                                                     )}
                                                 </div>
                                                 <div className="grid grid-cols-2 gap-2">
                                                     <div>
-                                                        <label className="block text-[10px] font-bold text-slate-400 mb-1">AST (U/L)</label>
+                                                        <label className="block text-[10px] font-bold text-slate-500 mb-1">AST (U/L)</label>
                                                         <input
                                                             type="number"
                                                             placeholder="AST"
                                                             value={ast}
-                                                            className="form-control text-xs"
+                                                            className="form-control text-xs py-1.5"
                                                             onChange={e => setAst(e.target.value)}
                                                         />
                                                     </div>
                                                     <div>
-                                                        <label className="block text-[10px] font-bold text-slate-400 mb-1">ALT (U/L)</label>
+                                                        <label className="block text-[10px] font-bold text-slate-500 mb-1">ALT (U/L)</label>
                                                         <input
                                                             type="number"
                                                             placeholder="ALT"
                                                             value={alt}
-                                                            className="form-control text-xs"
+                                                            className="form-control text-xs py-1.5"
                                                             onChange={e => setAlt(e.target.value)}
                                                         />
                                                     </div>
                                                 </div>
                                                 <div>
-                                                    <label className="block text-[10px] font-bold text-slate-400 mb-1">ALP (U/L)</label>
+                                                    <label className="block text-[10px] font-bold text-slate-500 mb-1">ALP (U/L)</label>
                                                     <input
                                                         type="number"
                                                         placeholder="ระบุค่า ALP"
                                                         value={alp}
-                                                        className="form-control text-xs"
+                                                        className="form-control text-xs py-1.5"
                                                         onChange={e => setAlp(e.target.value)}
                                                     />
                                                 </div>
@@ -3053,9 +3156,9 @@ function App() {
                                         </div>
 
                                         {/* Card 3: Renal Function (CrCl) */}
-                                        <div className="p-4 rounded-xl border border-slate-700/20 bg-slate-800/10 space-y-4">
-                                            <h3 className="text-xs font-black text-emerald-500 uppercase tracking-wider flex items-center justify-between border-b border-slate-700/20 pb-2">
-                                                <span>การทำงานของไต (Renal - CrCl)</span>
+                                        <div className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-700/50 bg-slate-50 dark:bg-slate-800/20 space-y-3">
+                                            <h3 className="text-[10px] font-black text-emerald-600 dark:text-emerald-500 uppercase tracking-wider flex items-center justify-between border-b border-slate-200 dark:border-slate-700/50 pb-2">
+                                                <span>การทำงานของไต (CrCl)</span>
                                                 <label className="flex items-center cursor-pointer">
                                                     <div className="relative">
                                                         <input type="checkbox" className="sr-only" checked={enableRenal} onChange={(e) => {
@@ -3065,20 +3168,20 @@ function App() {
                                                                 setPatientScr('');
                                                             }
                                                         }} />
-                                                        <div className={`block w-8 h-4 rounded-full transition-colors ${enableRenal ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-600'}`}></div>
-                                                        <div className={`dot absolute left-1 top-0.5 bg-white w-3 h-3 rounded-full transition-transform duration-200 ${enableRenal ? 'transform translate-x-4' : ''}`}></div>
+                                                        <div className={`block w-7 h-3.5 rounded-full transition-colors ${enableRenal ? 'bg-emerald-500' : 'bg-slate-300 dark:bg-slate-600'}`}></div>
+                                                        <div className={`dot absolute left-1 top-0.5 bg-white w-2.5 h-2.5 rounded-full transition-transform duration-200 ${enableRenal ? 'transform translate-x-3.5' : ''}`}></div>
                                                     </div>
                                                 </label>
                                             </h3>
                                             {enableRenal && (
-                                            <div className="space-y-3 pt-1 animate-in fade-in slide-in-from-top-2">
+                                            <div className="space-y-2.5 pt-1 animate-in fade-in slide-in-from-top-2">
                                                 <div className="grid grid-cols-2 gap-2">
                                                     <button
                                                         type="button"
                                                         onClick={() => setUseAutoGfr(false)}
-                                                        className={`py-1 rounded text-[10px] font-bold transition-all cursor-pointer ${!useAutoGfr
+                                                        className={`py-1 rounded text-[9px] font-bold transition-all cursor-pointer ${!useAutoGfr
                                                             ? 'bg-emerald-600 text-white shadow-sm'
-                                                            : 'bg-slate-700/20 text-slate-400 hover:text-slate-200'
+                                                            : 'bg-slate-200 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400'
                                                             }`}
                                                     >
                                                         Manual CrCl
@@ -3086,9 +3189,9 @@ function App() {
                                                     <button
                                                         type="button"
                                                         onClick={() => setUseAutoGfr(true)}
-                                                        className={`py-1 rounded text-[10px] font-bold transition-all cursor-pointer ${useAutoGfr
+                                                        className={`py-1 rounded text-[9px] font-bold transition-all cursor-pointer ${useAutoGfr
                                                             ? 'bg-emerald-600 text-white shadow-sm'
-                                                            : 'bg-slate-700/20 text-slate-400 hover:text-slate-200'
+                                                            : 'bg-slate-200 dark:bg-slate-700/50 text-slate-500 dark:text-slate-400'
                                                             }`}
                                                     >
                                                         Auto CrCl
@@ -3097,33 +3200,33 @@ function App() {
 
                                                 {!useAutoGfr ? (
                                                     <div>
-                                                        <label className="block text-[10px] font-bold text-slate-400 mb-1">ระบุค่า CrCl (ml/min)</label>
+                                                        <label className="block text-[10px] font-bold text-slate-500 mb-1">ระบุค่า CrCl (ml/min)</label>
                                                         <input
                                                             type="number"
                                                             placeholder="CrCl (ml/min)"
                                                             value={drugParams.gfr}
-                                                            className="form-control text-xs"
+                                                            className="form-control text-xs py-1.5"
                                                             onChange={e => setDrugParams({ ...drugParams, gfr: e.target.value })}
                                                         />
                                                     </div>
                                                 ) : (
                                                     <div className="space-y-2">
-                                                        <div className="grid grid-cols-3 gap-2">
+                                                        <div className="grid grid-cols-3 gap-1.5">
                                                             <div>
-                                                                <label className="block text-[9px] font-bold text-slate-400 mb-1">อายุ (ปี)</label>
+                                                                <label className="block text-[9px] font-bold text-slate-500 mb-0.5">อายุ (ปี)</label>
                                                                 <input
                                                                     type="number"
                                                                     placeholder="Age"
                                                                     value={patient.age}
-                                                                    className="form-control text-xs px-2"
+                                                                    className="form-control text-xs px-2 py-1"
                                                                     onChange={e => setPatient({ ...patient, age: e.target.value })}
                                                                 />
                                                             </div>
                                                             <div>
-                                                                <label className="block text-[9px] font-bold text-slate-400 mb-1">เพศ</label>
+                                                                <label className="block text-[9px] font-bold text-slate-500 mb-0.5">เพศ</label>
                                                                 <select
                                                                     value={patient.gender || ''}
-                                                                    className="form-control text-xs px-1"
+                                                                    className="form-control text-[10px] font-bold px-1 py-1"
                                                                     onChange={e => setPatient({ ...patient, gender: e.target.value })}
                                                                 >
                                                                     <option value="">เลือก</option>
@@ -3132,19 +3235,19 @@ function App() {
                                                                 </select>
                                                             </div>
                                                             <div>
-                                                                <label className="block text-[9px] font-bold text-slate-400 mb-1">Scr (mg/dL)</label>
+                                                                <label className="block text-[9px] font-bold text-slate-500 mb-0.5">Scr (mg/dL)</label>
                                                                 <input
                                                                     type="number"
                                                                     placeholder="Scr"
                                                                     step="0.01"
                                                                     value={patientScr}
-                                                                    className="form-control text-xs px-2"
+                                                                    className="form-control text-xs px-2 py-1"
                                                                     onChange={e => setPatientScr(e.target.value)}
                                                                 />
                                                             </div>
                                                         </div>
-                                                        <div className="p-2 rounded bg-emerald-500/10 border border-emerald-500/20 text-center">
-                                                            <div className="text-[9px] text-slate-400">ผลการคำนวณ CrCl (Cockcroft-Gault)</div>
+                                                        <div className="p-1.5 rounded bg-emerald-500/10 border border-emerald-500/20 text-center">
+                                                            <div className="text-[9px] font-bold text-emerald-600/70 dark:text-emerald-500/70">ผลการคำนวณ CrCl (Cockcroft-Gault)</div>
                                                             <div className="text-xs font-black text-emerald-500">
                                                                 {autoGfrValue !== null ? (isNaN(autoGfrValue) ? 'ว่าง' : `${autoGfrValue} ml/min`) : 'รอข้อมูลครบถ้วน...'}
                                                             </div>
@@ -3180,7 +3283,7 @@ function App() {
 
                             </div>
 
-                            <div className="lg:col-span-1">
+                            <div className="lg:col-span-4">
                                 <div className="premium-card p-6 sticky top-6 border-sky-500/50">
                                     <h2 className="text-center font-black mb-4 uppercase text-slate-400">สรุปผลการคำนวณ</h2>
                                     
@@ -3235,9 +3338,9 @@ function App() {
                                                 ⚠️ ค่า BSA ({formatBsa(bsa)} m²) นอกช่วงปกติ (0.5 - 3.0 m²) โปรดตรวจสอบ ส่วนสูง / น้ำหนัก!
                                             </div>
                                         )}
-                                        {isIncompleteDose(finalDose) && (
+                                        {singleDrugResults.length > 0 && singleDrugResults.some(r => r.dose === 'ว่าง' || r.dose === 'NaN' || !r.dose || parseFloat(r.dose) === 0) && (
                                             <div className="p-3 bg-rose-500/10 border border-rose-500/30 rounded-lg text-rose-500 text-[11px] font-bold leading-normal text-center">
-                                                ⚠️ ขนาดยายังไม่สมบูรณ์ (ว่าง) โปรดระบุค่า CrCl หรือ Creatinine เพื่อคำนวณยาให้สมบูรณ์
+                                                ⚠️ ขนาดยาบางตัวยังเป็น 0.00 หรือ ว่าง โปรดระบุค่า Base Dose หรือ ค่า CrCl/Creatinine ให้ครบถ้วนเพื่อคำนวณยา
                                             </div>
                                         )}
                                     </div>
@@ -3319,13 +3422,13 @@ function App() {
                                             >
                                                 {editingOrderLogId ? 'บันทึก' : '+ บันทึก'}
                                             </button>
-                                            <button
-                                                type="button"
-                                                onClick={handleAddRow}
-                                                className="btn btn-primary text-sm flex items-center gap-2 py-2 px-6 rounded-xl bg-sky-500 hover:bg-sky-600 text-white shadow-sm transition-all cursor-pointer font-bold no-print"
-                                            >
-                                                + เพิ่มแถว
-                                            </button>
+                                                <button
+                                                    type="button"
+                                                    onClick={handleAddRow}
+                                                    className="btn btn-primary text-sm flex items-center gap-2 py-2 px-6 rounded-xl bg-sky-500 hover:bg-sky-600 text-white shadow-sm transition-all cursor-pointer font-bold no-print"
+                                                >
+                                                    + เพิ่มแถว
+                                                </button>
                                         </div>
                                     </div>
 
@@ -3365,10 +3468,27 @@ function App() {
                                                                         const val = e.target.value;
                                                                         
                                                                         let matchedDose = row.dose;
+                                                                        let calcDose = '';
                                                                         if (val) {
                                                                             const foundResult = singleDrugResults.find(r => r.name.toLowerCase() === val.toLowerCase() || r.id.toLowerCase() === val.toLowerCase());
                                                                             if (foundResult && foundResult.dose !== undefined && foundResult.dose !== null && !isNaN(parseFloat(foundResult.dose))) {
-                                                                                matchedDose = `${foundResult.dose} ${foundResult.unit || 'mg'}`;
+                                                                                calcDose = `${foundResult.dose} ${foundResult.unit || 'mg'}`;
+                                                                                matchedDose = calcDose;
+                                                                            }
+
+                                                                            // Auto-fill from previous cycle
+                                                                            if (patient.hn) {
+                                                                                const patientLogs = allOrderLogs.filter(l => l.hn === patient.hn);
+                                                                                for (const log of patientLogs) {
+                                                                                    try {
+                                                                                        const details = JSON.parse(log.order_details);
+                                                                                        const prevRow = details.find(r => r.drugName && r.drugName.toLowerCase() === val.toLowerCase());
+                                                                                        if (prevRow && prevRow.dose) {
+                                                                                            matchedDose = prevRow.dose;
+                                                                                            break;
+                                                                                        }
+                                                                                    } catch(e) {}
+                                                                                }
                                                                             }
                                                                         }
 
@@ -3387,7 +3507,7 @@ function App() {
                                                                             }
                                                                         }
                                                                         
-                                                                        setAdminRows(prev => prev.map((r, i) => i === idx ? { ...r, drugName: val, dose: matchedDose, calculatedDose: matchedDose, volume: autoVol } : r));
+                                                                        setAdminRows(prev => prev.map((r, i) => i === idx ? { ...r, drugName: val, dose: matchedDose, calculatedDose: calcDose, volume: autoVol } : r));
                                                                         checkSolventRules(val, row.solvent);
                                                                     }}
                                                                     placeholder="ค้นหา/ระบุชื่อยา..."
@@ -3476,6 +3596,25 @@ function App() {
                                                                     <option value="AUC">AUC</option>
                                                                 </select>
                                                             </div>
+                                                            {/* Real-time Diff Display */}
+                                                            {row.calculatedDose && row.dose && (() => {
+                                                                const calcMatch = row.calculatedDose.toString().match(/[\d.]+/);
+                                                                const doseMatch = row.dose.toString().match(/[\d.]+/);
+                                                                if (calcMatch && doseMatch) {
+                                                                    const calcVal = parseFloat(calcMatch[0]);
+                                                                    const doseVal = parseFloat(doseMatch[0]);
+                                                                    if (calcVal > 0 && calcVal !== doseVal) {
+                                                                        const diffPercent = (((doseVal - calcVal) / calcVal) * 100).toFixed(1);
+                                                                        const isOver = Math.abs(parseFloat(diffPercent)) > 10;
+                                                                        return (
+                                                                            <div className={`mt-1.5 text-[10px] font-black tracking-wide ${isOver ? 'text-rose-500 bg-rose-500/10 border-rose-500/20' : 'text-amber-500 bg-amber-500/10 border-amber-500/20'} px-1.5 py-0.5 rounded border inline-block`}>
+                                                                                {diffPercent > 0 ? '+' : ''}{diffPercent}% Diff
+                                                                            </div>
+                                                                        );
+                                                                    }
+                                                                }
+                                                                return null;
+                                                            })()}
                                                         </td>
                                                         <td className="px-3 py-2.5">
                                                             <select

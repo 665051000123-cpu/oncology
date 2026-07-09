@@ -1,125 +1,161 @@
 import React, { useState, useEffect } from 'react';
-import { X, Printer, Loader2 } from 'lucide-react';
 import axios from 'axios';
-import qz from 'qz-tray';
-
-const API_BASE = '/api';
+import { X, Printer, CheckCircle2, AlertCircle, Save } from 'lucide-react';
 
 const PrinterSettings = ({ user, setUser, show, onClose, showNotification }) => {
     const [printers, setPrinters] = useState([]);
-    const [selectedPrinter, setSelectedPrinter] = useState(user?.default_printer || '');
-    const [isLoading, setIsLoading] = useState(false);
-    const [status, setStatus] = useState('ไม่ได้เชื่อมต่อ');
+    const [loading, setLoading] = useState(false);
+    const [status, setStatus] = useState('กำลังโหลดรายชื่อเครื่องปริ้นท์...');
+    const [error, setError] = useState(null);
+
+    // Selected printers
+    const [stickerPrinter, setStickerPrinter] = useState('');
+    const [a4Printer, setA4Printer] = useState('');
 
     useEffect(() => {
         if (show) {
-            connectQZ();
-        } else {
-            if (qz.websocket.isActive()) {
-                qz.websocket.disconnect();
-            }
+            fetchPrinters();
+            // Load saved settings
+            const savedSticker = localStorage.getItem('sticker_printer');
+            const savedA4 = localStorage.getItem('a4_printer');
+            if (savedSticker) setStickerPrinter(savedSticker);
+            if (savedA4) setA4Printer(savedA4);
         }
     }, [show]);
 
-    const connectQZ = async () => {
-        setIsLoading(true);
-        setStatus('กำลังเชื่อมต่อ QZ Tray...');
+    const fetchPrinters = async () => {
+        setLoading(true);
+        setError(null);
         try {
-            if (!qz.websocket.isActive()) {
-                await qz.websocket.connect({ retries: 2, delay: 1 });
-            }
-            setStatus('เชื่อมต่อสำเร็จ กำลังค้นหาเครื่องพิมพ์...');
-            const foundPrinters = await qz.printers.find();
-            setPrinters(foundPrinters);
-            setStatus('ค้นหาเครื่องพิมพ์สำเร็จ');
-            
-            // If user has a default printer but it's not set in local state yet
-            if (user?.default_printer) {
-                setSelectedPrinter(user.default_printer);
-            }
+            const res = await axios.get('/api/printers');
+            setPrinters(res.data);
+            setStatus('ดึงรายชื่อเครื่องปริ้นท์สำเร็จ');
         } catch (err) {
-            console.error('QZ Connection error', err);
-            setStatus('ไม่สามารถเชื่อมต่อ QZ Tray ได้ โปรดตรวจสอบว่าโปรแกรมเปิดอยู่');
+            console.error('Fetch printers error', err);
+            setError('ไม่สามารถดึงรายชื่อเครื่องปริ้นท์ได้: ' + err.message);
+            setStatus('เกิดข้อผิดพลาดในการดึงข้อมูล');
         } finally {
-            setIsLoading(false);
+            setLoading(false);
         }
     };
 
-    const handleSave = async () => {
-        setIsLoading(true);
-        try {
-            const res = await axios.put(`${API_BASE}/users/${user.employee_id}/printer`, {
-                default_printer: selectedPrinter
-            });
-            if (res.data.success) {
-                const updatedUser = { ...user, default_printer: selectedPrinter };
-                setUser(updatedUser);
-                localStorage.setItem('user', JSON.stringify(updatedUser));
-                showNotification('บันทึกเครื่องพิมพ์เริ่มต้นเรียบร้อยแล้ว', 'success');
-                onClose();
-            }
-        } catch (err) {
-            showNotification('เกิดข้อผิดพลาดในการบันทึก: ' + err.message, 'error');
-        } finally {
-            setIsLoading(false);
-        }
+    const handleSave = () => {
+        localStorage.setItem('sticker_printer', stickerPrinter);
+        localStorage.setItem('a4_printer', a4Printer);
+        
+        // Also save to user context for backward compatibility in App.jsx if needed
+        const updatedUser = { ...user, default_printer: stickerPrinter, a4_printer: a4Printer };
+        setUser(updatedUser);
+        localStorage.setItem('oncology_user', JSON.stringify(updatedUser));
+        
+        showNotification('บันทึกการตั้งค่าเครื่องปริ้นท์เรียบร้อยแล้ว', 'success');
+        onClose();
     };
 
     if (!show) return null;
 
     return (
-        <div className="fixed inset-0 bg-black/60 backdrop-blur-sm z-[100] flex items-center justify-center p-4 animate-fade-in">
-            <div className="bg-white dark:bg-slate-900 rounded-3xl max-w-md w-full p-8 relative shadow-2xl border border-slate-200 dark:border-slate-800 animate-scale-up">
-                <button onClick={onClose} className="absolute top-6 right-6 text-slate-400 hover:text-slate-600 dark:hover:text-slate-200 transition-colors">
-                    <X size={24} />
-                </button>
-                <div className="flex items-center gap-3 mb-6">
-                    <div className="w-12 h-12 rounded-2xl bg-sky-100 dark:bg-sky-900/50 flex items-center justify-center text-sky-600 dark:text-sky-400">
-                        <Printer size={24} />
+        <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+            <div className="bg-white rounded-3xl shadow-2xl w-full max-w-xl overflow-hidden flex flex-col border border-slate-200 animate-in zoom-in-95 duration-300">
+                {/* Header */}
+                <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-gradient-to-r from-sky-50 to-white">
+                    <div className="flex items-center gap-3">
+                        <div className="w-12 h-12 rounded-2xl bg-sky-100 flex items-center justify-center text-sky-600 shadow-inner">
+                            <Printer size={24} />
+                        </div>
+                        <div>
+                            <h2 className="text-xl font-black text-slate-800">ตั้งค่าเครื่องพิมพ์ (Local Print Server)</h2>
+                            <p className="text-sm font-medium text-slate-500">พิมพ์เอกสารอัตโนมัติ ไม่ต้องกด Confirm</p>
+                        </div>
                     </div>
-                    <div>
-                        <h2 className="text-xl font-black text-slate-900 dark:text-white">ตั้งค่าเครื่องพิมพ์ (Silent Print)</h2>
-                        <p className="text-sm font-bold text-slate-500">เลือกเครื่องพิมพ์สติ๊กเกอร์เริ่มต้น</p>
-                    </div>
+                    <button 
+                        onClick={onClose}
+                        className="w-10 h-10 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition-colors"
+                    >
+                        <X size={20} />
+                    </button>
                 </div>
 
-                <div className="mb-6 space-y-4">
-                    <div className="p-4 rounded-xl bg-slate-50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700">
-                        <div className="text-xs font-bold text-slate-500 mb-1 uppercase tracking-wider">สถานะ QZ Tray</div>
-                        <div className={`font-bold ${status.includes('สำเร็จ') ? 'text-emerald-500' : 'text-amber-500'}`}>
-                            {status}
+                {/* Body */}
+                <div className="p-6 overflow-y-auto max-h-[70vh] bg-slate-50/50">
+                    {/* Status Box */}
+                    <div className={`mb-6 p-4 rounded-2xl flex items-start gap-3 border ${error ? 'bg-red-50 border-red-200 text-red-700' : 'bg-emerald-50 border-emerald-200 text-emerald-700'}`}>
+                        <div className="mt-0.5">
+                            {error ? <AlertCircle size={20} /> : <CheckCircle2 size={20} />}
+                        </div>
+                        <div>
+                            <div className="font-bold">{error ? 'เกิดข้อผิดพลาด' : 'สถานะระบบ'}</div>
+                            <div className="text-sm opacity-90">{status}</div>
                         </div>
                     </div>
 
-                    <div>
-                        <label className="block text-sm font-bold text-slate-700 dark:text-slate-300 mb-2">เลือกเครื่องพิมพ์</label>
-                        <select
-                            value={selectedPrinter}
-                            onChange={(e) => setSelectedPrinter(e.target.value)}
-                            disabled={printers.length === 0}
-                            className="w-full h-14 bg-white dark:bg-slate-800 border-2 border-slate-200 dark:border-slate-700 rounded-xl px-4 font-bold focus:border-sky-500 focus:ring-0 outline-none transition-all disabled:opacity-50"
-                        >
-                            <option value="">-- ไม่ระบุ (ใช้หน้าต่างพิมพ์ของเบราว์เซอร์) --</option>
-                            {printers.map(p => (
-                                <option key={p} value={p}>{p}</option>
-                            ))}
-                        </select>
+                    <div className="space-y-6">
+                        {/* Sticker Printer Setting */}
+                        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                            <div className="flex items-center justify-between mb-4">
+                                <div>
+                                    <h3 className="font-bold text-slate-800 text-lg">เครื่องพิมพ์สติ๊กเกอร์ (Stickers)</h3>
+                                    <p className="text-sm text-slate-500">สำหรับพิมพ์ฉลากยาขนาด 80x50mm</p>
+                                </div>
+                            </div>
+                            
+                            {loading ? (
+                                <div className="h-12 bg-slate-100 rounded-xl animate-pulse"></div>
+                            ) : (
+                                <select 
+                                    value={stickerPrinter}
+                                    onChange={(e) => setStickerPrinter(e.target.value)}
+                                    className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl focus:ring-2 focus:ring-sky-500 focus:border-sky-500 block p-3 font-medium transition-all"
+                                >
+                                    <option value="">-- ปิดระบบพิมพ์อัตโนมัติ (Manual Print) --</option>
+                                    {printers.map(p => (
+                                        <option key={p} value={p}>{p}</option>
+                                    ))}
+                                </select>
+                            )}
+                        </div>
+
+                        {/* A4 Printer Setting */}
+                        <div className="bg-white p-5 rounded-2xl border border-slate-200 shadow-sm">
+                            <div className="flex items-center justify-between mb-4">
+                                <div>
+                                    <h3 className="font-bold text-slate-800 text-lg">เครื่องพิมพ์เอกสาร (A4/A5)</h3>
+                                    <p className="text-sm text-slate-500">สำหรับพิมพ์ใบเตรียมยาและใบสรุปผล</p>
+                                </div>
+                            </div>
+                            
+                            {loading ? (
+                                <div className="h-12 bg-slate-100 rounded-xl animate-pulse"></div>
+                            ) : (
+                                <select 
+                                    value={a4Printer}
+                                    onChange={(e) => setA4Printer(e.target.value)}
+                                    className="w-full bg-slate-50 border border-slate-200 text-slate-800 text-sm rounded-xl focus:ring-2 focus:ring-sky-500 focus:border-sky-500 block p-3 font-medium transition-all"
+                                >
+                                    <option value="">-- ปิดระบบพิมพ์อัตโนมัติ (Manual Print) --</option>
+                                    {printers.map(p => (
+                                        <option key={p} value={p}>{p}</option>
+                                    ))}
+                                </select>
+                            )}
+                        </div>
                     </div>
                 </div>
 
-                <div className="flex justify-end gap-3 pt-4 border-t border-slate-100 dark:border-slate-800">
-                    <button
-                        onClick={onClose}
-                        className="px-6 py-3 rounded-xl font-bold text-slate-500 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors cursor-pointer"
+                {/* Footer */}
+                <div className="p-6 border-t border-slate-100 bg-white flex justify-end gap-3">
+                    <button 
+                        onClick={fetchPrinters}
+                        className="px-6 py-2.5 rounded-xl font-bold text-slate-600 bg-slate-100 hover:bg-slate-200 transition-colors"
+                        disabled={loading}
                     >
-                        ยกเลิก
+                        รีเฟรชรายชื่อ
                     </button>
-                    <button
+                    <button 
                         onClick={handleSave}
-                        disabled={isLoading}
-                        className="px-8 py-3 rounded-xl font-black bg-sky-500 hover:bg-sky-600 text-white shadow-lg shadow-sky-500/30 transition-all active:scale-95 flex items-center gap-2 cursor-pointer disabled:opacity-50"
+                        className="px-6 py-2.5 rounded-xl font-bold text-white bg-sky-600 hover:bg-sky-700 shadow-lg shadow-sky-600/30 transition-colors flex items-center gap-2"
                     >
-                        {isLoading && <Loader2 size={18} className="animate-spin" />} บันทึก
+                        <Save size={18} /> บันทึกการตั้งค่า
                     </button>
                 </div>
             </div>

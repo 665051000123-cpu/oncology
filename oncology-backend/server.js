@@ -1404,33 +1404,83 @@ app.delete('/api/admin/drugs/:id', requireHeadOrAdmin, async (req, res) => {
         res.status(500).json({ success: false, message: 'Database Error: ' + err.message });
     }
 });
-// QZ Tray Security Endpoints
-app.get('/api/qz/cert', (req, res) => {
+
+// Local Print Server Endpoints
+const ptp = require('pdf-to-printer');
+const puppeteer = require('puppeteer');
+const fs = require('fs');
+const path = require('path');
+const crypto = require('crypto');
+
+app.get('/api/printers', async (req, res) => {
     try {
-        const fs = require('fs');
-        const cert = fs.readFileSync('digital-certificate.txt', 'utf8');
-        res.type('text/plain').send(cert);
+        const printers = await ptp.getPrinters();
+        // pdf-to-printer returns an array of objects or strings depending on the OS/version
+        // Usually it's an array of objects with deviceId and name
+        const printerNames = printers.map(p => typeof p === 'string' ? p : p.name);
+        res.json(printerNames);
     } catch (err) {
-        console.error('QZ Cert Error:', err);
-        res.status(500).send('Certificate not found');
+        console.error('Fetch Printers Error:', err);
+        res.status(500).json({ success: false, message: 'Failed to fetch printers' });
     }
 });
 
-app.get('/api/qz/sign', (req, res) => {
+app.post('/api/print', async (req, res) => {
     try {
-        const fs = require('fs');
-        const crypto = require('crypto');
-        const request = req.query.request;
-        const privateKey = fs.readFileSync('private-key.pem', 'utf8');
-        const sign = crypto.createSign('SHA512');
-        sign.update(request);
-        const signature = sign.sign(privateKey, 'base64');
-        res.type('text/plain').send(signature);
+        const { html, printerName, paperSize = 'A4' } = req.body;
+        
+        if (!printerName) {
+            return res.status(400).json({ success: false, message: 'Printer name is required' });
+        }
+
+        const browser = await puppeteer.launch({ headless: 'new' });
+        const page = await browser.newPage();
+        
+        // Strip out any <script> tags to prevent window.close() or other issues
+        const cleanHtml = html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+        await page.setContent(cleanHtml, { waitUntil: 'domcontentloaded' });
+        
+        let pdfOptions = {
+            printBackground: true,
+            margin: { top: 0, right: 0, bottom: 0, left: 0 }
+        };
+
+        if (paperSize === 'Sticker') {
+            pdfOptions.width = '80mm';
+            pdfOptions.height = '50mm';
+        } else if (paperSize === 'A5') {
+            pdfOptions.format = 'A5';
+        } else {
+            pdfOptions.format = 'A4';
+        }
+
+        const pdfBuffer = await page.pdf(pdfOptions);
+        await browser.close();
+
+        // Write buffer to a temp file
+        const tempFilename = `temp_print_${crypto.randomBytes(4).toString('hex')}.pdf`;
+        const tempPath = path.join(__dirname, tempFilename);
+        fs.writeFileSync(tempPath, pdfBuffer);
+
+        // Print using pdf-to-printer
+        await ptp.print(tempPath, { printer: printerName });
+
+        // Clean up temp file after some time
+        setTimeout(() => {
+            try {
+                if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
+            } catch (e) {
+                console.error('Failed to clean up temp file:', e);
+            }
+        }, 15000);
+
+        res.json({ success: true, message: 'Printed successfully' });
     } catch (err) {
-        console.error('QZ Sign Error:', err);
-        res.status(500).send('Signing failed');
+        console.error('Print Error:', err);
+        res.status(500).json({ success: false, message: 'Failed to print: ' + err.message });
     }
 });
+
 
 // รัน Server ที่พอร์ต 5004 เป็นตัวกลางกระจายคำสั่ง
 const PORT = 5004;

@@ -691,46 +691,73 @@ const AdminUsers = ({ currentUser, setCurrentUser, onBack, showNotification, the
                     ) : stats ? (
                         <div className="grid grid-cols-1 sm:grid-cols-3 gap-6">
                             {/* Card 1: Total Calculations */}
-                            <div className={`premium-card p-5 border-l-4 border-l-indigo-500 bg-gradient-to-br ${
-                                isDark ? 'from-indigo-500/10 to-purple-500/5 border-indigo-500/20' : 'from-indigo-50 to-white border-indigo-200'
-                            } flex justify-between items-center transition-all hover:translate-y-[-2px]`}>
-                                <div className="space-y-2">
-                                    <p className="text-xs font-black uppercase opacity-70 tracking-wider">จำนวนการใช้ยา</p>
-                                    <h3 className="text-3xl font-black tracking-tight">{stats.totalCalculations.toLocaleString()}</h3>
+                            <div className={`relative overflow-hidden rounded-3xl p-6 border transition-all duration-300 hover:-translate-y-1 hover:shadow-xl group ${
+                                isDark 
+                                    ? 'bg-gradient-to-br from-indigo-900/40 to-slate-900 border-indigo-500/20 shadow-indigo-900/20' 
+                                    : 'bg-gradient-to-br from-white to-indigo-50/50 border-indigo-100 shadow-lg shadow-indigo-100/50'
+                            }`}>
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-indigo-500/10 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none group-hover:bg-indigo-500/20 transition-all"></div>
+                                <div className="flex justify-between items-start relative z-10">
+                                    <div className="space-y-1">
+                                        <p className="text-[11px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">จำนวนการใช้ยา</p>
+                                        <h3 className="text-4xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-br from-indigo-600 to-purple-600 dark:from-indigo-400 dark:to-purple-400">{stats.totalCalculations.toLocaleString()}</h3>
+                                    </div>
+                                    <div className={`p-3.5 rounded-2xl shadow-inner ${isDark ? 'bg-indigo-500/20 text-indigo-300' : 'bg-gradient-to-br from-indigo-100 to-indigo-50 text-indigo-600'}`}>
+                                        <Activity size={24} className="group-hover:scale-110 transition-transform" />
+                                    </div>
                                 </div>
-                                <div className={`p-3 rounded-2xl ${isDark ? 'bg-indigo-950/40 text-indigo-400' : 'bg-indigo-100 text-indigo-600'}`}>
-                                    <Activity size={24} />
+                                <div className="mt-4 pt-4 border-t border-indigo-500/10 dark:border-indigo-500/20 flex items-center justify-between text-[10px] font-bold text-slate-400">
+                                    <span>ทั้งหมดในระบบ</span>
+                                    <span className="text-indigo-500 flex items-center gap-1"><Activity size={10}/> Updated</span>
                                 </div>
                             </div>
 
                             {/* Card 2: Registered Pharmacists */}
-                            <div className={`premium-card p-5 border-l-4 border-l-sky-500 bg-gradient-to-br ${
-                                isDark ? 'from-sky-500/10 to-teal-500/5 border-sky-500/20' : 'from-sky-50 to-white border-sky-200'
-                            } flex justify-between items-center transition-all hover:translate-y-[-2px]`}>
-                                <div className="space-y-2">
-                                    <p className="text-xs font-black uppercase opacity-70 tracking-wider">ผู้ใช้งานในระบบ</p>
-                                    <h3 className="text-3xl font-black tracking-tight">{stats.totalUsers.toLocaleString()}</h3>
+                            <div className={`relative overflow-hidden rounded-3xl p-6 border transition-all duration-300 hover:-translate-y-1 hover:shadow-xl group ${
+                                isDark 
+                                    ? 'bg-gradient-to-br from-sky-900/40 to-slate-900 border-sky-500/20 shadow-sky-900/20' 
+                                    : 'bg-gradient-to-br from-white to-sky-50/50 border-sky-100 shadow-lg shadow-sky-100/50'
+                            }`}>
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-sky-500/10 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none group-hover:bg-sky-500/20 transition-all"></div>
+                                <div className="flex justify-between items-start relative z-10">
+                                    <div className="space-y-1">
+                                        <p className="text-[11px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">ผู้ใช้งานในระบบ</p>
+                                        <h3 className="text-4xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-br from-sky-500 to-blue-600 dark:from-sky-400 dark:to-blue-400">{stats.totalUsers.toLocaleString()}</h3>
+                                    </div>
+                                    <div className={`p-3.5 rounded-2xl shadow-inner ${isDark ? 'bg-sky-500/20 text-sky-300' : 'bg-gradient-to-br from-sky-100 to-sky-50 text-sky-600'}`}>
+                                        <Users size={24} className="group-hover:scale-110 transition-transform" />
+                                    </div>
                                 </div>
-                                <div className={`p-3 rounded-2xl ${isDark ? 'bg-sky-950/40 text-sky-400' : 'bg-sky-100 text-sky-600'}`}>
-                                    <Users size={24} />
+                                <div className="mt-4 pt-4 border-t border-sky-500/10 dark:border-sky-500/20 flex items-center justify-between text-[10px] font-bold text-slate-400">
+                                    <span>เภสัชกรและแอดมิน</span>
+                                    <span className="text-sky-500 flex items-center gap-1"><Users size={10}/> Active</span>
                                 </div>
                             </div>
 
                             {/* Card 3: Unique Patients */}
-                            <div className={`premium-card p-5 border-l-4 border-l-teal-500 bg-gradient-to-br ${
-                                isDark ? 'from-teal-500/10 to-emerald-500/5 border-teal-500/20' : 'from-teal-50 to-white border-teal-200'
-                            } flex justify-between items-center transition-all hover:translate-y-[-2px]`}>
-                                <div className="space-y-2">
-                                    <p className="text-xs font-black uppercase opacity-70 tracking-wider">จำนวนผู้ป่วย (H.N. สะสม)</p>
-                                    <h3 className="text-3xl font-black tracking-tight">{stats.totalPatients.toLocaleString()}</h3>
+                            <div className={`relative overflow-hidden rounded-3xl p-6 border transition-all duration-300 hover:-translate-y-1 hover:shadow-xl group ${
+                                isDark 
+                                    ? 'bg-gradient-to-br from-teal-900/40 to-slate-900 border-teal-500/20 shadow-teal-900/20' 
+                                    : 'bg-gradient-to-br from-white to-teal-50/50 border-teal-100 shadow-lg shadow-teal-100/50'
+                            }`}>
+                                <div className="absolute top-0 right-0 w-32 h-32 bg-teal-500/10 rounded-full blur-3xl -mr-10 -mt-10 pointer-events-none group-hover:bg-teal-500/20 transition-all"></div>
+                                <div className="flex justify-between items-start relative z-10">
+                                    <div className="space-y-1">
+                                        <p className="text-[11px] font-black uppercase tracking-wider text-slate-500 dark:text-slate-400">ผู้ป่วย (H.N. สะสม)</p>
+                                        <h3 className="text-4xl font-black tracking-tight text-transparent bg-clip-text bg-gradient-to-br from-teal-500 to-emerald-600 dark:from-teal-400 dark:to-emerald-400">{stats.totalPatients.toLocaleString()}</h3>
+                                    </div>
+                                    <div className={`p-3.5 rounded-2xl shadow-inner ${isDark ? 'bg-teal-500/20 text-teal-300' : 'bg-gradient-to-br from-teal-100 to-teal-50 text-teal-600'}`}>
+                                        <User size={24} className="group-hover:scale-110 transition-transform" />
+                                    </div>
                                 </div>
-                                <div className={`p-3 rounded-2xl ${isDark ? 'bg-teal-950/40 text-teal-400' : 'bg-teal-100 text-teal-600'}`}>
-                                    <User size={24} />
+                                <div className="mt-4 pt-4 border-t border-teal-500/10 dark:border-teal-500/20 flex items-center justify-between text-[10px] font-bold text-slate-400">
+                                    <span>ที่บันทึกไว้ในระบบ</span>
+                                    <span className="text-teal-500 flex items-center gap-1"><User size={10}/> Saved</span>
                                 </div>
                             </div>
                         </div>
                     ) : (
-                        <div className="premium-card p-6 text-center text-slate-500 font-bold italic">
+                        <div className="rounded-3xl p-8 text-center text-slate-400 font-bold italic border border-slate-200 dark:border-slate-800 bg-white dark:bg-slate-900/50 shadow-sm">
                             ไม่สามารถโหลดข้อมูลสถิติได้
                         </div>
                     )}
@@ -740,19 +767,22 @@ const AdminUsers = ({ currentUser, setCurrentUser, onBack, showNotification, the
                         <div className="space-y-6">
                             <div className="grid grid-cols-1 lg:grid-cols-5 gap-6">
                                 {/* Drug Distribution - Bar Chart */}
-                                <div className="lg:col-span-3 premium-card p-6 flex flex-col justify-between">
-                                    <h3 className="font-black mb-5 uppercase tracking-wider text-sm flex items-center gap-2 opacity-90">
-                                        <Activity size={18} className="text-indigo-500 dark:text-indigo-400" />
+                                <div className="lg:col-span-3 bg-white dark:bg-slate-900/80 rounded-3xl p-6 md:p-8 border border-slate-200/80 dark:border-slate-700/50 shadow-xl shadow-slate-200/40 dark:shadow-none flex flex-col justify-between relative overflow-hidden group">
+                                    <div className="absolute top-0 right-0 w-64 h-64 bg-indigo-500/5 rounded-full blur-3xl pointer-events-none group-hover:bg-indigo-500/10 transition-all duration-700"></div>
+                                    <h3 className="font-black mb-8 uppercase tracking-wider text-sm flex items-center gap-2 opacity-90 relative z-10">
+                                        <div className="p-2 bg-indigo-50 dark:bg-indigo-500/10 text-indigo-500 rounded-lg">
+                                            <Activity size={16} />
+                                        </div>
                                         จำนวนการใช้ยาแยกตามสูตร/ตัวยา
                                     </h3>
                                     
-                                    <div className="h-[250px] w-full flex items-end justify-between px-2 pt-6 relative border-b border-slate-700/20">
+                                    <div className="h-[250px] w-full flex items-end justify-between px-2 pt-6 relative border-b-2 border-slate-200 dark:border-slate-700/50 z-10">
                                         {/* SVG Grid Lines */}
-                                        <div className="absolute inset-x-0 top-0 bottom-0 flex flex-col justify-between pointer-events-none opacity-[0.07] dark:opacity-[0.05]">
-                                            <div className="border-t border-dashed border-current h-0 w-full" />
-                                            <div className="border-t border-dashed border-current h-0 w-full" />
-                                            <div className="border-t border-dashed border-current h-0 w-full" />
-                                            <div className="border-t border-dashed border-current h-0 w-full" />
+                                        <div className="absolute inset-x-0 top-0 bottom-0 flex flex-col justify-between pointer-events-none opacity-[0.05] dark:opacity-[0.03]">
+                                            <div className="border-t-2 border-dashed border-current h-0 w-full" />
+                                            <div className="border-t-2 border-dashed border-current h-0 w-full" />
+                                            <div className="border-t-2 border-dashed border-current h-0 w-full" />
+                                            <div className="border-t-2 border-dashed border-current h-0 w-full" />
                                         </div>
                                         
                                         {(() => {
@@ -761,27 +791,29 @@ const AdminUsers = ({ currentUser, setCurrentUser, onBack, showNotification, the
                                             const maxVal = Math.max(...items.map(([_, v]) => v)) || 1;
                                             
                                             const drugColors = {
-                                                'Vincristine': 'from-purple-500 to-indigo-500 shadow-purple-500/10',
-                                                'Carboplatin': 'from-sky-500 to-blue-500 shadow-sky-500/10',
-                                                'Bleomycin': 'from-teal-500 to-emerald-500 shadow-teal-500/10',
-                                                'CV Regimen': 'from-amber-500 to-orange-500 shadow-amber-500/10',
-                                                'BC Regimen': 'from-rose-500 to-pink-500 shadow-rose-500/10',
-                                                'Other': 'from-slate-400 to-slate-500 shadow-slate-500/10'
+                                                'Vincristine': 'from-purple-500 to-indigo-600 shadow-[0_0_15px_rgba(139,92,246,0.3)]',
+                                                'Carboplatin': 'from-sky-400 to-blue-600 shadow-[0_0_15px_rgba(14,165,233,0.3)]',
+                                                'Bleomycin': 'from-teal-400 to-emerald-600 shadow-[0_0_15px_rgba(20,184,166,0.3)]',
+                                                'CV Regimen': 'from-amber-400 to-orange-500 shadow-[0_0_15px_rgba(245,158,11,0.3)]',
+                                                'BC Regimen': 'from-rose-400 to-pink-600 shadow-[0_0_15px_rgba(244,63,94,0.3)]',
+                                                'Other': 'from-slate-400 to-slate-600 shadow-[0_0_15px_rgba(100,116,139,0.3)]'
                                             };
                                             
                                             return items.map(([name, val]) => {
-                                                const pct = maxVal > 0 ? (val / maxVal) * 80 : 0; // max height is 80%
-                                                const bgGradient = drugColors[name] || 'from-indigo-500 to-purple-500';
+                                                const pct = maxVal > 0 ? (val / maxVal) * 85 : 0; // max height is 85%
+                                                const bgGradient = drugColors[name] || 'from-indigo-500 to-purple-600';
                                                     return (
-                                                        <div key={name} className="flex flex-col items-center justify-end flex-1 group h-full">
-                                                            <span className="text-[10px] font-black font-mono mb-1.5 opacity-90 text-slate-800 dark:text-white">
+                                                        <div key={name} className="flex flex-col items-center justify-end flex-1 group/bar h-full">
+                                                            <span className="text-[10px] md:text-xs font-black font-mono mb-2 opacity-0 group-hover/bar:opacity-100 group-hover/bar:-translate-y-1 transition-all duration-300 text-slate-700 dark:text-slate-200 bg-white/80 dark:bg-slate-800/80 px-2 py-0.5 rounded-md shadow-sm border border-slate-100 dark:border-slate-700 backdrop-blur-sm">
                                                                 {val}
                                                             </span>
                                                             <div 
-                                                                className={`w-10 sm:w-12 bg-gradient-to-t ${bgGradient} rounded-t-xl transition-all duration-500 group-hover:brightness-110 shadow-lg relative`}
-                                                                style={{ height: `${pct}%`, minHeight: val > 0 ? '8px' : '2px' }}
-                                                            />
-                                                            <span className="text-[9px] font-black text-center mt-3 truncate w-full px-1 opacity-70 group-hover:opacity-100 transition-opacity">
+                                                                className={`w-10 sm:w-12 bg-gradient-to-t ${bgGradient} rounded-t-xl transition-all duration-500 group-hover/bar:brightness-110 relative`}
+                                                                style={{ height: `${pct}%`, minHeight: val > 0 ? '8px' : '0px' }}
+                                                            >
+                                                                <div className="absolute inset-0 bg-white/20 rounded-t-xl opacity-0 group-hover/bar:opacity-100 transition-opacity"></div>
+                                                            </div>
+                                                            <span className="text-[9px] font-black text-center mt-3 truncate w-full px-1 text-slate-500 dark:text-slate-400 group-hover/bar:text-indigo-600 dark:group-hover/bar:text-indigo-400 transition-colors">
                                                                 {name}
                                                             </span>
                                                         </div>
@@ -792,13 +824,16 @@ const AdminUsers = ({ currentUser, setCurrentUser, onBack, showNotification, the
                                 </div>
 
                                 {/* Drug Share - Donut Chart */}
-                                <div className="lg:col-span-2 premium-card p-6 flex flex-col justify-between">
-                                    <h3 className="font-black mb-5 uppercase tracking-wider text-sm flex items-center gap-2 opacity-90">
-                                        <TrendingUp size={18} className="text-sky-500 dark:text-sky-400" />
-                                        สัดส่วนการใช้ยาเคมีบำบัด
+                                <div className="lg:col-span-2 bg-white dark:bg-slate-900/80 rounded-3xl p-6 md:p-8 border border-slate-200/80 dark:border-slate-700/50 shadow-xl shadow-slate-200/40 dark:shadow-none flex flex-col justify-between relative overflow-hidden group">
+                                    <div className="absolute bottom-0 left-0 w-48 h-48 bg-sky-500/5 rounded-full blur-3xl pointer-events-none group-hover:bg-sky-500/10 transition-all duration-700"></div>
+                                    <h3 className="font-black mb-5 uppercase tracking-wider text-sm flex items-center gap-2 opacity-90 relative z-10">
+                                        <div className="p-2 bg-sky-50 dark:bg-sky-500/10 text-sky-500 rounded-lg">
+                                            <TrendingUp size={16} />
+                                        </div>
+                                        สัดส่วนการใช้ยา
                                     </h3>
                                     
-                                    <div className="flex flex-col sm:flex-row lg:flex-col xl:flex-row items-center justify-center h-full py-4 gap-6">
+                                    <div className="flex flex-col sm:flex-row lg:flex-col xl:flex-row items-center justify-center h-full py-4 gap-8 relative z-10">
                                         {(() => {
                                             const drugCounts = stats.drugCounts || {};
                                             const rawData = Object.entries(drugCounts).map(([name, val]) => ({ name, value: val }));
@@ -815,7 +850,7 @@ const AdminUsers = ({ currentUser, setCurrentUser, onBack, showNotification, the
                                             
                                             if (total === 0) {
                                                 return (
-                                                    <div className="text-center p-8 opacity-60 font-bold italic text-xs w-full">
+                                                    <div className="text-center p-8 opacity-60 font-bold italic text-xs w-full bg-slate-50 dark:bg-slate-800/50 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700">
                                                         ไม่มีข้อมูลการใช้ยา
                                                     </div>
                                                 );
@@ -830,21 +865,25 @@ const AdminUsers = ({ currentUser, setCurrentUser, onBack, showNotification, the
                                             return (
                                                 <>
                                                     <div className="relative w-[220px] h-[220px] shrink-0">
-                                                        <svg width="220" height="220" viewBox="0 0 200 200" className="drop-shadow-lg">
+                                                        <svg width="220" height="220" viewBox="0 0 200 200" className="drop-shadow-2xl">
+                                                            {/* Background track */}
+                                                            <circle cx={cx} cy={cy} r={r - (r-innerR)/2} fill="none" stroke={isDark ? '#1e293b' : '#f1f5f9'} strokeWidth={r-innerR} />
                                                             {slices.map((s, idx) => (
                                                                 <path 
                                                                     key={idx}
                                                                     d={s.d}
                                                                     fill={COLORS[s.name] || '#6366f1'}
-                                                                    className="transition-all duration-300 hover:opacity-90 cursor-pointer"
+                                                                    className="transition-all duration-300 hover:opacity-80 cursor-pointer origin-center hover:scale-105"
                                                                     title={`${s.name}: ${s.value} ครั้ง (${s.percent}%)`}
+                                                                    style={{ filter: `drop-shadow(0 0 8px ${COLORS[s.name]}40)` }}
                                                                 />
                                                             ))}
-                                                            <circle cx={cx} cy={cy} r={innerR - 2} fill={isDark ? '#1e293b' : '#ffffff'} />
+                                                            {/* Inner circle with subtle gradient */}
+                                                            <circle cx={cx} cy={cy} r={innerR - 2} fill={isDark ? '#0f172a' : '#ffffff'} className="shadow-inner" />
                                                             <text x={cx} y={cy - 12} textAnchor="middle" fill={isDark ? '#94a3b8' : '#64748b'} fontSize="11" fontWeight="900" opacity="0.8">
                                                                 ใช้ยาทั้งหมด
                                                             </text>
-                                                            <text x={cx} y={cy + 12} textAnchor="middle" fill={isDark ? '#ffffff' : '#0f172a'} fontSize="26" fontWeight="900">
+                                                            <text x={cx} y={cy + 12} textAnchor="middle" fill={isDark ? '#ffffff' : '#0f172a'} fontSize="28" fontWeight="900">
                                                                 {total}
                                                             </text>
                                                             <text x={cx} y={cy + 32} textAnchor="middle" fill={isDark ? '#94a3b8' : '#64748b'} fontSize="10" fontWeight="700" opacity="0.6">
@@ -853,17 +892,17 @@ const AdminUsers = ({ currentUser, setCurrentUser, onBack, showNotification, the
                                                         </svg>
                                                     </div>
                                                     
-                                                    <div className="flex flex-col gap-2.5 flex-1 w-full max-w-[200px]">
+                                                    <div className="flex flex-col gap-3 flex-1 w-full max-w-[200px]">
                                                         {slices.map((s, idx) => {
                                                             if (s.value === 0) return null;
                                                             return (
-                                                                <div key={idx} className="flex items-center gap-3 text-xs sm:text-sm">
-                                                                    <span 
-                                                                        className="h-3 w-3 rounded-full shrink-0 shadow-sm" 
-                                                                        style={{ backgroundColor: COLORS[s.name] || '#6366f1' }}
+                                                                <div key={idx} className="flex items-center gap-3 text-xs sm:text-sm p-2 rounded-lg hover:bg-slate-50 dark:hover:bg-slate-800/50 transition-colors">
+                                                                    <div 
+                                                                        className="h-3 w-3 rounded-full shrink-0 shadow-sm ring-4 ring-opacity-20" 
+                                                                        style={{ backgroundColor: COLORS[s.name] || '#6366f1', '--tw-ring-color': COLORS[s.name] }}
                                                                     />
-                                                                    <span className="font-bold opacity-90 flex-1 truncate">{s.name}</span>
-                                                                    <span className="font-black font-mono opacity-70">{s.percent}%</span>
+                                                                    <span className="font-bold text-slate-700 dark:text-slate-300 flex-1 truncate">{s.name}</span>
+                                                                    <span className="font-black font-mono text-slate-500">{s.percent}%</span>
                                                                 </div>
                                                             );
                                                         })}
@@ -876,40 +915,48 @@ const AdminUsers = ({ currentUser, setCurrentUser, onBack, showNotification, the
                             </div>
 
                             {/* Pharmacist Leaderboard */}
-                            <div className="premium-card p-6">
-                                <h3 className="font-black mb-5 uppercase tracking-wider text-sm flex items-center gap-2 opacity-90">
-                                    <Users size={18} className="text-emerald-500 dark:text-emerald-400" />
+                            <div className="bg-white dark:bg-slate-900/80 rounded-3xl p-6 md:p-8 border border-slate-200/80 dark:border-slate-700/50 shadow-xl shadow-slate-200/40 dark:shadow-none">
+                                <h3 className="font-black mb-6 uppercase tracking-wider text-sm flex items-center gap-2 opacity-90">
+                                    <div className="p-2 bg-emerald-50 dark:bg-emerald-500/10 text-emerald-500 rounded-lg">
+                                        <Users size={16} />
+                                    </div>
                                     การใช้งานของเภสัชกรสูงสุด (TOP ACTIVE)
                                 </h3>
-                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-4">
+                                <div className="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-5 gap-5">
                                     {stats.leaderboard && stats.leaderboard.length > 0 ? (
-                                        stats.leaderboard.map((pharmacist) => {
+                                        stats.leaderboard.map((pharmacist, index) => {
                                             return (
                                                 <div
                                                     key={pharmacist.name}
-                                                    className={`p-4 rounded-2xl border flex flex-col justify-between items-center text-center transition-all ${
+                                                    className={`relative p-5 rounded-2xl border flex flex-col justify-between items-center text-center transition-all duration-300 overflow-hidden group ${
                                                         isDark
-                                                            ? 'bg-slate-800/30 border-slate-700/40 hover:bg-slate-800/60 hover:translate-y-[-2px]'
-                                                            : 'bg-slate-50 border-slate-200/60 hover:bg-slate-100 hover:translate-y-[-2px] shadow-sm'
+                                                            ? 'bg-slate-800/40 border-slate-700/50 hover:bg-slate-800 hover:-translate-y-1 hover:border-emerald-500/30 hover:shadow-[0_8px_30px_rgba(16,185,129,0.1)]'
+                                                            : 'bg-gradient-to-b from-white to-slate-50/50 border-slate-200/80 hover:border-emerald-200 hover:-translate-y-1 hover:shadow-lg hover:shadow-emerald-100'
                                                     }`}
                                                 >
-                                                    <div className="w-10 h-10 rounded-full bg-gradient-to-br from-emerald-500/20 to-teal-500/10 flex items-center justify-center mb-3">
-                                                        <User size={18} className="text-emerald-500" />
+                                                    {index === 0 && (
+                                                        <div className="absolute top-0 right-0 w-16 h-16 bg-amber-400/10 rounded-bl-full border-b border-l border-amber-400/20 flex items-start justify-end p-2 text-amber-500">
+                                                            ★
+                                                        </div>
+                                                    )}
+                                                    <div className="w-14 h-14 rounded-2xl bg-gradient-to-br from-emerald-500/20 to-teal-500/10 flex items-center justify-center mb-4 border border-emerald-500/20 group-hover:scale-110 transition-transform duration-300 shadow-inner">
+                                                        <User size={24} className="text-emerald-500" />
                                                     </div>
-                                                    <div>
-                                                        <p className="font-black text-sm text-slate-800 dark:text-white truncate max-w-full">{pharmacist.name}</p>
-                                                        <p className="text-[9px] opacity-50 mt-0.5">เภสัชกรผู้บันทึก</p>
+                                                    <div className="w-full">
+                                                        <p className="font-black text-sm text-slate-800 dark:text-white truncate max-w-full group-hover:text-emerald-600 dark:group-hover:text-emerald-400 transition-colors">{pharmacist.name}</p>
+                                                        <p className="text-[10px] text-slate-400 font-bold mt-1">เภสัชกรผู้บันทึก</p>
                                                     </div>
-                                                    <span className={`mt-3.5 px-3 py-1 rounded-full text-[10px] font-black font-mono border ${
-                                                        isDark ? 'bg-sky-950/40 text-sky-400 border-sky-900/30' : 'bg-sky-50 text-sky-600 border-sky-200'
+                                                    <div className={`mt-5 w-full flex items-center justify-center gap-2 py-1.5 rounded-xl text-xs font-black font-mono transition-colors ${
+                                                        isDark ? 'bg-emerald-950/40 text-emerald-400 group-hover:bg-emerald-900/60' : 'bg-emerald-50 text-emerald-600 group-hover:bg-emerald-100/80'
                                                     }`}>
-                                                        {pharmacist.count} ครั้ง
-                                                    </span>
+                                                        <span>{pharmacist.count}</span>
+                                                        <span className="text-[9px] opacity-70">ครั้ง</span>
+                                                    </div>
                                                 </div>
                                             );
                                         })
                                     ) : (
-                                        <div className="col-span-5 text-center p-8 opacity-60 font-bold italic text-sm">
+                                        <div className="col-span-5 text-center p-12 bg-slate-50 dark:bg-slate-800/30 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700 opacity-60 font-bold italic text-sm">
                                             ยังไม่มีประวัติการคำนวณยาในระบบ
                                         </div>
                                     )}
