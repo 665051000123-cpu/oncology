@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useCalculations } from './utils/useCalculations';
-import { Moon, Sun, ChevronRight, ArrowLeft, Printer, Trash2, History, User, Info, LogOut, ArrowUpDown, ChevronUp, ChevronDown, Filter, X, Settings, Pill, Search, Calendar, ClipboardList } from 'lucide-react';
+import { Moon, Sun, ChevronRight, ArrowLeft, Printer, Trash2, History, User, Info, LogOut, ArrowUpDown, ChevronUp, ChevronDown, Filter, X, Settings, Pill, Search, Calendar, ClipboardList, AlertTriangle, AlertCircle, CheckCircle, Syringe, Package } from 'lucide-react';
 import axios from 'axios';
 import Login from './components/Login';
 import Notification from './components/Notification';
@@ -9,8 +9,32 @@ import AdminOrderHistory from './components/AdminOrderHistory';
 import ChangePassword from './components/ChangePassword';
 import DrugsInfo from './components/DrugsInfo';
 import { DRUG_SOLVENT_RULES } from './drugRules';
+import { DRUG_CONCENTRATION_DATA } from './drugData';
+import PrinterSettings from './components/PrinterSettings';
+import InventoryManagement from './components/InventoryManagement';
+import qz from 'qz-tray';
 
 const API_BASE = '/api';
+
+const COMMON_STORAGE_OPTIONS = [
+    "เก็บในตู้เย็น 2-8°C",
+    "เก็บในตู้เย็น 2-8°C (ป้องกันแสง)",
+    "เก็บอุณหภูมิห้อง",
+    "เก็บอุณหภูมิห้อง (ป้องกันแสง)",
+    "ป้องกันแสง",
+    "ใช้ทันทีหลังผสม"
+];
+
+const COMMON_WARNING_OPTIONS = [
+    "*** Vesicant ***",
+    "*** Vesicant *** IV only",
+    "สังเกตการตกตะกอนของยา",
+    "ห้ามเขย่าขวดยา",
+    "ห้ามแช่เย็น",
+    "ห้ามใช้กับสารละลาย Dextrose **ห้ามเขย่า**",
+    "ห้ามใช้ร่วมกับสารละลายที่มี chloride",
+    "อาจทำให้เกิด anaphylaxic reaction ได้"
+];
 
 const sanitizeNaN = (val) => {
     if (val === null || val === undefined) return 'ว่าง';
@@ -30,94 +54,38 @@ const RATE_OPTIONS = [
     "60 mins",
     "2 hrs",
     "4 hrs",
+    "in 4 hrs",
     "24 hrs",
     "50 mL/hr",
     "100 mL/hr",
     "150 mL/hr",
     "200 mL/hr",
-    "250 mL/hr"
+    "250 mL/hr",
+    "1/2 ชั่วโมง ก่อนให้ 5-FU"
 ];
 
 const SOLVENT_OPTIONS = [
-    "0",
-    "5% D/W 50 mL",
-    "5% D/W 100 mL",
-    "5% D/W 250 mL",
-    "5% D/W 500 mL",
-    "D-5-S 250",
-    "D-5-S 500",
-    "D-5-S 1000",
-    "D-5-W 10",
-    "D-5-W 20",
-    "D-5-W 50",
-    "D-5-W 100",
-    "D-5-W 200",
-    "D-5-W 250",
-    "D-5-W 500",
-    "D-5-W 1000",
-    "D-5-W(แก้ว) 200",
-    "D-5-W(แก้ว) 500",
-    "D5N/2 300",
-    "D5N/5 50",
-    "D5N/5 70",
-    "D5N/5 75",
-    "D5N/5 80",
-    "D5N/5 90",
-    "D5N/5 100",
-    "D5N/5 120",
-    "D5N/5 130",
-    "D5N/5 200",
-    "D5N/5 250",
-    "D5N/5 500",
-    "D5S(แก้ว) 500",
-    "D5S/2 200",
-    "D5S/2 400",
-    "D5S/2 500",
-    "D5S/2 1000",
-    "D5S/2(แก้ว) 1000",
+    "NSS",
+    "5% D/W",
     "D5W",
-    "D5W 5",
-    "NSS 3",
-    "NSS 50",
-    "NSS 50 mL",
-    "NSS 100",
-    "NSS 100 mL",
-    "NSS 125",
-    "NSS 150",
-    "NSS 200",
-    "NSS 250",
-    "NSS 250 mL",
-    "NSS 500",
-    "NSS 500 mL",
-    "NSS(แก้ว) 100",
-    "NSS(แก้ว) 500",
-    "NSS(แก้ว) 1000",
-    "NSS. 10",
-    "WFI 10",
-    "WFI 20",
-    "WFI 50",
-    "ขวด Doxo 0"
+    "D5S",
+    "D5N/2",
+    "D5N/5",
+    "D5S/2",
+    "D10W",
+    "WFI",
+    "Sterile Water",
+    "ขวด Doxo"
 ];
 
-const THAI_LABEL_MAP = {
-    vincristine:      'วินคริสทีน - VINCRISTINE',
-    carboplatin:      'คาร์โบพลาติน - CARBOPLATIN',
-    bleomycin:        'บลีโอมัยซิน - BLEOMYCIN',
-    cisplatin:        'ซิสพลาติน - CISPLATIN',
-    trastuzumab:      'ทราสทูซูแมบ - TRASTUZUMAB',
-    pembrolizumab:    'เพมโบรลิซูแมบ - PEMBROLIZUMAB',
-    doxorubicin:      'ดอกโซรูบิซิน - DOXORUBICIN',
-    cyclophosphamide: 'ไซโคลฟอสฟาไมด์ - CYCLOPHOSPHAMIDE',
-    etoposide:        'อีโทโพไซด์ - ETOPOSIDE',
-    docetaxel:        'โดซีแทกเซล - DOCETAXEL',
-};
+
 
 function App() {
     const [theme, setTheme] = useState(localStorage.getItem('appThemeMode') || 'light');
     const [step, setStep] = useState('auth'); // 'auth', 'login' (patient check-in), 'workspace'
     const [user, setUser] = useState(null);
     const [loginData, setLoginData] = useState({ username: '', password: '' });
-    const [patient, setPatient] = useState({ hn: '', title: '', name: '', height: '', weight: '', gender: '', age: '', allergies: '', ward: '', doctor: '' });
+    const [patient, setPatient] = useState({ hn: '', title: '', name: '', height: '', weight: '', gender: '', age: '', allergies: '', ward: '', doctor: '', cycle: '' });
     const [isDateEditable, setIsDateEditable] = useState(false);
     const [logs, setLogs] = useState([]);
     const [notification, setNotification] = useState(null);
@@ -130,6 +98,7 @@ function App() {
     const [deleteConfirmLog, setDeleteConfirmLog] = useState(null);
     const [showTimeoutWarning, setShowTimeoutWarning] = useState(false);
     const [timeoutCountdown, setTimeoutCountdown] = useState(30);
+    const [showPrinterSettings, setShowPrinterSettings] = useState(false);
 
     const showNotification = (message, type = 'info', duration = 5000) => {
         setNotification({ message, type, duration });
@@ -205,23 +174,25 @@ function App() {
         calculateBSA, calculateDose
     } = useCalculations();
 
-    const [formula, setFormula] = useState('mosteller');
-    const [selectedDrugs, setSelectedDrugs] = useState(['vincristine']);
+    const [formula, setFormula] = useState('');
+    const [selectedDrugs, setSelectedDrugs] = useState([]);
     const [singleDrugResults, setSingleDrugResults] = useState([]);
     const [drugParams, setDrugParams] = useState({ auc: 5, gfr: '' });
-    const [amputation, setAmputation] = useState('none');
+    const [amputation, setAmputation] = useState('');
     const [ampDetails, setAmpDetails] = useState({ level: 'below_knee', method: 'weight_method' });
     const [showDrugInfo, setShowDrugInfo] = useState(false);
     const [showBsaInfo, setShowBsaInfo] = useState(false);
     const [showAmpInfo, setShowAmpInfo] = useState(false);
     const [selectedRegimen, setSelectedRegimen] = useState('custom'); // 'custom', 'cv', 'bc'
-    const [useAutoGfr, setUseAutoGfr] = useState(false);
+    const [useAutoGfr, setUseAutoGfr] = useState(true);
     const [patientScr, setPatientScr] = useState('');
     const [drugsList, setDrugsList] = useState([]);
     const [wbc, setWbc] = useState('');
     const [adminRows, setAdminRows] = useState([
-        { id: Date.now(), drugName: '', route: '', solvent: '', startDate: '', endDate: '', rate: '', order: 1, skipped: false }
+        { id: Date.now(), drugName: '', route: '', solvent: '', startDate: '', endDate: '', rate: '', order: 1, skipped: false, dose: '', calculatedDose: '', volume: '', storage: '', warning: '' }
     ]);
+    const [showDiffModal, setShowDiffModal] = useState(false);
+    const [diffWarningsData, setDiffWarningsData] = useState([]);
     const [anc, setAnc] = useState('');
     const [plt, setPlt] = useState('');
     const [tbili, setTbili] = useState('');
@@ -231,6 +202,7 @@ function App() {
     const [multipleDoses, setMultipleDoses] = useState([]);
     const [enableHematology, setEnableHematology] = useState(true);
     const [enableLiver, setEnableLiver] = useState(true);
+    const [enableTbili, setEnableTbili] = useState(false);
     const [enableRenal, setEnableRenal] = useState(true);
     const [autoGfrValue, setAutoGfrValue] = useState(null);
     const [formulaFilter, setFormulaFilter] = useState('all');
@@ -352,11 +324,11 @@ function App() {
                 color,
                 raw: d
             };
-        });
+        }).sort((a, b) => a.name.localeCompare(b.name));
     }, [drugsList]);
 
     const allAdminDrugs = useMemo(() => {
-        const baseDrugs = drugsInfo.map(d => THAI_LABEL_MAP[d.id] || d.name);
+        const baseDrugs = drugsInfo.map(d => d.name);
         return Array.from(new Set([...baseDrugs, ...customAdminDrugs])).sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
     }, [drugsInfo, customAdminDrugs]);
 
@@ -586,6 +558,43 @@ function App() {
         setSingleDrugResults(prev => prev.map(item => item.id === drugId ? { ...item, unit: newUnit } : item));
     };
 
+    const proceedSaveOrder = async () => {
+        const activeRows = adminRows.filter(r => !r.skipped);
+        const orderData = {
+            timestamp: new Date().toISOString(),
+            hn: patient.hn || '-',
+            patient_name: patient.name || '-',
+            ward: patient.ward || '-',
+            user_name: user?.username || 'Guest',
+            doctor: patient.doctor || '-',
+            cycle: patient.cycle || '',
+            order_details: JSON.stringify(activeRows)
+        };
+
+        let response;
+        if (editingOrderLogId) {
+            response = await axios.put(`${API_BASE}/order-logs/${editingOrderLogId}`, orderData, {
+                headers: { 'x-employee-id': user?.employee_id || '' }
+            });
+        } else {
+            response = await axios.post(`${API_BASE}/order-logs`, orderData, {
+                headers: { 'x-employee-id': user?.employee_id || '' }
+            });
+        }
+
+        if (response.data.success) {
+            showNotification(editingOrderLogId ? 'อัปเดตข้อมูลการสั่งยาสำเร็จ!' : 'บันทึกข้อมูลการสั่งยาสำเร็จ!', 'success');
+            if (editingOrderLogId) {
+                setEditingOrderLogId(null);
+                setStep('admin-order-history');
+            }
+            setShowDiffModal(false);
+            setDiffWarningsData([]);
+        } else {
+            showNotification(editingOrderLogId ? 'ไม่สามารถอัปเดตได้' : 'ไม่สามารถบันทึกได้', 'error');
+        }
+    };
+
     const handleSaveOrder = async () => {
         const activeRows = adminRows.filter(r => !r.skipped);
         if (activeRows.length === 0) {
@@ -594,43 +603,43 @@ function App() {
         }
 
         try {
-            const orderData = {
-                timestamp: new Date().toISOString(),
-                hn: patient.hn || '-',
-                patient_name: patient.name || '-',
-                ward: patient.ward || '-',
-                user_name: user?.username || 'Guest',
-                doctor: patient.doctor || '-',
-                order_details: JSON.stringify(activeRows)
-            };
-
-            let response;
-            if (editingOrderLogId) {
-                response = await axios.put(`${API_BASE}/order-logs/${editingOrderLogId}`, orderData, {
-                    headers: { 'x-employee-id': user?.employee_id || '' }
-                });
-            } else {
-                response = await axios.post(`${API_BASE}/order-logs`, orderData, {
-                    headers: { 'x-employee-id': user?.employee_id || '' }
-                });
-            }
-
-            if (response.data.success) {
-                showNotification(editingOrderLogId ? 'อัปเดตข้อมูลการสั่งยาสำเร็จ!' : 'บันทึกข้อมูลการสั่งยาสำเร็จ!', 'success');
-                if (editingOrderLogId) {
-                    setEditingOrderLogId(null);
-                    setStep('admin-order-history');
+            let warnings = [];
+            for (const row of activeRows) {
+                if (row.calculatedDose && row.dose && row.dose !== row.calculatedDose) {
+                    const calcMatch = row.calculatedDose.toString().match(/[\d.]+/);
+                    const doseMatch = row.dose.toString().match(/[\d.]+/);
+                    
+                    if (calcMatch && doseMatch) {
+                        const calcVal = parseFloat(calcMatch[0]);
+                        const doseVal = parseFloat(doseMatch[0]);
+                        
+                        if (calcVal > 0) {
+                            const diffPercent = (((doseVal - calcVal) / calcVal) * 100).toFixed(1);
+                            if (parseFloat(diffPercent) !== 0) {
+                                const isOver = Math.abs(parseFloat(diffPercent)) > 10;
+                                warnings.push({
+                                    drug: row.drugName,
+                                    calc: row.calculatedDose,
+                                    dose: row.dose,
+                                    diff: diffPercent,
+                                    isOver
+                                });
+                            }
+                        }
+                    }
                 }
-            } else {
-                showNotification(editingOrderLogId ? 'ไม่สามารถอัปเดตได้' : 'ไม่สามารถบันทึกได้', 'error');
             }
-        } catch (error) {
-            console.error('Error saving order log:', error);
-            if (error.response && error.response.status === 403) {
-                showNotification(error.response.data.message || 'ไม่มีสิทธิ์ในการแก้ไข (เกิน 24 ชั่วโมง)', 'error');
-            } else {
-                showNotification('เกิดข้อผิดพลาดในการบันทึกข้อมูล', 'error');
+
+            if (warnings.length > 0) {
+                setDiffWarningsData(warnings);
+                setShowDiffModal(true);
+                return;
             }
+
+            proceedSaveOrder();
+        } catch (err) {
+            console.error("Save Order Error:", err);
+            showNotification(err.response?.data?.message || "เกิดข้อผิดพลาดในการบันทึกข้อมูล", "error");
         }
     };
 
@@ -641,7 +650,8 @@ function App() {
             hn: log.hn !== '-' ? log.hn : '',
             name: log.patient_name !== '-' ? log.patient_name : '',
             ward: log.ward !== '-' ? log.ward : '',
-            doctor: log.doctor !== '-' ? log.doctor : ''
+            doctor: log.doctor !== '-' ? log.doctor : '',
+            cycle: log.cycle || ''
         }));
         
         setIsDateEditable(log.is_date_unlocked || false);
@@ -663,73 +673,319 @@ function App() {
             return;
         }
 
-        const printWindow = window.open('', '_blank', 'width=800,height=600');
-        if (!printWindow) {
-            showNotification('โปรดอนุญาตให้เบราว์เซอร์เปิดหน้าต่าง Pop-up เพื่อพิมพ์สติ๊กเกอร์', 'warning');
-            return;
-        }
+        const now = new Date();
+        const formatDateTime = (date) => {
+            const d = date.getDate().toString().padStart(2, '0');
+            const months = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+            const m = months[date.getMonth()];
+            const y = (date.getFullYear() + 543).toString().substring(2, 4);
+            const h = date.getHours().toString().padStart(2, '0');
+            const min = date.getMinutes().toString().padStart(2, '0');
+            return `${d}-${m}-${y} ${h}:${min}`;
+        };
+        const producedTime = formatDateTime(now);
 
         const htmlContent = `
         <!DOCTYPE html>
         <html>
         <head>
+            <meta charset="UTF-8">
             <title>พิมพ์สติ๊กเกอร์ยา</title>
-            <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap" rel="stylesheet">
             <style>
                 @page { size: 8cm 5cm; margin: 0; }
+                body { 
+                    font-family: 'Tahoma', 'Leelawadee UI', sans-serif; 
+                    margin: 0; 
+                    padding: 0;
+                    font-size: 11px;
+                    color: #000;
+                }
+                .sticker {
+                    width: 8cm;
+                    height: 5cm;
+                    padding: 0.2cm 0.4cm;
+                    box-sizing: border-box;
+                    page-break-after: always;
+                    display: flex;
+                    flex-direction: column;
+                    border: 1px dashed #ccc;
+                    overflow: hidden;
+                }
+                @media print {
+                    .sticker { border: none; page-break-after: always; }
+                    body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                }
+                .row {
+                    display: flex;
+                    justify-content: space-between;
+                    margin-bottom: 3px;
+                    line-height: 1.2;
+                }
+                .row-left-gap {
+                    display: flex;
+                    gap: 15px;
+                }
+                .drug-title {
+                    font-size: 13px;
+                }
+                .drug-name-u {
+                    text-decoration: underline;
+                }
+            </style>
+        </head>
+        <body>
+            ${activeRows.map((r, index) => {
+                const exp = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000); // Default +3 days
+                return `
+                <div class="sticker">
+                    <div class="row">
+                        <span>${patient.title || ''}${patient.name || '-'}</span>
+                        <span>WARD: ${patient.ward || '-'}</span>
+                    </div>
+                    <div class="row drug-title">
+                        <span>ยา: <span class="drug-name-u">${r.drugName || '-'}</span></span>
+                        <span>${r.dose || '--'} mg. in ${r.solvent || '--'} ${r.volume ? r.volume + ' ml.' : ''}</span>
+                    </div>
+                    <div class="row">
+                        <div class="row-left-gap">
+                            <span>Route: ${r.route || '-'}</span>
+                            <span>Rate: ${r.rate || '-'}</span>
+                        </div>
+                    </div>
+                    <div class="row">
+                        <span>การเก็บยา: ${r.storage || ''}</span>
+                        <span>(${index + 1}/${activeRows.length})</span>
+                    </div>
+                    <div class="row">
+                        <span>คำเตือน: ${r.warning || ''}</span>
+                    </div>
+                    <div class="row" style="margin-top: auto;">
+                        <span>ผลิต: ${producedTime}</span>
+                        <span>หมดอายุ: ${formatDateTime(exp)}</span>
+                    </div>
+                </div>
+            `}).join('')}
+        </body>
+        </html>
+        `;
+
+        const printStickersAsync = async () => {
+            if (user?.default_printer) {
+                try {
+                    if (!qz.websocket.isActive()) {
+                        await qz.websocket.connect({ retries: 2, delay: 1 });
+                    }
+                    const config = qz.configs.create(user.default_printer);
+                    
+                    const data = [{
+                        type: 'html',
+                        format: 'plain',
+                        data: htmlContent
+                    }];
+                    
+                    await qz.print(config, data);
+                    showNotification('ส่งคำสั่งพิมพ์ไปยังเครื่อง ' + user.default_printer + ' แล้ว', 'success');
+                    return; 
+                } catch (err) {
+                    console.error('QZ Print error', err);
+                    showNotification('เกิดข้อผิดพลาดจาก QZ Tray: ' + err.message + ' (ระบบจะเปิดหน้าต่างปกติแทน)', 'warning');
+                }
+            }
+
+            const printWindow = window.open('', '_blank', 'width=800,height=600');
+            if (!printWindow) {
+                showNotification('โปรดอนุญาตให้เบราว์เซอร์เปิดหน้าต่าง Pop-up เพื่อพิมพ์สติ๊กเกอร์', 'warning');
+                return;
+            }
+
+            const fallbackHtml = htmlContent.replace('</body>', `
+                <script>
+                    window.onload = () => {
+                        setTimeout(() => {
+                            window.print();
+                            window.close();
+                        }, 500);
+                    };
+                </script>
+            </body>
+            `);
+
+            printWindow.document.write(fallbackHtml);
+            printWindow.document.close();
+        };
+
+        printStickersAsync();
+    };
+
+    const printWorkingFormula = () => {
+        const activeRows = adminRows.filter(r => !r.skipped);
+        if (activeRows.length === 0) {
+            showNotification('ไม่มีรายการยาสำหรับพิมพ์', 'warning');
+            return;
+        }
+
+        const printWindow = window.open('', '_blank', 'width=1000,height=800');
+        if (!printWindow) {
+            showNotification('โปรดอนุญาตให้เบราว์เซอร์เปิดหน้าต่าง Pop-up เพื่อพิมพ์', 'warning');
+            return;
+        }
+
+        const now = new Date();
+        const formatDateTime = (date) => {
+            const d = date.getDate().toString().padStart(2, '0');
+            const months = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+            const m = months[date.getMonth()];
+            const y = (date.getFullYear() + 543).toString();
+            const h = date.getHours().toString().padStart(2, '0');
+            const min = date.getMinutes().toString().padStart(2, '0');
+            return `${d} ${m} ${y} ${h}:${min}`;
+        };
+        const producedTime = formatDateTime(now);
+
+        let tableRows = '';
+        activeRows.forEach((row, i) => {
+            tableRows += `
+                <tr>
+                    <td style="text-align: center;">${i + 1}</td>
+                    <td><strong>${row.drugName || '-'}</strong></td>
+                    <td style="text-align: center;">${row.dose || '-'}</td>
+                    <td style="text-align: center;">${row.route || '-'}</td>
+                    <td style="text-align: center;">${row.solvent || '-'}</td>
+                    <td style="text-align: center;">${row.volume || '-'}</td>
+                    <td></td>
+                    <td></td>
+                </tr>
+            `;
+        });
+
+        const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>ใบเตรียมยา (Working Formula)</title>
+            <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap" rel="stylesheet">
+            <style>
+                @page { size: A4; margin: 1.5cm; }
                 body { 
                     font-family: 'Sarabun', sans-serif; 
                     margin: 0; 
                     padding: 0;
                     font-size: 14px;
                     color: #000;
+                    line-height: 1.4;
                 }
-                .sticker {
-                    width: 8cm;
-                    height: 5cm;
-                    padding: 0.3cm 0.5cm;
-                    box-sizing: border-box;
-                    page-break-after: always;
+                .header {
+                    text-align: center;
+                    margin-bottom: 20px;
+                    border-bottom: 2px solid #000;
+                    padding-bottom: 10px;
+                }
+                .header h1 {
+                    font-size: 20px;
+                    margin: 0 0 5px 0;
+                }
+                .header p {
+                    margin: 0;
+                    font-size: 12px;
+                }
+                .patient-info {
+                    display: grid;
+                    grid-template-columns: 1fr 1fr;
+                    gap: 10px;
+                    margin-bottom: 20px;
+                    padding: 10px;
+                    border: 1px solid #ccc;
+                    border-radius: 5px;
+                }
+                .patient-info div {
                     display: flex;
-                    flex-direction: column;
-                    border: 1px dashed #ccc;
+                }
+                .patient-info strong {
+                    width: 150px;
+                    display: inline-block;
+                }
+                table {
+                    width: 100%;
+                    border-collapse: collapse;
+                    margin-bottom: 30px;
+                }
+                th, td {
+                    border: 1px solid #000;
+                    padding: 8px;
+                    font-size: 13px;
+                }
+                th {
+                    background-color: #f0f0f0;
+                    text-align: center;
+                }
+                .signatures {
+                    display: flex;
+                    justify-content: space-around;
+                    margin-top: 50px;
+                }
+                .signature-box {
+                    text-align: center;
+                    width: 250px;
+                }
+                .signature-line {
+                    border-bottom: 1px dashed #000;
+                    margin-bottom: 5px;
+                    height: 30px;
                 }
                 @media print {
-                    .sticker { border: none; page-break-after: always; }
                     body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
                 }
-                .header { 
-                    font-weight: bold; 
-                    border-bottom: 1px solid #000; 
-                    padding-bottom: 2px; 
-                    margin-bottom: 4px; 
-                    font-size: 14px;
-                    display: flex;
-                    justify-content: space-between;
-                }
-                .drug-name { font-weight: bold; font-size: 16px; margin: 2px 0; }
-                .details { margin-top: 2px; line-height: 1.3; font-size: 13px; }
-                .details b { font-weight: 700; }
-                .footer { margin-top: auto; font-size: 11px; text-align: right; }
             </style>
         </head>
         <body>
-            ${activeRows.map(r => `
-                <div class="sticker">
-                    <div class="header">
-                        <span>ชื่อ: ${patient.title || ''}${patient.name || '-'}</span>
-                        <span>HN: ${patient.hn || '-'}</span>
-                    </div>
-                    <div class="drug-name">${r.drugName || '-'}</div>
-                    <div class="details">
-                        <div><b>วิธีให้ยา:</b> ${r.route || '-'}</div>
-                        <div><b>ตัวทำละลาย:</b> ${r.solvent || '-'}</div>
-                        <div><b>อัตราเร็ว:</b> ${r.rate || '-'}</div>
-                        <div><b>วันที่:</b> ${r.startDate || '-'} ${r.endDate ? 'ถึง ' + r.endDate : ''}</div>
-                    </div>
-                    <div class="footer">ลำดับ: ${r.order || '-'}</div>
+            <div class="header">
+                <h1>ใบเตรียมยา (Working Formula)</h1>
+                <p>แผนกเคมีบำบัด | วันเวลาที่พิมพ์: ${producedTime}</p>
+            </div>
+            
+            <div class="patient-info">
+                <div><strong>ชื่อ-สกุล:</strong> ${patient.title || ''}${patient.name || '-'}</div>
+                <div><strong>HN:</strong> ${patient.hn || '-'}</div>
+                <div><strong>อายุ:</strong> ${patient.age ? patient.age + ' ปี' : '-'}</div>
+                <div><strong>เพศ:</strong> ${patient.gender === 'male' ? 'ชาย' : patient.gender === 'female' ? 'หญิง' : '-'}</div>
+                <div><strong>น้ำหนัก:</strong> ${patient.weight || '-'} kg</div>
+                <div><strong>ส่วนสูง:</strong> ${patient.height || '-'} cm</div>
+                <div><strong>BSA:</strong> ${bsa || '-'} m²</div>
+                <div><strong>จำนวนรอบการให้ยา (Cycle):</strong> ${patient.cycle || '-'}</div>
+                <div><strong>หอผู้ป่วย:</strong> ${patient.ward || '-'}</div>
+            </div>
+
+            <table>
+                <thead>
+                    <tr>
+                        <th style="width: 5%;">ลำดับ</th>
+                        <th style="width: 20%;">ชื่อยา (Drug)</th>
+                        <th style="width: 15%;">ขนาดยา (Dose)</th>
+                        <th style="width: 10%;">Route</th>
+                        <th style="width: 15%;">สารละลาย (Solvent)</th>
+                        <th style="width: 10%;">ปริมาตร (Vol)</th>
+                        <th style="width: 15%;">Lot No.</th>
+                        <th style="width: 10%;">เวลาผสมเสร็จ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${tableRows}
+                </tbody>
+            </table>
+
+            <div class="signatures">
+                <div class="signature-box">
+                    <div class="signature-line"></div>
+                    <p>(ผู้เตรียมยา / Prepared by)</p>
+                    <p>วันที่ ______/______/______</p>
                 </div>
-            `).join('')}
+                <div class="signature-box">
+                    <div class="signature-line"></div>
+                    <p>(ผู้ตรวจสอบ / Checked by)</p>
+                    <p>วันที่ ______/______/______</p>
+                </div>
+            </div>
+
             <script>
                 window.onload = () => {
                     setTimeout(() => {
@@ -1339,8 +1595,9 @@ function App() {
 
     // Handler for admin row date text inputs with auto-slash and BE year
     const handleAdminDateChange = (val, prevVal, rowIdx, field) => {
+        const safePrevVal = prevVal || '';
         let cleaned = val.replace(/[^0-9/]/g, '');
-        if (val.length > prevVal.length) {
+        if (val.length > safePrevVal.length) {
             if (cleaned.length === 2 && !cleaned.includes('/')) cleaned += '/';
             else if (cleaned.length === 5 && cleaned.split('/').length === 2) cleaned += '/';
         }
@@ -1460,8 +1717,6 @@ function App() {
         }
     };
 
-    // Multi-drug info mapped dynamically
-
     return (
         <div className="p-4 md:p-8 print:p-0 min-h-screen flex flex-col justify-between relative">
             {user && user.must_change_password !== 1 && (
@@ -1474,15 +1729,21 @@ function App() {
                         <p className={`text-2xl font-black leading-tight ${theme === 'dark' ? 'text-white' : 'text-slate-900'}`}>{user.name || user.username}</p>
                         <div className="flex items-center gap-3 mt-1.5 flex-wrap">
                             <button
+                                onClick={() => setShowPrinterSettings(true)}
+                                className="flex items-center gap-1.5 text-xs font-black text-sky-500 hover:text-sky-400 transition-colors uppercase tracking-widest text-left cursor-pointer border-r border-slate-700/50 pr-3 whitespace-nowrap"
+                            >
+                                <Printer size={14} /> ตั้งค่าเครื่องพิมพ์
+                            </button>
+                            <button
                                 onClick={handleLogout}
                                 className="flex items-center gap-1.5 text-xs font-black text-red-500 hover:text-red-400 transition-colors uppercase tracking-widest text-left cursor-pointer whitespace-nowrap"
                             >
-                                <LogOut size={14} /> ออกจากระบบ (Logout)
+                                <LogOut size={14} /> ออกจากระบบ
                             </button>
                             {step !== 'drugs-info' && (
                                 <button
                                     onClick={() => setStep('drugs-info')}
-                                    className="flex items-center gap-1.5 text-xs font-black text-emerald-500 hover:text-emerald-400 transition-colors uppercase tracking-widest text-left cursor-pointer border-l border-slate-700/50 pl-3 whitespace-nowrap"
+                                    className="flex items-center gap-1.5 text-xs font-black text-emerald-500 hover:emerald-400 transition-colors uppercase tracking-widest text-left cursor-pointer border-l border-slate-700/50 pl-3 whitespace-nowrap"
                                 >
                                     <Pill size={14} /> ข้อมูลยา (Drugs)
                                 </button>
@@ -1604,8 +1865,6 @@ function App() {
                                     )}
                                 </div>
                             </div>
-
-
                         </div>
 
                         {/* Right column: Check-in Form */}
@@ -1617,16 +1876,20 @@ function App() {
                                 </div>
                             </div>
                             <div className="space-y-4">
-                                <input
-                                    type="text"
-                                    placeholder="H.N. ผู้ป่วย"
-                                    required
-                                    className="form-control"
-                                    value={patient.hn}
-                                    onChange={e => setPatient({ ...patient, hn: e.target.value })}
-                                />
+                                <div className="space-y-1">
+                                    <label className="text-xs font-bold text-slate-500 ml-1">H.N. ผู้ป่วย</label>
+                                    <input
+                                        type="text"
+                                        placeholder="H.N. ผู้ป่วย"
+                                        required
+                                        className="form-control"
+                                        value={patient.hn}
+                                        onChange={e => setPatient({ ...patient, hn: e.target.value })}
+                                    />
+                                </div>
                                 <div className="grid grid-cols-4 gap-4">
-                                    <div className="col-span-1">
+                                    <div className="col-span-1 space-y-1">
+                                        <label className="text-xs font-bold text-slate-500 ml-1">คำนำหน้า</label>
                                         <select
                                             className="form-control"
                                             value={patient.title || ''}
@@ -1640,7 +1903,8 @@ function App() {
                                             <option value="ด.ญ.">ด.ญ.</option>
                                         </select>
                                     </div>
-                                    <div className="col-span-2">
+                                    <div className="col-span-2 space-y-1">
+                                        <label className="text-xs font-bold text-slate-500 ml-1">ชื่อ-นามสกุล</label>
                                         <input
                                             type="text"
                                             placeholder="ชื่อ-นามสกุล"
@@ -1649,51 +1913,74 @@ function App() {
                                             onChange={e => setPatient({ ...patient, name: e.target.value })}
                                         />
                                     </div>
-                                    <div className="col-span-1">
-                                        <input
-                                            type="number"
-                                            placeholder="อายุ (ปี)"
-                                            className="form-control"
-                                            value={patient.age || ''}
-                                            onChange={e => setPatient({ ...patient, age: e.target.value })}
-                                        />
+                                    <div className="col-span-1 space-y-1">
+                                        <label className="text-xs font-bold text-slate-500 ml-1">อายุ (ปี)</label>
+                                        <div className="relative">
+                                            <input
+                                                type="number"
+                                                placeholder="อายุ"
+                                                className="form-control pr-10 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                value={patient.age || ''}
+                                                onChange={e => setPatient({ ...patient, age: e.target.value })}
+                                            />
+                                            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 font-medium pointer-events-none">ปี</span>
+                                        </div>
                                     </div>
                                 </div>
                                 <div className="grid grid-cols-3 gap-4">
-                                    <input
-                                        type="number"
-                                        placeholder={prevStats.height ? prevStats.height : "ส่วนสูง (cm)"}
-                                        className="form-control"
-                                        value={patient.height || ''}
-                                        onChange={e => setPatient({ ...patient, height: e.target.value })}
-                                    />
-                                    <input
-                                        type="number"
-                                        placeholder={prevStats.weight ? prevStats.weight : "น้ำหนัก (kg)"}
-                                        className="form-control"
-                                        value={patient.weight || ''}
-                                        onChange={e => setPatient({ ...patient, weight: e.target.value })}
-                                    />
+                                    <div className="space-y-1">
+                                        <label className="text-xs font-bold text-slate-500 ml-1">ส่วนสูง (cm)</label>
+                                        <div className="relative">
+                                            <input
+                                                type="number"
+                                                placeholder={prevStats.height ? prevStats.height : "ส่วนสูง"}
+                                                className="form-control pr-10 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                value={patient.height || ''}
+                                                onChange={e => setPatient({ ...patient, height: e.target.value })}
+                                            />
+                                            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 font-medium pointer-events-none">cm</span>
+                                        </div>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-xs font-bold text-slate-500 ml-1">น้ำหนัก (kg)</label>
+                                        <div className="relative">
+                                            <input
+                                                type="number"
+                                                placeholder={prevStats.weight ? prevStats.weight : "น้ำหนัก"}
+                                                className="form-control pr-10 [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none"
+                                                value={patient.weight || ''}
+                                                onChange={e => setPatient({ ...patient, weight: e.target.value })}
+                                            />
+                                            <span className="absolute right-4 top-1/2 -translate-y-1/2 text-slate-400 font-medium pointer-events-none">kg</span>
+                                        </div>
+                                    </div>
+                                    <div className="space-y-1">
+                                        <label className="text-xs font-bold text-slate-500 ml-1">เพศ (Gender)</label>
+                                        <select
+                                            className="form-control"
+                                            value={patient.gender || ''}
+                                            onChange={e => setPatient({ ...patient, gender: e.target.value })}
+                                        >
+                                            <option value="">เลือกเพศ (Select Gender)</option>
+                                            <option value="male">ชาย (Male)</option>
+                                            <option value="female">หญิง (Female)</option>
+                                        </select>
+                                    </div>
+                                </div>
+                                <div className="space-y-1">
+                                    <label className="text-xs font-bold text-slate-500 ml-1">หอผู้ป่วย (Ward)</label>
                                     <select
                                         className="form-control"
-                                        value={patient.gender || ''}
-                                        onChange={e => setPatient({ ...patient, gender: e.target.value })}
+                                        value={patient.ward || ''}
+                                        onChange={e => setPatient({ ...patient, ward: e.target.value })}
                                     >
-                                        <option value="">เลือกเพศ (Select Gender)</option>
-                                        <option value="male">ชาย (Male)</option>
-                                        <option value="female">หญิง (Female)</option>
+                                        <option value="">{prevStats.ward ? `หอผู้ป่วยคนก่อน: ${prevStats.ward}` : "เลือกหอผู้ป่วย - เว้นว่างหากไม่มี"}</option>
+                                        <option value="WARD 08">WARD 08</option>
+                                        <option value="WARD 10">WARD 10</option>
+                                        <option value="WARD 11">WARD 11</option>
+                                        <option value="รังสีรักษา (RTD)">รังสีรักษา (RTD)</option>
                                     </select>
                                 </div>
-                                <select
-                                    className="form-control"
-                                    value={patient.ward || ''}
-                                    onChange={e => setPatient({ ...patient, ward: e.target.value })}
-                                >
-                                    <option value="">{prevStats.ward ? `หอผู้ป่วยคนก่อน: ${prevStats.ward}` : "เลือกหอผู้ป่วย (Ward) - เว้นว่างหากไม่มี"}</option>
-                                    <option value="WARD 08">WARD 08</option>
-                                    <option value="WARD 10">WARD 10</option>
-                                    <option value="WARD 11">WARD 11</option>
-                                </select>
                                 <button onClick={handlePatientCheckIn} className="w-full btn-primary">เข้าสู่ระบบคำนวณ ➔</button>
                             </div>
                         </div>
@@ -2087,6 +2374,8 @@ function App() {
                         theme={theme}
                         onEdit={handleEditOrder}
                     />
+                ) : step === 'inventory' ? (
+                    <InventoryManagement currentUser={user} />
                 ) : (
                     <div className="animate-row-in space-y-6">
                         {/* Medical Record View */}
@@ -2115,7 +2404,7 @@ function App() {
                                         ({patient.hn} 📂)
                                     </span>
                                 </h2>
-                                <p className="text-slate-400">H: {patient.height} cm | W: {patient.weight} kg | อายุ: {patient.age ? `${patient.age} ปี` : '-'} | เพศ: {patient.gender === 'female' ? 'หญิง (Female)' : patient.gender === 'male' ? 'ชาย (Male)' : '-'}{patient.ward ? ` | หอผู้ป่วย: ${patient.ward}` : ''}</p>
+                                <p className="text-slate-400">H: {patient.height} cm | W: {patient.weight} kg | อายุ: {patient.age ? `${patient.age} ปี` : '-'} | เพศ: {patient.gender === 'female' ? 'หญิง (Female)' : patient.gender === 'male' ? 'ชาย (Male)' : '-'}{patient.ward ? ` | หอผู้ป่วย: ${patient.ward}` : ''}{patient.cycle ? ` | จำนวนรอบการให้ยา: ${patient.cycle}` : ''}</p>
 
                                 {patient.allergies && (
                                     <div className="mt-2 flex flex-wrap gap-1.5">
@@ -2220,13 +2509,15 @@ function App() {
                                     )}
                                 </div>
                                 <button onClick={() => {
-                                    setPatient({ hn: '', title: '', name: '', height: '', weight: '', gender: '', age: '', allergies: '', ward: '' });
+                                    setPatient({ hn: '', title: '', name: '', height: '', weight: '', gender: '', age: '', allergies: '', ward: '', doctor: '', cycle: '' });
                                     setPrevStats({ height: '', weight: '', ward: '', doctor: '' });
                                     setPatientScr('');
-                                    setUseAutoGfr(false);
-                                    setAmputation('none');
+                                    setUseAutoGfr(true);
+                                    setAmputation('');
+                                    setFormula('');
+                                    setSelectedDrugs([]);
                                     setWbc('');
-                                    setAdminRows([{ id: Date.now(), route: '', solvent: '', startDate: '', endDate: '', rate: '', order: 1, skipped: false }]);
+                                    setAdminRows([{ id: Date.now(), drugName: '', route: '', solvent: '', startDate: '', endDate: '', rate: '', order: 1, skipped: false, dose: '', calculatedDose: '', volume: '', storage: '', warning: '' }]);
                                     setAnc('');
                                     setPlt('');
                                     setTbili('');
@@ -2244,8 +2535,7 @@ function App() {
                                 <div className="premium-card p-6">
                                     <div className="flex items-center justify-between mb-4">
                                         <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-full bg-sky-600 text-white flex items-center justify-center font-black text-xs">02</div>
-                                            <h2 className="text-lg font-black uppercase">สูตรคำนวณพื้นที่ผิว (BSA Formula)</h2>
+                                            <h2 className="text-lg font-black text-sky-700 dark:text-sky-300">เลือกสูตรคำนวณพื้นที่ผิวร่างกาย (BSA)</h2>
                                         </div>
                                         <button
                                             type="button"
@@ -2256,10 +2546,22 @@ function App() {
                                         </button>
                                     </div>
                                     <div className="grid grid-cols-2 gap-4">
-                                        {['mosteller', 'dubois'].map(f => (
-                                            <button key={f} onClick={() => setFormula(f)} className={`p-4 rounded-lg border-2 transition-all font-black uppercase ${formula === f ? 'bg-sky-600 border-sky-400 text-white' : 'bg-transparent border-slate-700/30 text-slate-500'}`}>
-                                                {f === 'mosteller' ? 'มอสเตลเลอร์ (Mosteller)' : 'ดูบัวส์ (DuBois)'}
-                                            </button>
+                                        {[
+                                            { id: 'mosteller', label: 'มอสเตลเลอร์ (Mosteller)' },
+                                            { id: 'dubois', label: 'ดูบัวส์ (DuBois)' }
+                                        ].map(f => (
+                                            <label key={f.id} className={`p-4 rounded-xl border-2 transition-all cursor-pointer flex items-center gap-3 ${formula === f.id ? 'bg-sky-50 dark:bg-sky-900/20 border-sky-500' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-sky-300'}`}>
+                                                <input 
+                                                    type="radio" 
+                                                    name="bsaFormula" 
+                                                    checked={formula === f.id} 
+                                                    onChange={() => setFormula(f.id)} 
+                                                    className="w-5 h-5 text-sky-600 border-slate-300 focus:ring-sky-500 cursor-pointer" 
+                                                />
+                                                <span className={`font-black uppercase ${formula === f.id ? 'text-sky-700 dark:text-sky-300' : 'text-slate-600 dark:text-slate-400'}`}>
+                                                    {f.label}
+                                                </span>
+                                            </label>
                                         ))}
                                     </div>
                                     {showBsaInfo && (
@@ -2294,8 +2596,7 @@ function App() {
                                 <div className="premium-card p-6">
                                     <div className="flex items-center justify-between mb-4">
                                         <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-full bg-sky-600 text-white flex items-center justify-center font-black text-xs">03</div>
-                                            <h2 className="text-lg font-black uppercase">ตรวจสอบสถานะการสูญเสียอวัยวะ</h2>
+                                            <h2 className="text-lg font-black text-sky-700 dark:text-sky-300">ประวัติการสูญเสียอวัยวะ (แขน/ขา)</h2>
                                         </div>
                                         <button
                                             type="button"
@@ -2306,21 +2607,72 @@ function App() {
                                         </button>
                                     </div>
                                     <div className="grid grid-cols-2 gap-4 mb-4">
-                                        <button onClick={() => setAmputation('none')} className={`p-4 rounded-lg border-2 font-black transition-all ${amputation === 'none' ? 'bg-sky-600 border-sky-400 text-white' : 'bg-transparent border-slate-700/30 text-slate-500'}`}>ปกติ (None)</button>
-                                        <button onClick={() => setAmputation('amputee')} className={`p-4 rounded-lg border-2 font-black transition-all ${amputation === 'amputee' ? 'bg-sky-600 border-sky-400 text-white' : 'bg-transparent border-slate-700/30 text-slate-500'}`}>มีประวัติตัดแขนขา (Amputee)</button>
+                                        {[
+                                            { id: 'none', label: 'ปกติ (None)' },
+                                            { id: 'amputee', label: 'มีประวัติตัดแขนขา (Amputee)' }
+                                        ].map(opt => (
+                                            <label key={opt.id} className={`p-4 rounded-xl border-2 transition-all cursor-pointer flex items-center gap-3 ${amputation === opt.id ? 'bg-sky-50 dark:bg-sky-900/20 border-sky-500' : 'bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 hover:border-sky-300'}`}>
+                                                <input 
+                                                    type="radio" 
+                                                    name="amputationStatus" 
+                                                    checked={amputation === opt.id} 
+                                                    onChange={() => setAmputation(opt.id)} 
+                                                    className="w-5 h-5 text-sky-600 border-slate-300 focus:ring-sky-500 cursor-pointer" 
+                                                />
+                                                <span className={`font-black ${amputation === opt.id ? 'text-sky-700 dark:text-sky-300' : 'text-slate-600 dark:text-slate-400'}`}>
+                                                    {opt.label}
+                                                </span>
+                                            </label>
+                                        ))}
                                     </div>
                                     {amputation === 'amputee' && (
-                                        <div className="grid grid-cols-2 gap-4 p-4 bg-sky-600/5 rounded-lg mb-4">
-                                            <select className="form-control" value={ampDetails.level} onChange={e => setAmpDetails({ ...ampDetails, level: e.target.value })}>
-                                                <option value="below_knee">ตัดขาใต้เข่า (Below Knee)</option>
-                                                <option value="above_knee">ตัดขาเหนือเข่า (Above Knee)</option>
-                                                <option value="below_elbow">ตัดแขนท่อนล่าง (Below Elbow)</option>
-                                                <option value="above_elbow">ตัดแขนท่อนบน (Above Elbow)</option>
-                                            </select>
-                                            <select className="form-control" value={ampDetails.method} onChange={e => setAmpDetails({ ...ampDetails, method: e.target.value })}>
-                                                <option value="weight_method">ปรับตามน้ำหนัก (Weight Method)</option>
-                                                <option value="bsa_method">ปรับตามพื้นที่ผิว (BSA Method)</option>
-                                            </select>
+                                        <div className="p-4 bg-sky-50 dark:bg-sky-900/10 rounded-xl mb-4 border border-sky-100 dark:border-sky-800 space-y-4">
+                                            <div>
+                                                <div className="text-xs font-bold text-sky-700 dark:text-sky-400 mb-2">ระบุตำแหน่งที่สูญเสีย:</div>
+                                                <div className="grid grid-cols-2 gap-3">
+                                                    {[
+                                                        { id: 'below_knee', label: 'ตัดขาใต้เข่า (Below Knee)' },
+                                                        { id: 'above_knee', label: 'ตัดขาเหนือเข่า (Above Knee)' },
+                                                        { id: 'below_elbow', label: 'ตัดแขนท่อนล่าง (Below Elbow)' },
+                                                        { id: 'above_elbow', label: 'ตัดแขนท่อนบน (Above Elbow)' }
+                                                    ].map(opt => (
+                                                        <label key={opt.id} className={`px-3 py-2.5 rounded-lg border transition-all cursor-pointer flex items-center gap-2 ${ampDetails.level === opt.id ? 'bg-white dark:bg-slate-800 border-sky-400 shadow-sm' : 'bg-white/60 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 hover:border-sky-300'}`}>
+                                                            <input 
+                                                                type="radio" 
+                                                                name="ampLevel" 
+                                                                checked={ampDetails.level === opt.id} 
+                                                                onChange={() => setAmpDetails({ ...ampDetails, level: opt.id })} 
+                                                                className="w-4 h-4 text-sky-600 cursor-pointer" 
+                                                            />
+                                                            <span className={`text-sm font-bold ${ampDetails.level === opt.id ? 'text-sky-700 dark:text-sky-300' : 'text-slate-600 dark:text-slate-400'}`}>
+                                                                {opt.label}
+                                                            </span>
+                                                        </label>
+                                                    ))}
+                                                </div>
+                                            </div>
+                                            <div>
+                                                <div className="text-xs font-bold text-sky-700 dark:text-sky-400 mb-2">วิธีปรับคำนวณ:</div>
+                                                <div className="grid grid-cols-2 gap-3">
+                                                    {[
+                                                        { id: 'weight_method', label: 'ปรับตามน้ำหนัก (Weight Method)' },
+                                                        { id: 'bsa_method', label: 'ปรับตามพื้นที่ผิว (BSA Method)' }
+                                                    ].map(opt => (
+                                                        <label key={opt.id} className={`px-3 py-2.5 rounded-lg border transition-all cursor-pointer flex items-center gap-2 ${ampDetails.method === opt.id ? 'bg-white dark:bg-slate-800 border-sky-400 shadow-sm' : 'bg-white/60 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 hover:border-sky-300'}`}>
+                                                            <input 
+                                                                type="radio" 
+                                                                name="ampMethod" 
+                                                                checked={ampDetails.method === opt.id} 
+                                                                onChange={() => setAmpDetails({ ...ampDetails, method: opt.id })} 
+                                                                className="w-4 h-4 text-sky-600 cursor-pointer" 
+                                                            />
+                                                            <span className={`text-sm font-bold ${ampDetails.method === opt.id ? 'text-sky-700 dark:text-sky-300' : 'text-slate-600 dark:text-slate-400'}`}>
+                                                                {opt.label}
+                                                            </span>
+                                                        </label>
+                                                    ))}
+                                                </div>
+                                            </div>
                                         </div>
                                     )}
                                     {showAmpInfo && (
@@ -2361,18 +2713,25 @@ function App() {
                                 <div className="premium-card p-6 relative z-50">
                                     <div className="flex items-center justify-between mb-4">
                                         <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-full bg-sky-600 text-white flex items-center justify-center font-black text-xs">04</div>
-                                            <h2 className="text-lg font-black uppercase">ตรวจสอบกฎเฉพาะตัวยาและ Absolute Max Caps</h2>
+                                            <h2 className="text-lg font-black text-sky-700 dark:text-sky-300">ระบุรายชื่อยาที่ต้องการคำนวณ</h2>
                                         </div>
                                         <button
                                             onClick={() => setShowDrugInfo(!showDrugInfo)}
                                             className="flex items-center gap-2 text-xs font-black text-sky-500 hover:text-sky-400 p-2 bg-sky-600/5 rounded-lg border border-sky-500/20 transition-all no-print"
                                         >
                                             <Info size={14} /> ข้อมูลยา
-                                        </button>
+                                        </button>                                    </div>
+
+                                    <div className="mb-4 flex items-center gap-3 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-xl border border-slate-200 dark:border-slate-700">
+                                        <label className="text-sm font-bold text-slate-700 dark:text-slate-300">จำนวนรอบการให้ยา (Cycle):</label>
+                                        <input 
+                                            type="text" 
+                                            className="form-control text-sm w-32 px-3 py-2 bg-white dark:bg-slate-900" 
+                                            placeholder="เช่น 1/6" 
+                                            value={patient.cycle || ''}
+                                            onChange={e => setPatient({ ...patient, cycle: e.target.value })}
+                                        />
                                     </div>
-
-
 
                                     {(() => {
                                         const calcTypeMap = {
@@ -2425,7 +2784,7 @@ function App() {
                                                         <div className="overflow-y-auto flex-1 pr-1 scrollbar-thin" style={{ maxHeight: '320px' }}>
                                                             {Object.entries(grouped).map(([cat, catDrugs]) => {
                                                                 const filteredDrugs = catDrugs.filter(d => {
-                                                                    const label = THAI_LABEL_MAP[d.id] || d.name;
+                                                                    const label = d.name;
                                                                     const term = drugSearchTerm.toLowerCase();
                                                                     return label.toLowerCase().includes(term) || d.name.toLowerCase().includes(term);
                                                                 });
@@ -2439,7 +2798,7 @@ function App() {
                                                                         </div>
                                                                         <div className="space-y-1">
                                                                             {filteredDrugs.map(d => {
-                                                                                const label = THAI_LABEL_MAP[d.id] || d.name;
+                                                                                const label = d.name;
                                                                                 const calcLabel = calcTypeMap[d.raw?.calculation_type] || d.desc;
                                                                                 const limitLabel = d.raw?.max_dose_cap ? ` · Cap ${parseFloat(d.raw.max_dose_cap)} mg` : '';
                                                                                 const isChecked = selectedDrugs.includes(d.id);
@@ -2557,8 +2916,7 @@ function App() {
                                 <div className="premium-card p-6">
                                     <div className="flex items-center justify-between mb-4">
                                         <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-full bg-sky-600 text-white flex items-center justify-center font-black text-xs">05</div>
-                                            <h2 className="text-lg font-black uppercase">ผลตรวจทางห้องปฏิบัติการ (Lab Results & Safety Checks)</h2>
+                                            <h2 className="text-lg font-black text-sky-700 dark:text-sky-300">ผลตรวจเลือดและการทำงานของอวัยวะ (Lab)</h2>
                                         </div>
                                     </div>
 
@@ -2587,17 +2945,25 @@ function App() {
                                                         placeholder="ระบุค่า WBC"
                                                         value={wbc}
                                                         className="form-control text-xs"
-                                                        onChange={e => setWbc(e.target.value)}
+                                                        onChange={e => {
+                                                            const val = e.target.value;
+                                                            setWbc(val);
+                                                            if (val && !isNaN(val)) {
+                                                                setAnc(Math.round(parseFloat(val) * 0.6).toString());
+                                                            } else {
+                                                                setAnc('');
+                                                            }
+                                                        }}
                                                     />
                                                 </div>
                                                 <div>
                                                     <label className="block text-[10px] font-bold text-slate-400 mb-1">ANC (cells/mm³)</label>
                                                     <input
                                                         type="number"
-                                                        placeholder="ระบุค่า ANC"
+                                                        placeholder="คำนวณจาก WBC อัตโนมัติ"
                                                         value={anc}
-                                                        className="form-control text-xs"
-                                                        onChange={e => setAnc(e.target.value)}
+                                                        className="form-control text-xs bg-slate-100 dark:bg-slate-800/50 text-slate-500 cursor-not-allowed"
+                                                        readOnly
                                                     />
                                                 </div>
                                                 <div>
@@ -2632,15 +2998,23 @@ function App() {
                                             {enableLiver && (
                                             <div className="space-y-3 pt-1 animate-in fade-in slide-in-from-top-2">
                                                 <div>
-                                                    <label className="block text-[10px] font-bold text-slate-400 mb-1">Total Bilirubin (mg/dL)</label>
-                                                    <input
-                                                        type="number"
-                                                        placeholder="ระบุค่า T.Bili"
-                                                        step="0.1"
-                                                        value={tbili}
-                                                        className="form-control text-xs"
-                                                        onChange={e => setTbili(e.target.value)}
-                                                    />
+                                                    <label className="flex items-center gap-1.5 mb-1 cursor-pointer w-fit">
+                                                        <input type="checkbox" checked={enableTbili} onChange={(e) => {
+                                                            setEnableTbili(e.target.checked);
+                                                            if (!e.target.checked) setTbili('');
+                                                        }} className="w-3 h-3 cursor-pointer" />
+                                                        <span className="text-[10px] font-bold text-slate-400">Total Bilirubin (mg/dL)</span>
+                                                    </label>
+                                                    {enableTbili && (
+                                                        <input
+                                                            type="number"
+                                                            placeholder="ระบุค่า T.Bili"
+                                                            step="0.1"
+                                                            value={tbili}
+                                                            className="form-control text-xs mt-1 animate-in fade-in slide-in-from-top-1"
+                                                            onChange={e => setTbili(e.target.value)}
+                                                        />
+                                                    )}
                                                 </div>
                                                 <div className="grid grid-cols-2 gap-2">
                                                     <div>
@@ -2734,16 +3108,28 @@ function App() {
                                                     </div>
                                                 ) : (
                                                     <div className="space-y-2">
-                                                        <div className="grid grid-cols-2 gap-2">
+                                                        <div className="grid grid-cols-3 gap-2">
                                                             <div>
                                                                 <label className="block text-[9px] font-bold text-slate-400 mb-1">อายุ (ปี)</label>
                                                                 <input
                                                                     type="number"
                                                                     placeholder="Age"
                                                                     value={patient.age}
-                                                                    className="form-control text-xs"
+                                                                    className="form-control text-xs px-2"
                                                                     onChange={e => setPatient({ ...patient, age: e.target.value })}
                                                                 />
+                                                            </div>
+                                                            <div>
+                                                                <label className="block text-[9px] font-bold text-slate-400 mb-1">เพศ</label>
+                                                                <select
+                                                                    value={patient.gender || ''}
+                                                                    className="form-control text-xs px-1"
+                                                                    onChange={e => setPatient({ ...patient, gender: e.target.value })}
+                                                                >
+                                                                    <option value="">เลือก</option>
+                                                                    <option value="male">ชาย</option>
+                                                                    <option value="female">หญิง</option>
+                                                                </select>
                                                             </div>
                                                             <div>
                                                                 <label className="block text-[9px] font-bold text-slate-400 mb-1">Scr (mg/dL)</label>
@@ -2752,7 +3138,7 @@ function App() {
                                                                     placeholder="Scr"
                                                                     step="0.01"
                                                                     value={patientScr}
-                                                                    className="form-control text-xs"
+                                                                    className="form-control text-xs px-2"
                                                                     onChange={e => setPatientScr(e.target.value)}
                                                                 />
                                                             </div>
@@ -2797,6 +3183,22 @@ function App() {
                             <div className="lg:col-span-1">
                                 <div className="premium-card p-6 sticky top-6 border-sky-500/50">
                                     <h2 className="text-center font-black mb-4 uppercase text-slate-400">สรุปผลการคำนวณ</h2>
+                                    
+                                    <div className="mb-4 space-y-1.5 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg border border-slate-200 dark:border-slate-700/50 text-xs text-slate-600 dark:text-slate-400">
+                                        <div className="font-black border-b border-slate-200 dark:border-slate-700/50 pb-1.5 mb-2 text-slate-500 uppercase text-[10px] tracking-wider">ข้อมูลที่ใช้คำนวณ</div>
+                                        <div className="flex justify-between"><span>สูตร BSA:</span> <span className="font-bold text-slate-800 dark:text-slate-200">{formula === 'mosteller' ? 'Mosteller' : formula === 'dubois' ? 'DuBois' : '-'}</span></div>
+                                        <div className="flex justify-between"><span>ส่วนสูง / น้ำหนัก:</span> <span className="font-bold text-slate-800 dark:text-slate-200">{patient.height || '-'} cm / {patient.weight || '-'} kg</span></div>
+                                        <div className="flex justify-between"><span>เพศ / อายุ:</span> <span className="font-bold text-slate-800 dark:text-slate-200">{patient.gender === 'male' ? 'ชาย' : patient.gender === 'female' ? 'หญิง' : '-'} / {patient.age || '-'} ปี</span></div>
+                                        <div className="flex justify-between"><span>ประวัติแขน/ขา:</span> <span className="font-bold text-slate-800 dark:text-slate-200">{amputation === 'amputee' ? `มีประวัติตัด` : 'ปกติ'}</span></div>
+                                        {patient.cycle && <div className="flex justify-between"><span>จำนวนรอบการให้ยา (Cycle):</span> <span className="font-bold text-slate-800 dark:text-slate-200">{patient.cycle}</span></div>}
+                                        {(patientScr || drugParams?.gfr) && (
+                                            <div className="border-t border-slate-200 dark:border-slate-700/50 pt-1.5 mt-1.5 flex flex-col gap-1.5">
+                                                {patientScr && <div className="flex justify-between"><span>Scr:</span> <span className="font-bold text-slate-800 dark:text-slate-200">{patientScr} mg/dL</span></div>}
+                                                {drugParams?.gfr && <div className="flex justify-between"><span>CrCl:</span> <span className="font-bold text-slate-800 dark:text-slate-200">{drugParams.gfr} ml/min</span></div>}
+                                            </div>
+                                        )}
+                                    </div>
+
                                     <div className="space-y-4 bg-sky-600/5 p-4 rounded-xl border border-sky-500/20">
                                         <div className="text-center">
                                             <span className="text-xs uppercase text-slate-500 font-black">BSA</span>
@@ -2871,8 +3273,7 @@ function App() {
                                 <div className="premium-card p-6 mt-6">
                                     <div className="flex items-center justify-between mb-4">
                                         <div className="flex items-center gap-3">
-                                            <div className="w-8 h-8 rounded-full bg-sky-600 text-white flex items-center justify-center font-black text-xs">06</div>
-                                            <h2 className="text-lg font-black uppercase">รายละเอียดการให้ยา (DRUG ADMINISTRATION)</h2>
+                                            <h2 className="text-lg font-black text-sky-700 dark:text-sky-300">กำหนดรายละเอียดการให้ยา</h2>
                                             {!!editingOrderLogId && user?.role?.toUpperCase() === 'ADMIN' && (
                                                 <button
                                                     type="button"
@@ -2898,23 +3299,30 @@ function App() {
                                         <div className="flex items-center gap-2">
                                             <button
                                                 type="button"
+                                                onClick={printWorkingFormula}
+                                                className="btn btn-secondary text-sm flex items-center gap-2 py-2 px-6 rounded-xl bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition-all cursor-pointer font-bold no-print"
+                                            >
+                                                <Printer size={14} /> พิมพ์ใบเตรียมยา (A4)
+                                            </button>
+                                            <button
+                                                type="button"
                                                 onClick={printStickers}
-                                                className="btn btn-secondary text-xs flex items-center gap-1 py-1.5 px-3 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all cursor-pointer font-bold no-print"
+                                                className="btn btn-secondary text-sm flex items-center gap-2 py-2 px-6 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all cursor-pointer font-bold no-print"
                                             >
                                                 <Printer size={14} /> พิมพ์สติ๊กเกอร์
                                             </button>
                                             <button
                                                 type="button"
                                                 onClick={handleSaveOrder}
-                                                className={`btn btn-secondary text-xs flex items-center gap-1 py-1.5 px-3 rounded-xl border transition-all cursor-pointer font-bold no-print ${editingOrderLogId ? 'bg-amber-500/10 text-amber-600 border-amber-500/30 hover:bg-amber-500 hover:text-white' : 'bg-teal-500/10 text-teal-600 border-teal-500/30 hover:bg-teal-500 hover:text-white'}`}
-                                                title={editingOrderLogId ? 'อัปเดตข้อมูล' : 'บันทึกข้อมูลการสั่งยา'}
+                                                className={`btn btn-secondary text-sm flex items-center gap-2 py-2 px-6 rounded-xl border transition-all cursor-pointer font-bold no-print ${editingOrderLogId ? 'bg-amber-500/10 text-amber-600 border-amber-500/30 hover:bg-amber-500 hover:text-white shadow-sm' : 'bg-teal-500/10 text-teal-600 border-teal-500/30 hover:bg-teal-500 hover:text-white shadow-sm'}`}
+                                                title={editingOrderLogId ? 'บันทึกข้อมูล' : 'บันทึกข้อมูลการสั่งยา'}
                                             >
-                                                {editingOrderLogId ? 'อัปเดตข้อมูล' : '+ บันทึก'}
+                                                {editingOrderLogId ? 'บันทึก' : '+ บันทึก'}
                                             </button>
                                             <button
                                                 type="button"
                                                 onClick={handleAddRow}
-                                                className="btn btn-primary text-xs flex items-center gap-1 py-1.5 px-3 rounded-xl bg-sky-500 hover:bg-sky-600 text-white shadow-sm transition-all cursor-pointer font-bold no-print"
+                                                className="btn btn-primary text-sm flex items-center gap-2 py-2 px-6 rounded-xl bg-sky-500 hover:bg-sky-600 text-white shadow-sm transition-all cursor-pointer font-bold no-print"
                                             >
                                                 + เพิ่มแถว
                                             </button>
@@ -2925,14 +3333,15 @@ function App() {
                                         <table className="w-full text-left border-collapse">
                                             <thead>
                                                 <tr className="border-b border-slate-700/20 text-[11px] font-bold uppercase text-slate-400">
+                                                    <th className="px-3 py-2.5 w-10 text-center">#</th>
                                                     <th className="px-3 py-2.5">ชื่อยา</th>
+                                                    <th className="px-3 py-2.5">ขนาดยา (Dose)</th>
                                                     <th className="px-3 py-2.5">วิธีให้ยา</th>
                                                     <th className="px-3 py-2.5">ตัวทำละลาย</th>
+                                                    <th className="px-3 py-2.5">Vol (ml)</th>
                                                     <th className="px-3 py-2.5">วันเริ่มต้น</th>
                                                     <th className="px-3 py-2.5">วันสุดท้าย</th>
                                                     <th className="px-3 py-2.5">อัตราเร็ว</th>
-                                                    <th className="px-3 py-2.5 text-center">ลำดับ</th>
-                                                    <th className="px-3 py-2.5 text-center w-24">ไม่ได้รับยา</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
@@ -2943,6 +3352,9 @@ function App() {
                                                             row.skipped ? 'opacity-50 bg-red-500/5' : ''
                                                         }`}
                                                     >
+                                                        <td className="px-3 py-2.5 text-center font-black text-slate-300 dark:text-slate-600 text-xs">
+                                                            {idx + 1}
+                                                        </td>
                                                         <td className="px-3 py-2.5">
                                                             <div className="flex gap-2 items-center">
                                                                 <input
@@ -2951,7 +3363,31 @@ function App() {
                                                                     value={row.drugName || ''}
                                                                     onChange={e => {
                                                                         const val = e.target.value;
-                                                                        setAdminRows(prev => prev.map((r, i) => i === idx ? { ...r, drugName: val } : r));
+                                                                        
+                                                                        let matchedDose = row.dose;
+                                                                        if (val) {
+                                                                            const foundResult = singleDrugResults.find(r => r.name.toLowerCase() === val.toLowerCase() || r.id.toLowerCase() === val.toLowerCase());
+                                                                            if (foundResult && foundResult.dose !== undefined && foundResult.dose !== null && !isNaN(parseFloat(foundResult.dose))) {
+                                                                                matchedDose = `${foundResult.dose} ${foundResult.unit || 'mg'}`;
+                                                                            }
+                                                                        }
+
+                                                                        let autoVol = row.volume;
+                                                                        if (val && matchedDose) {
+                                                                            const drugKey = Object.keys(DRUG_CONCENTRATION_DATA).find(k => k.toLowerCase() === val.toLowerCase());
+                                                                            if (drugKey) {
+                                                                                const drugData = DRUG_CONCENTRATION_DATA[drugKey];
+                                                                                if (drugData.concentration > 0) {
+                                                                                    const numVal = parseFloat(matchedDose.toString().replace(/[^\d.]/g, ''));
+                                                                                    if (!isNaN(numVal)) {
+                                                                                        autoVol = (numVal / drugData.concentration).toFixed(2);
+                                                                                        if (autoVol.endsWith('.00')) autoVol = autoVol.replace('.00', '');
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                        
+                                                                        setAdminRows(prev => prev.map((r, i) => i === idx ? { ...r, drugName: val, dose: matchedDose, calculatedDose: matchedDose, volume: autoVol } : r));
                                                                         checkSolventRules(val, row.solvent);
                                                                     }}
                                                                     placeholder="ค้นหา/ระบุชื่อยา..."
@@ -2978,6 +3414,67 @@ function App() {
                                                                         + บันทึก
                                                                     </button>
                                                                 )}
+                                                            </div>
+                                                        </td>
+                                                        <td className="px-3 py-2.5">
+                                                            <div className="flex gap-1 items-center min-w-[140px]">
+                                                                <input
+                                                                    type="text"
+                                                                    value={(row.dose || '').match(/[\d.]+/) ? (row.dose || '').match(/[\d.]+/)[0] : ''}
+                                                                    onChange={e => {
+                                                                        const numVal = e.target.value.replace(/[^\d.]/g, '');
+                                                                        const str = row.dose || '';
+                                                                        let currentUnit = str.replace(/[\d.\s]/g, '');
+                                                                        if (str.toLowerCase().includes('auc')) currentUnit = 'AUC';
+                                                                        if (!currentUnit) currentUnit = 'mg';
+                                                                        
+                                                                        const newVal = numVal ? `${numVal} ${currentUnit}` : '';
+                                                                        
+                                                                        let autoVol = row.volume;
+                                                                        if (row.drugName) {
+                                                                            const drugKey = Object.keys(DRUG_CONCENTRATION_DATA).find(k => k.toLowerCase() === row.drugName.toLowerCase());
+                                                                            if (drugKey) {
+                                                                                const drugData = DRUG_CONCENTRATION_DATA[drugKey];
+                                                                                if (drugData.concentration > 0) {
+                                                                                    const parsedNum = parseFloat(numVal);
+                                                                                    if (!isNaN(parsedNum)) {
+                                                                                        autoVol = (parsedNum / drugData.concentration).toFixed(2);
+                                                                                        if (autoVol.endsWith('.00')) autoVol = autoVol.replace('.00', '');
+                                                                                    } else {
+                                                                                        autoVol = '';
+                                                                                    }
+                                                                                }
+                                                                            }
+                                                                        }
+                                                                        setAdminRows(prev => prev.map((r, i) => i === idx ? { ...r, dose: newVal, volume: autoVol } : r));
+                                                                    }}
+                                                                    placeholder="ระบุตัวเลข"
+                                                                    className="form-control py-1.5 px-2 text-xs rounded-lg w-[75px] text-center"
+                                                                />
+                                                                <select
+                                                                    value={(() => {
+                                                                        const str = row.dose || '';
+                                                                        if (str.toLowerCase().includes('auc')) return 'AUC';
+                                                                        const u = str.replace(/[\d.\s]/g, '');
+                                                                        return u || 'mg';
+                                                                    })()}
+                                                                    onChange={e => {
+                                                                        const newUnit = e.target.value;
+                                                                        const str = row.dose || '';
+                                                                        const numMatch = str.match(/[\d.]+/);
+                                                                        const currentNum = numMatch ? numMatch[0] : '';
+                                                                        const newVal = currentNum ? `${currentNum} ${newUnit}` : '';
+                                                                        setAdminRows(prev => prev.map((r, i) => i === idx ? { ...r, dose: newVal } : r));
+                                                                    }}
+                                                                    className="form-control py-1.5 px-1 text-xs rounded-lg w-16 bg-slate-50 dark:bg-slate-800"
+                                                                >
+                                                                    <option value="mg">mg</option>
+                                                                    <option value="g">g</option>
+                                                                    <option value="mcg">mcg</option>
+                                                                    <option value="units">units</option>
+                                                                    <option value="ml">ml</option>
+                                                                    <option value="AUC">AUC</option>
+                                                                </select>
                                                             </div>
                                                         </td>
                                                         <td className="px-3 py-2.5">
@@ -3032,6 +3529,15 @@ function App() {
                                                             </div>
                                                         </td>
                                                         <td className="px-3 py-2.5">
+                                                            <input
+                                                                type="text"
+                                                                value={row.volume || ''}
+                                                                onChange={e => setAdminRows(prev => prev.map((r, i) => i === idx ? { ...r, volume: e.target.value } : r))}
+                                                                placeholder="เช่น 500 ml"
+                                                                className="form-control py-1.5 px-3 text-xs rounded-lg min-w-[80px]"
+                                                            />
+                                                        </td>
+                                                        <td className="px-3 py-2.5">
                                                             <div className="relative flex items-center">
                                                                 <input
                                                                     type="text"
@@ -3044,6 +3550,7 @@ function App() {
                                                                 />
                                                                 <input
                                                                     type="date"
+                                                                    min={new Date().toISOString().split('T')[0]}
                                                                     disabled={!!editingOrderLogId && !isDateEditable}
                                                                     className={`absolute left-0 right-0 top-0 bottom-0 opacity-0 w-full h-full ${(!!editingOrderLogId && !isDateEditable) ? 'cursor-not-allowed' : 'cursor-pointer'}`}
                                                                     onClick={(e) => { if (!editingOrderLogId || isDateEditable) { try { e.target.showPicker(); } catch(err){} } }}
@@ -3082,6 +3589,7 @@ function App() {
                                                                 />
                                                                 <input
                                                                     type="date"
+                                                                    min={new Date().toISOString().split('T')[0]}
                                                                     disabled={!!editingOrderLogId && !isDateEditable}
                                                                     className={`absolute left-0 right-0 top-0 bottom-0 opacity-0 w-full h-full ${(!!editingOrderLogId && !isDateEditable) ? 'cursor-not-allowed' : 'cursor-pointer'}`}
                                                                     onClick={(e) => { if (!editingOrderLogId || isDateEditable) { try { e.target.showPicker(); } catch(err){} } }}
@@ -3138,43 +3646,17 @@ function App() {
                                                                         + บันทึก
                                                                     </button>
                                                                 )}
+                                                                {adminRows.length > 1 && (
+                                                                    <button
+                                                                        type="button"
+                                                                        onClick={() => setAdminRows(prev => prev.filter((_, i) => i !== idx))}
+                                                                        className="ml-2 text-red-400 hover:text-red-600 p-1 rounded-md hover:bg-red-50 transition-colors shrink-0"
+                                                                        title="ลบแถว"
+                                                                    >
+                                                                        <Trash2 size={16} />
+                                                                    </button>
+                                                                )}
                                                             </div>
-                                                        </td>
-                                                        <td className="px-3 py-2.5 text-center">
-                                                            <input
-                                                                type="number"
-                                                                placeholder="1"
-                                                                min="1"
-                                                                value={row.order}
-                                                                onChange={e => setAdminRows(prev => prev.map((r, i) => i === idx ? { ...r, order: parseInt(e.target.value) || 1 } : r))}
-                                                                className="form-control py-1.5 px-3 text-xs rounded-lg font-bold w-16 text-center"
-                                                            />
-                                                        </td>
-                                                        <td className="px-3 py-2.5 flex justify-center items-center gap-2">
-                                                            <button
-                                                                type="button"
-                                                                onClick={() => {
-                                                                    setAdminRows(prev => prev.map((r, i) => i === idx ? { ...r, skipped: !r.skipped } : r));
-                                                                }}
-                                                                className={`w-7 h-7 rounded border-2 flex items-center justify-center transition-all ${
-                                                                    row.skipped
-                                                                        ? 'bg-sky-500 border-sky-500 text-white'
-                                                                        : 'bg-transparent border-slate-300 hover:border-sky-400'
-                                                                }`}
-                                                                title="ทำเครื่องหมายไม่ได้รับยา"
-                                                            >
-                                                                {row.skipped ? <span className="text-sm font-bold">✓</span> : null}
-                                                            </button>
-                                                            {adminRows.length > 1 && (
-                                                                <button
-                                                                    type="button"
-                                                                    onClick={() => setAdminRows(prev => prev.filter((_, i) => i !== idx))}
-                                                                    className="text-red-400 hover:text-red-600 p-1 rounded-md hover:bg-red-50 transition-colors shrink-0"
-                                                                    title="ลบแถว"
-                                                                >
-                                                                    <Trash2 size={16} />
-                                                                </button>
-                                                            )}
                                                         </td>
                                                     </tr>
                                                 ))}
@@ -3192,6 +3674,82 @@ function App() {
                     </div>
                 )}
             </div>
+
+            <PrinterSettings
+                user={user}
+                setUser={setUser}
+                show={showPrinterSettings}
+                onClose={() => setShowPrinterSettings(false)}
+                showNotification={showNotification}
+            />
+
+            {notification && (
+                <Notification
+                    {...notification}
+                    onClose={() => setNotification(null)}
+                />
+            )}
+
+            {/* Modal: Diff Warning */}
+            {showDiffModal && (
+                <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+                    <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col border border-slate-200 dark:border-slate-700 animate-in zoom-in-95 duration-300">
+                        <div className="p-5 border-b border-slate-100 dark:border-slate-700 flex items-center gap-3 bg-amber-50 dark:bg-amber-900/20">
+                            <div className="bg-amber-100 dark:bg-amber-900/50 p-2 rounded-xl text-amber-500">
+                                <AlertTriangle size={24} />
+                            </div>
+                            <div>
+                                <h3 className="font-black text-amber-700 dark:text-amber-400 text-lg">แจ้งเตือนความคลาดเคลื่อน (% Diff)</h3>
+                                <p className="text-xs text-amber-600/80 dark:text-amber-500/80">ระบบตรวจพบโดสยาที่ระบุแตกต่างจากสูตรที่คำนวณได้</p>
+                            </div>
+                        </div>
+                        <div className="p-6 overflow-y-auto max-h-[60vh]">
+                            <div className="space-y-4">
+                                {diffWarningsData.map((w, idx) => (
+                                    <div key={idx} className={`p-4 rounded-xl border ${w.isOver ? 'bg-red-50 border-red-200 dark:bg-red-900/20 dark:border-red-800/50' : 'bg-slate-50 border-slate-200 dark:bg-slate-900/50 dark:border-slate-700'}`}>
+                                        <div className="flex justify-between items-start mb-2">
+                                            <div className="font-bold text-slate-800 dark:text-slate-200">{w.drug}</div>
+                                            <div className={`font-black text-sm px-2 py-1 rounded-lg ${w.isOver ? 'bg-red-100 text-red-700 dark:bg-red-900/50 dark:text-red-400' : 'bg-amber-100 text-amber-700 dark:bg-amber-900/50 dark:text-amber-400'}`}>
+                                                {w.diff > 0 ? '+' : ''}{w.diff}%
+                                            </div>
+                                        </div>
+                                        <div className="grid grid-cols-2 gap-4 text-sm mt-3">
+                                            <div>
+                                                <div className="text-slate-500 dark:text-slate-400 text-[10px] uppercase font-bold tracking-wider mb-1">คำนวณได้</div>
+                                                <div className="font-bold text-slate-700 dark:text-slate-300 bg-white dark:bg-slate-800 py-1.5 px-3 rounded-lg border border-slate-200 dark:border-slate-700 shadow-sm">{w.calc}</div>
+                                            </div>
+                                            <div>
+                                                <div className="text-slate-500 dark:text-slate-400 text-[10px] uppercase font-bold tracking-wider mb-1">แพทย์สั่ง</div>
+                                                <div className={`font-bold py-1.5 px-3 rounded-lg border shadow-sm ${w.isOver ? 'bg-red-50 text-red-700 border-red-200 dark:bg-red-900/30 dark:border-red-800/50 dark:text-red-300' : 'bg-amber-50 text-amber-700 border-amber-200 dark:bg-amber-900/30 dark:border-amber-800/50 dark:text-amber-300'}`}>{w.dose}</div>
+                                            </div>
+                                        </div>
+                                        {w.isOver && (
+                                            <div className="mt-3 text-[11px] font-bold text-red-500 dark:text-red-400 flex items-center gap-1.5 bg-red-100 dark:bg-red-900/30 px-2 py-1.5 rounded-md">
+                                                <AlertCircle size={14} className="flex-shrink-0" /> คลาดเคลื่อนเกินเงื่อนไขที่กำหนด (10%) โปรดพิจารณาอย่างรอบคอบ
+                                            </div>
+                                        )}
+                                    </div>
+                                ))}
+                            </div>
+                        </div>
+                        <div className="p-4 border-t border-slate-100 dark:border-slate-700 bg-slate-50 dark:bg-slate-900/50 flex justify-end gap-3">
+                            <button
+                                onClick={() => setShowDiffModal(false)}
+                                className="px-5 py-2.5 rounded-xl font-bold text-slate-600 hover:bg-slate-200 dark:text-slate-300 dark:hover:bg-slate-700 transition-colors"
+                            >
+                                กลับไปแก้ไข
+                            </button>
+                            <button
+                                onClick={proceedSaveOrder}
+                                className="px-5 py-2.5 rounded-xl font-bold text-white bg-amber-500 hover:bg-amber-600 shadow-sm transition-colors flex items-center gap-2"
+                            >
+                                <CheckCircle size={18} /> ยอมรับ (Accept) & บันทึก
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            )}
+
             {user && user.must_change_password === 1 && (
                 <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/75 backdrop-blur-md p-4 animate-fade-in no-print">
                     <ChangePassword
@@ -3288,12 +3846,6 @@ function App() {
                         </div>
                     </div>
                 </div>
-            )}
-            {notification && (
-                <Notification
-                    {...notification}
-                    onClose={() => setNotification(null)}
-                />
             )}
         </div>
     );

@@ -74,6 +74,10 @@ const User = sequelize.define('User', {
     is_active: {
         type: DataTypes.TINYINT,
         defaultValue: 1
+    },
+    default_printer: {
+        type: DataTypes.STRING(255),
+        allowNull: true
     }
 }, {
     tableName: 'login',
@@ -119,6 +123,7 @@ const OrderLog = sequelize.define('OrderLog', {
     ward: DataTypes.STRING(100),
     user_name: DataTypes.STRING(255),
     doctor: DataTypes.STRING(255),
+    cycle: DataTypes.STRING(50),
     order_details: DataTypes.TEXT('long'), // Stores adminRows JSON
     is_date_unlocked: {
         type: DataTypes.BOOLEAN,
@@ -182,6 +187,30 @@ const Drug = sequelize.define('Drug', {
     is_active: {
         type: DataTypes.TINYINT,
         defaultValue: 1
+    },
+    dose_per_pack: {
+        type: DataTypes.DECIMAL(10, 2),
+        allowNull: true
+    },
+    package_type: {
+        type: DataTypes.STRING(50),
+        allowNull: true
+    },
+    inventory_qty: {
+        type: DataTypes.DECIMAL(10, 2),
+        defaultValue: 0
+    },
+    inventory_min: {
+        type: DataTypes.DECIMAL(10, 2),
+        defaultValue: 0
+    },
+    inventory_max: {
+        type: DataTypes.DECIMAL(10, 2),
+        defaultValue: 0
+    },
+    is_auto_dispensed: {
+        type: DataTypes.BOOLEAN,
+        defaultValue: false
     },
     created_at: DataTypes.DATE
 }, {
@@ -274,6 +303,21 @@ async function initializeDatabase() {
             console.log('✅ Column title added successfully to patients table.');
         }
 
+        // Check if cycle column exists in order_logs table, if not add it
+        try {
+            const orderLogTableInfo = await queryInterface.describeTable('order_logs');
+            if (orderLogTableInfo && !orderLogTableInfo.cycle) {
+                console.log('Adding cycle column to order_logs table...');
+                await queryInterface.addColumn('order_logs', 'cycle', {
+                    type: DataTypes.STRING(50),
+                    allowNull: true
+                });
+                console.log('✅ Column cycle added successfully to order_logs table.');
+            }
+        } catch(e) {
+            console.log('Table order_logs may not exist yet, skipping alter column check for cycle.');
+        }
+
         // Check if is_date_unlocked column exists in order_logs table, if not add it
         try {
             const orderLogTableInfo = await queryInterface.describeTable('order_logs');
@@ -287,6 +331,21 @@ async function initializeDatabase() {
             }
         } catch(e) {
             console.log('Table order_logs may not exist yet, skipping alter column check.');
+        }
+
+        // Check if default_printer column exists in login table, if not add it
+        try {
+            const loginTableInfo = await queryInterface.describeTable('login');
+            if (loginTableInfo && !loginTableInfo.default_printer) {
+                console.log('Adding default_printer column to login table...');
+                await queryInterface.addColumn('login', 'default_printer', {
+                    type: DataTypes.STRING(255),
+                    allowNull: true
+                });
+                console.log('✅ Column default_printer added successfully to login table.');
+            }
+        } catch(e) {
+            console.log('Table login may not exist yet, skipping alter column check.');
         }
 
         // Seed unique patients from dosage_logs if patients table is empty
@@ -406,6 +465,25 @@ app.post('/api/login', async (req, res) => {
         }
     } catch (err) {
         console.error('❌ Login Error Details:', err);
+        res.status(500).json({ success: false, message: 'Database Error: ' + err.message });
+    }
+});
+
+// 🔑 API Route: Update Default Printer
+app.put('/api/users/:employee_id/printer', async (req, res) => {
+    try {
+        const { employee_id } = req.params;
+        const { default_printer } = req.body;
+        
+        const user = await User.findOne({ where: { employee_id } });
+        if (!user) {
+            return res.status(404).json({ success: false, message: 'User not found' });
+        }
+        
+        await user.update({ default_printer });
+        res.json({ success: true, message: 'Printer updated successfully' });
+    } catch (err) {
+        console.error('❌ Update Printer Error:', err);
         res.status(500).json({ success: false, message: 'Database Error: ' + err.message });
     }
 });
@@ -1059,10 +1137,10 @@ app.put('/api/order-logs/:id', async (req, res) => {
             }
         }
 
-        const { hn, patient_name, ward, doctor, order_details } = req.body;
+        const { hn, patient_name, ward, doctor, cycle, order_details } = req.body;
         
         await orderLog.update({
-            hn, patient_name, ward, doctor, order_details
+            hn, patient_name, ward, doctor, cycle, order_details
         });
 
         logActivity(employeeId, 'EDIT_ORDER_LOG', `แก้ไขบันทึกการสั่งยา ID ${logId}`);
@@ -1210,6 +1288,33 @@ app.get('/api/drugs', async (req, res) => {
     }
 });
 
+// 📦 API: อัปเดตข้อมูลคลังยาและบรรจุภัณฑ์ (Inventory Management)
+app.put('/api/drugs/:id/inventory', requireHeadOrAdmin, async (req, res) => {
+    try {
+        const { id } = req.params;
+        const { dose_per_pack, package_type, inventory_qty, inventory_min, inventory_max, is_auto_dispensed } = req.body;
+        
+        const drug = await Drug.findByPk(id);
+        if (!drug) {
+            return res.status(404).json({ success: false, message: 'ไม่พบข้อมูลยา' });
+        }
+        
+        await drug.update({
+            dose_per_pack: dose_per_pack !== undefined ? dose_per_pack : drug.dose_per_pack,
+            package_type: package_type !== undefined ? package_type : drug.package_type,
+            inventory_qty: inventory_qty !== undefined ? inventory_qty : drug.inventory_qty,
+            inventory_min: inventory_min !== undefined ? inventory_min : drug.inventory_min,
+            inventory_max: inventory_max !== undefined ? inventory_max : drug.inventory_max,
+            is_auto_dispensed: is_auto_dispensed !== undefined ? is_auto_dispensed : drug.is_auto_dispensed
+        });
+        
+        res.json({ success: true, message: 'อัปเดตข้อมูลคลังยาสำเร็จ', drug });
+    } catch (err) {
+        console.error('❌ Inventory update error:', err);
+        res.status(500).json({ success: false, message: 'Database Error: ' + err.message });
+    }
+});
+
 // 👥 Admin Drug Management APIs
 app.post('/api/admin/drugs', requireHeadOrAdmin, async (req, res) => {
     try {
@@ -1297,6 +1402,33 @@ app.delete('/api/admin/drugs/:id', requireHeadOrAdmin, async (req, res) => {
     } catch (err) {
         console.error('❌ Delete drug error:', err);
         res.status(500).json({ success: false, message: 'Database Error: ' + err.message });
+    }
+});
+// QZ Tray Security Endpoints
+app.get('/api/qz/cert', (req, res) => {
+    try {
+        const fs = require('fs');
+        const cert = fs.readFileSync('digital-certificate.txt', 'utf8');
+        res.type('text/plain').send(cert);
+    } catch (err) {
+        console.error('QZ Cert Error:', err);
+        res.status(500).send('Certificate not found');
+    }
+});
+
+app.get('/api/qz/sign', (req, res) => {
+    try {
+        const fs = require('fs');
+        const crypto = require('crypto');
+        const request = req.query.request;
+        const privateKey = fs.readFileSync('private-key.pem', 'utf8');
+        const sign = crypto.createSign('SHA512');
+        sign.update(request);
+        const signature = sign.sign(privateKey, 'base64');
+        res.type('text/plain').send(signature);
+    } catch (err) {
+        console.error('QZ Sign Error:', err);
+        res.status(500).send('Signing failed');
     }
 });
 
