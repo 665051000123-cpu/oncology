@@ -113,14 +113,7 @@ function AdminOrderHistory({ currentUser, onBack, showNotification, theme, onEdi
     });
 
     const canEdit = (log) => {
-        const role = currentUser?.role?.toLowerCase() || '';
-        if (role === 'admin' || role === 'head') return true;
-        if (role === 'pharmacist') {
-            const logDate = new Date(log.timestamp).toLocaleDateString('th-TH', { timeZone: 'Asia/Bangkok' });
-            const today = new Date().toLocaleDateString('th-TH', { timeZone: 'Asia/Bangkok' });
-            return logDate === today;
-        }
-        return false;
+        return !!currentUser;
     };
 
     return (

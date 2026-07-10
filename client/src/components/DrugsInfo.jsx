@@ -1,10 +1,10 @@
 import React, { useState, useEffect } from 'react';
-import { ArrowLeft, Pill, Search, FlaskConical, Ruler, ShieldAlert, Activity, Plus, Edit2, Trash2, Save, X } from 'lucide-react';
+import { ArrowLeft, Pill, Search, FlaskConical, Ruler, ShieldAlert, Activity, Plus, Edit2, Trash2, Save, X, Printer } from 'lucide-react';
 import axios from 'axios';
 
 const API_BASE = '/api';
 
-const DrugsInfo = ({ currentUser, onBack, showNotification, theme }) => {
+const DrugsInfo = ({ currentUser, onBack, showNotification, theme, setPreviewData }) => {
     const [drugs, setDrugs] = useState([]);
     const [loading, setLoading] = useState(true);
     const [searchQuery, setSearchQuery] = useState('');
@@ -154,6 +154,7 @@ const DrugsInfo = ({ currentUser, onBack, showNotification, theme }) => {
     const filteredDrugs = drugs.filter(d => {
         if (!searchQuery.trim()) return true;
         const q = searchQuery.toLowerCase();
+        
         return (
             d.drug_code?.toLowerCase().includes(q) ||
             d.drug_name?.toLowerCase().includes(q) ||
@@ -161,6 +162,139 @@ const DrugsInfo = ({ currentUser, onBack, showNotification, theme }) => {
             d.standard_dose_unit?.toLowerCase().includes(q)
         );
     });
+
+    const printAllDrugs = async () => {
+        if (!filteredDrugs || filteredDrugs.length === 0) {
+            if (showNotification) showNotification('ไม่มีข้อมูลยาสำหรับพิมพ์', 'warning');
+            return;
+        }
+
+        const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>พิมพ์ข้อมูลยาทั้งหมด</title>
+            <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700;900&display=swap" rel="stylesheet">
+            <style>
+                @page { size: A4 landscape; margin: 1.5cm; }
+                body { font-family: 'Sarabun', sans-serif; font-size: 12px; color: #000; line-height: 1.5; }
+                table { width: 100%; border-collapse: collapse; margin-top: 10px; }
+                th, td { border: 1px solid #ccc; padding: 6px 8px; text-align: left; }
+                th { background-color: #f8fafc; font-weight: bold; font-size: 11px; text-transform: uppercase; }
+                .text-center { text-align: center; }
+                .badge { padding: 2px 6px; border-radius: 4px; font-size: 10px; font-weight: bold; }
+                .status-active { background: #dcfce7; color: #166534; }
+                .status-inactive { background: #fee2e2; color: #991b1b; }
+            </style>
+        </head>
+        <body>
+            <h2 style="text-align: center; margin-bottom: 20px;">ข้อมูลยาทั้งหมดในระบบ (Drug Information)</h2>
+            <table>
+                <thead>
+                    <tr>
+                        <th>#</th>
+                        <th>CODE</th>
+                        <th>ชื่อยา</th>
+                        <th class="text-center">กลุ่มยา</th>
+                        <th>ประเภทการคำนวณ</th>
+                        <th>ขนาดยามาตรฐาน</th>
+                        <th>หน่วย</th>
+                        <th class="text-center">Dose Cap</th>
+                        <th class="text-center">CrCl CAP</th>
+                        <th class="text-center">น้ำหนักที่ใช้</th>
+                        <th class="text-center">สถานะ</th>
+                    </tr>
+                </thead>
+                <tbody>
+                    ${filteredDrugs.map((drug, idx) => `
+                        <tr>
+                            <td>${idx + 1}</td>
+                            <td><b>${drug.drug_code || '-'}</b></td>
+                            <td><b>${drug.drug_name}</b></td>
+                            <td class="text-center">${drug.drug_category || '-'}</td>
+                            <td>${drug.calculation_type || '-'}</td>
+                            <td><b>${drug.standard_dose_value !== null ? parseFloat(drug.standard_dose_value).toFixed(2) : '-'}</b></td>
+                            <td>${drug.standard_dose_unit || '-'}</td>
+                            <td class="text-center">${drug.max_dose_cap !== null ? parseFloat(drug.max_dose_cap).toFixed(2) + ' mg' : 'ไม่มี'}</td>
+                            <td class="text-center">${drug.max_gfr_cap !== null ? drug.max_gfr_cap + ' ml/min' : 'ไม่มี'}</td>
+                            <td class="text-center">${drug.default_weight_type || '-'}</td>
+                            <td class="text-center">
+                                <span class="badge ${drug.is_active === 1 || drug.is_active === true || drug.is_active === '1' ? 'status-active' : 'status-inactive'}">
+                                    ${drug.is_active === 1 || drug.is_active === true || drug.is_active === '1' ? 'เปิดใช้งาน' : 'ปิดใช้งาน'}
+                                </span>
+                            </td>
+                        </tr>
+                    `).join('')}
+                </tbody>
+            </table>
+        </body>
+        </html>
+        `;
+
+        if (setPreviewData) {
+            setPreviewData({
+                isOpen: true,
+                htmlContent: htmlContent,
+                title: 'ตัวอย่างก่อนพิมพ์: ข้อมูลยาทั้งหมด (All Drugs List)',
+                printerName: currentUser?.all_drugs_printer,
+                onConfirm: async () => {
+                    setPreviewData(prev => ({ ...prev, isOpen: false }));
+                    if (currentUser?.all_drugs_printer) {
+                        if (showNotification) showNotification('กำลังส่งข้อมูลไปยังเครื่องพิมพ์เอกสาร...', 'info');
+                        try {
+                            const res = await axios.post(currentUser?.use_local_agent ? 'http://localhost:5005/api/print' : `${API_BASE}/print`, {
+                                html: htmlContent,
+                                printerName: currentUser.all_drugs_printer,
+                                isA4: true
+                            });
+                            if (res.data.success) {
+                                if (showNotification) showNotification(`พิมพ์รายการยาไปที่ ${currentUser.all_drugs_printer} สำเร็จ`, 'success');
+                                return;
+                            }
+                        } catch (err) {
+                            console.error('Local Print Server error', err);
+                            if (showNotification) showNotification('ไม่สามารถพิมพ์ผ่านระบบอัตโนมัติได้ กำลังเปลี่ยนไปพิมพ์ผ่านเบราว์เซอร์...', 'warning');
+                        }
+                    }
+
+                    const fallbackHtml = htmlContent.replace('</body>', '<script>window.onload = () => { setTimeout(() => { window.print(); window.close(); }, 500); };</script></body>');
+                    const printWindow = window.open('', '_blank', 'width=1000,height=800');
+                    if (!printWindow) {
+                        if (showNotification) showNotification('โปรดอนุญาตให้เบราว์เซอร์เปิดหน้าต่าง Pop-up เพื่อพิมพ์', 'warning');
+                        return;
+                    }
+                    printWindow.document.open();
+                    printWindow.document.write(fallbackHtml);
+                    printWindow.document.close();
+                }
+            });
+        } else {
+            // Fallback if no preview
+            if (currentUser?.all_drugs_printer) {
+                if (showNotification) showNotification('กำลังส่งข้อมูลไปยังเครื่องพิมพ์เอกสาร...', 'info');
+                try {
+                    const res = await axios.post(currentUser?.use_local_agent ? 'http://localhost:5005/api/print' : `${API_BASE}/print`, {
+                        html: htmlContent,
+                        printerName: currentUser.all_drugs_printer,
+                        isA4: true
+                    });
+                    if (res.data.success) {
+                        if (showNotification) showNotification(`พิมพ์รายการยาไปที่ ${currentUser.all_drugs_printer} สำเร็จ`, 'success');
+                        return;
+                    }
+                } catch (err) {
+                    console.error('Local Print Server error', err);
+                }
+            }
+            const fallbackHtml = htmlContent.replace('</body>', '<script>window.onload = () => { setTimeout(() => { window.print(); window.close(); }, 500); };</script></body>');
+            const printWindow = window.open('', '_blank', 'width=1000,height=800');
+            if (printWindow) {
+                printWindow.document.open();
+                printWindow.document.write(fallbackHtml);
+                printWindow.document.close();
+            }
+        }
+    };
 
     const getCalcTypeLabel = (type) => {
         switch (type) {
@@ -204,14 +338,16 @@ const DrugsInfo = ({ currentUser, onBack, showNotification, theme }) => {
 
     const getStatusBadge = (isActive) => {
         if (isActive === 1 || isActive === true || isActive === '1') {
-            return (
+            
+    return (
                 <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border whitespace-nowrap ${isDark ? 'bg-emerald-950/50 text-emerald-400 border-emerald-800/50' : 'bg-emerald-50 text-emerald-700 border-emerald-200'
                     }`}>
                     เปิดใช้งาน
                 </span>
             );
         }
-        return (
+        
+    return (
             <span className={`px-2.5 py-1 rounded-full text-[10px] font-black uppercase tracking-wider border whitespace-nowrap ${isDark ? 'bg-red-950/50 text-red-400 border-red-800/50' : 'bg-red-50 text-red-700 border-red-200'
                 }`}>
                 ปิดใช้งาน
@@ -219,6 +355,7 @@ const DrugsInfo = ({ currentUser, onBack, showNotification, theme }) => {
         );
     };
 
+    
     return (
         <div className="animate-row-in space-y-6">
             {/* Header */}
@@ -255,6 +392,13 @@ const DrugsInfo = ({ currentUser, onBack, showNotification, theme }) => {
                                 }`}
                         />
                     </div>
+                    <button
+                        onClick={printAllDrugs}
+                        className={`text-sm py-2 px-4 rounded-xl border flex items-center gap-2 cursor-pointer shrink-0 shadow-sm transition-colors ${isDark ? 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700' : 'bg-white hover:bg-slate-100 text-slate-700 border-slate-200'}`}
+                        title="พิมพ์ข้อมูลยาทั้งหมด"
+                    >
+                        <Printer size={16} /> พิมพ์
+                    </button>
                     {isAdmin && (
                         <button
                             onClick={handleOpenAddModal}
@@ -335,7 +479,7 @@ const DrugsInfo = ({ currentUser, onBack, showNotification, theme }) => {
                                     <th className="px-2.5 py-3 text-[11px] font-black uppercase tracking-wider opacity-60 w-[9%] text-center">น้ำหนักที่ใช้</th>
                                     <th className="px-2.5 py-3 text-[11px] font-black uppercase tracking-wider opacity-60 w-[7%] text-center">สถานะ</th>
                                     {isAdmin && (
-                                        <th className="px-2.5 py-3 text-[11px] font-black uppercase tracking-wider opacity-60 w-[8%] text-center">การจัดการ</th>
+                                        <th className="px-2.5 py-3 text-[11px] font-black uppercase tracking-wider opacity-60 w-[8%] text-center no-print">การจัดการ</th>
                                     )}
                                 </tr>
                             </thead>
@@ -411,7 +555,7 @@ const DrugsInfo = ({ currentUser, onBack, showNotification, theme }) => {
                                             {getStatusBadge(drug.is_active)}
                                         </td>
                                         {isAdmin && (
-                                            <td className="px-2.5 py-3 text-center">
+                                            <td className="px-2.5 py-3 text-center no-print">
                                                 <div className="flex justify-center gap-1.5">
                                                     <button
                                                         onClick={() => handleOpenEditModal(drug)}

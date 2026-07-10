@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { useCalculations } from './utils/useCalculations';
-import { Moon, Sun, ChevronRight, ArrowLeft, ArrowRight, Printer, Trash2, History, User, Info, LogOut, ArrowUpDown, ChevronUp, ChevronDown, Filter, X, Settings, Pill, Search, Calendar, ClipboardList, AlertTriangle, AlertCircle, CheckCircle, Syringe, Package } from 'lucide-react';
+import { Moon, Sun, ChevronRight, ArrowLeft, ArrowRight, Printer, Trash2, History, User, Info, LogOut, ArrowUpDown, ChevronUp, ChevronDown, Filter, X, Settings, Pill, Search, Calendar, ClipboardList, AlertTriangle, AlertCircle, CheckCircle, Syringe, Package, Clock } from 'lucide-react';
 import axios from 'axios';
 import Login from './components/Login';
 import Notification from './components/Notification';
@@ -11,6 +11,7 @@ import DrugsInfo from './components/DrugsInfo';
 import { DRUG_SOLVENT_RULES } from './drugRules';
 import { DRUG_CONCENTRATION_DATA } from './drugData';
 import PrinterSettings from './components/PrinterSettings';
+import PrintPreviewModal from './components/PrintPreviewModal';
 
 import InventoryManagement from './components/InventoryManagement';
 
@@ -50,19 +51,12 @@ const formatBsa = (val) => {
 };
 
 const RATE_OPTIONS = [
-    "15 mins",
-    "30 mins",
-    "60 mins",
-    "2 hrs",
-    "4 hrs",
     "in 4 hrs",
-    "24 hrs",
     "50 mL/hr",
     "100 mL/hr",
     "150 mL/hr",
     "200 mL/hr",
-    "250 mL/hr",
-    "1/2 ชั่วโมง ก่อนให้ 5-FU"
+    "250 mL/hr"
 ];
 
 const SOLVENT_OPTIONS = [
@@ -100,6 +94,13 @@ function App() {
     const [showTimeoutWarning, setShowTimeoutWarning] = useState(false);
     const [timeoutCountdown, setTimeoutCountdown] = useState(30);
     const [showPrinterSettings, setShowPrinterSettings] = useState(false);
+    const [previewData, setPreviewData] = useState({
+        isOpen: false,
+        htmlContent: '',
+        title: '',
+        printerName: '',
+        onConfirm: null
+    });
 
     const showNotification = (message, type = 'info', duration = 5000) => {
         setNotification({ message, type, duration });
@@ -125,7 +126,7 @@ function App() {
                 }
             }
             if (triggers) {
-                showNotification(rule.title + '\n' + rule.desc.replace(/\\n/g, '\n'), 'error', 0);
+                showNotification(rule.title + 'n' + rule.desc.replace(/n/g, 'n'), 'error', 0);
             }
         }
     };
@@ -172,10 +173,10 @@ function App() {
         bsa, setBsa,
         finalDose, setFinalDose,
         calculationDetails, setCalculationDetails,
-        calculateBSA, calculateDose
+        calculateBSA, calculateDose, calculateWeights
     } = useCalculations();
 
-    const [formula, setFormula] = useState('');
+    const [formula, setFormula] = useState('mosteller');
     const [selectedDrugs, setSelectedDrugs] = useState([]);
     const [singleDrugResults, setSingleDrugResults] = useState([]);
     const [drugParams, setDrugParams] = useState({ auc: 5, gfr: '' });
@@ -183,14 +184,17 @@ function App() {
     const [ampDetails, setAmpDetails] = useState({ level: 'below_knee', method: 'weight_method' });
     const [showDrugInfo, setShowDrugInfo] = useState(false);
     const [showBsaInfo, setShowBsaInfo] = useState(false);
+    const [lockOldHistory, setlockOldHistory] = useState(true);
     const [showAmpInfo, setShowAmpInfo] = useState(false);
     const [selectedRegimen, setSelectedRegimen] = useState('custom'); // 'custom', 'cv', 'bc'
     const [useAutoGfr, setUseAutoGfr] = useState(true);
     const [patientScr, setPatientScr] = useState('');
     const [drugsList, setDrugsList] = useState([]);
     const [wbc, setWbc] = useState('');
+    const [neutrophils, setNeutrophils] = useState('');
+    const [bands, setBands] = useState('');
     const [adminRows, setAdminRows] = useState([
-        { id: Date.now(), drugName: '', route: '', solvent: '', startDate: '', endDate: '', rate: '', order: 1, skipped: false, dose: '', calculatedDose: '', volume: '', storage: '', warning: '' }
+        { id: Date.now(), drugName: '', route: '', solvent: '', startDate: '', startTime: '', endDate: '', endTime: '', rate: '', order: 1, skipped: false, dose: '', calculatedDose: '', volume: '', storage: '', warning: '' }
     ]);
     const [showDiffModal, setShowDiffModal] = useState(false);
     const [diffWarningsData, setDiffWarningsData] = useState([]);
@@ -203,6 +207,7 @@ function App() {
     const [multipleDoses, setMultipleDoses] = useState([]);
     const [enableHematology, setEnableHematology] = useState(true);
     const [enableLiver, setEnableLiver] = useState(true);
+    const [showLiverInfo, setShowLiverInfo] = useState(false);
     const [enableTbili, setEnableTbili] = useState(false);
     const [enableRenal, setEnableRenal] = useState(true);
     const [autoGfrValue, setAutoGfrValue] = useState(null);
@@ -214,6 +219,7 @@ function App() {
     const [showFilterPanel, setShowFilterPanel] = useState(false);
     const [drugDropdownOpen, setDrugDropdownOpen] = useState(false);
     const [editingOrderLogId, setEditingOrderLogId] = useState(null);
+    const [timePickerOpenRow, setTimePickerOpenRow] = useState(null);
     const [customSolvents, setCustomSolvents] = useState(() => {
         try {
             const saved = localStorage.getItem('customSolvents');
@@ -359,6 +365,18 @@ function App() {
             }
         };
         fetchDrugs();
+        
+        const fetchSettings = async () => {
+            try {
+                const res = await axios.get('/api/settings');
+                if (res.data) {
+                    setlockOldHistory(res.data.lockOldHistory);
+                }
+            } catch (err) {
+                console.error("Failed to fetch settings:", err);
+            }
+        };
+        fetchSettings();
     }, []);
 
     const fetchLogs = async () => {
@@ -540,14 +558,21 @@ function App() {
             setAutoGfrValue(null);
         }
 
-        const params = { ...drugParams, gfr: useAutoGfr ? effectiveGfr : drugParams.gfr };
+        const { ibw, adjBw } = calculateWeights(patient.height, effectiveWeight, patient.gender);
+        const params = { 
+            ...drugParams, 
+            gfr: useAutoGfr ? effectiveGfr : drugParams.gfr,
+            actualWeight: effectiveWeight,
+            ibw,
+            adjBw
+        };
         const results = selectedDrugs.map(drugId => {
             const currentParams = { ...params };
             if (drugParams.customTargetDoses && drugParams.customTargetDoses[drugId] !== undefined) {
                 currentParams.targetDose = drugParams.customTargetDoses[drugId];
             }
-            const { dose, note } = calculateDose(currentBsa, drugId, currentParams);
             const drugInfo = drugsInfo.find(d => d.id === drugId);
+            const { dose, note } = calculateDose(currentBsa, drugInfo?.raw || drugId, currentParams);
             const drugName = drugInfo?.name || drugId.toUpperCase();
             let unit = 'mg';
             if (drugId === 'bleomycin') {
@@ -573,14 +598,34 @@ function App() {
             amputation: ampText,
             pharmacistNote: combinedNote
         });
-    }, [patient, formula, selectedDrugs, drugParams, amputation, ampDetails, selectedRegimen, useAutoGfr, patientScr, calculateBSA, calculateDose, setBsa, setFinalDose, setCalculationDetails]);
+    }, [patient, formula, selectedDrugs, drugParams, amputation, ampDetails, selectedRegimen, useAutoGfr, patientScr, calculateBSA, calculateDose, calculateWeights, setBsa, setFinalDose, setCalculationDetails]);
+
+    useEffect(() => {
+        if (wbc && neutrophils !== '') {
+            const wbcVal = parseFloat(wbc);
+            const neutVal = parseFloat(neutrophils) || 0;
+            const bandsVal = parseFloat(bands) || 0;
+            
+            if (!isNaN(wbcVal)) {
+                setAnc(Math.round(wbcVal * (neutVal + bandsVal) / 100).toString());
+            } else {
+                setAnc('');
+            }
+        } else {
+            setAnc('');
+        }
+    }, [wbc, neutrophils, bands]);
 
     const handleUnitChange = (drugId, newUnit) => {
         setSingleDrugResults(prev => prev.map(item => item.id === drugId ? { ...item, unit: newUnit } : item));
     };
 
     const proceedSaveOrder = async () => {
-        const activeRows = adminRows.filter(r => !r.skipped);
+        let activeRows = adminRows.filter(r => !r.skipped).map((r, idx) => {
+            const { isOldRecord, ...rest } = r;
+            return { ...rest, order: idx + 1 };
+        });
+
         const orderData = {
             timestamp: new Date().toISOString(),
             hn: patient.hn || '-',
@@ -627,8 +672,8 @@ function App() {
             let warnings = [];
             for (const row of activeRows) {
                 if (row.calculatedDose && row.dose && row.dose !== row.calculatedDose) {
-                    const calcMatch = row.calculatedDose.toString().match(/[\d.]+/);
-                    const doseMatch = row.dose.toString().match(/[\d.]+/);
+                    const calcMatch = row.calculatedDose.toString().match(/[d.]+/);
+                    const doseMatch = row.dose.toString().match(/[d.]+/);
                     
                     if (calcMatch && doseMatch) {
                         const calcVal = parseFloat(calcMatch[0]);
@@ -677,7 +722,7 @@ function App() {
         
         setIsDateEditable(log.is_date_unlocked || false);
         try {
-            const parsedRows = JSON.parse(log.order_details);
+            const parsedRows = JSON.parse(log.order_details).map(r => ({ ...r, isOldRecord: true }));
             setAdminRows(parsedRows);
         } catch (e) {
             console.error('Failed to parse order_details', e);
@@ -726,14 +771,13 @@ function App() {
                     height: 5cm;
                     padding: 0.2cm 0.4cm;
                     box-sizing: border-box;
-                    page-break-after: always;
                     display: flex;
                     flex-direction: column;
-                    border: 1px dashed #ccc;
                     overflow: hidden;
+                    margin: 0;
+                    page-break-after: always;
                 }
                 @media print {
-                    .sticker { border: none; page-break-after: always; }
                     body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
                 }
                 .row {
@@ -756,7 +800,32 @@ function App() {
         </head>
         <body>
             ${activeRows.map((r, index) => {
-                const exp = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000); // Default +3 days
+                let pTime = formatDateTime(now);
+                let exp = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000); // Default +3 days
+                
+                if (r.startDate && r.startDate.length === 10) {
+                    const dd = r.startDate.substring(0, 2);
+                    const mm = r.startDate.substring(3, 5);
+                    const yyNum = parseInt(r.startDate.substring(6, 10), 10);
+                    const months = ['ม.ค.','ก.พ.','มี.ค.','เม.ย.','พ.ค.','มิ.ย.','ก.ค.','ส.ค.','ก.ย.','ต.ค.','พ.ย.','ธ.ค.'];
+                    const monthText = months[parseInt(mm, 10) - 1] || mm;
+                    const yyShort = yyNum.toString().substring(2, 4);
+                    
+                    let hh = now.getHours().toString().padStart(2, '0');
+                    let min = now.getMinutes().toString().padStart(2, '0');
+                    if (r.startTime && r.startTime.length === 5) {
+                        hh = r.startTime.substring(0, 2);
+                        min = r.startTime.substring(3, 5);
+                    }
+                    pTime = `${dd}-${monthText}-${yyShort} ${hh}:${min}`;
+                    
+                    const gregorianYear = yyNum - 543;
+                    const rDate = new Date(`${gregorianYear}-${mm}-${dd}T${hh}:${min}:00`);
+                    if (!isNaN(rDate.getTime())) {
+                        exp = new Date(rDate.getTime() + 3 * 24 * 60 * 60 * 1000);
+                    }
+                }
+
                 return `
                 <div class="sticker">
                     <div class="row">
@@ -781,8 +850,8 @@ function App() {
                         <span>คำเตือน: ${r.warning || ''}</span>
                     </div>
                     <div class="row" style="margin-top: auto;">
-                        <span>ผลิต: ${producedTime}</span>
-                        <span>หมดอายุ: ${formatDateTime(exp)}</span>
+                        <span>ผลิต: ${pTime.split(' ')[0]}</span>
+                        <span>หมดอายุ: ${formatDateTime(exp).split(' ')[0]}</span>
                     </div>
                 </div>
             `}).join('')}
@@ -794,7 +863,7 @@ function App() {
             if (user?.default_printer) {
                 showNotification('กำลังส่งข้อมูลไปยังเครื่องพิมพ์สติ๊กเกอร์...', 'info');
                 try {
-                    const res = await axios.post(`${API_BASE}/print`, {
+                    const res = await axios.post(user?.use_local_agent ? 'http://localhost:5005/api/print' : `${API_BASE}/print`, {
                         html: htmlContent,
                         printerName: user.default_printer,
                         paperSize: 'Sticker'
@@ -854,19 +923,38 @@ function App() {
         };
         const producedTime = formatDateTime(now);
 
-        let tableRows = '';
-        activeRows.forEach((row, i) => {
-            tableRows += `
-                <tr>
-                    <td style="text-align: center;">${i + 1}</td>
-                    <td><strong>${row.drugName || '-'}</strong></td>
-                    <td style="text-align: center;">${row.dose || '-'}</td>
-                    <td style="text-align: center;">${row.route || '-'}</td>
-                    <td style="text-align: center;">${row.solvent || '-'}</td>
-                    <td style="text-align: center;">${row.volume || '-'}</td>
-                    <td></td>
-                    <td></td>
-                </tr>
+        let drugBlocks = '';
+        const rowsToPrint = activeRows.some(r => r.drugName) ? activeRows : (singleDrugResults.length > 0 ? singleDrugResults.map(r => ({ drugName: r.name, dose: r.dose })) : activeRows);
+        
+        rowsToPrint.forEach((row, i) => {
+            drugBlocks += `
+                <div class="drug-block">
+                    <div class="drug-header">
+                        <div style="width: 20px;">${i + 1}.</div>
+                        <div>Drug <span class="line-input" style="width: 250px;">${row.drugName || ''}</span></div>
+                        <div style="margin-left: 10px;">Dose formular <span class="line-input" style="width: 150px;"></span></div>
+                        <div style="margin-left: 10px;">Dose <span class="line-input" style="width: 100px; text-align: center;">${row.dose || ''}</span> mg</div>
+                    </div>
+                    <div style="margin-left: 20px; margin-bottom: 4px;">
+                        สารละลายและปริมาตรที่ใช้ละลายผงยา (Reconstitution) <span class="line-input" style="width: 400px;"></span>
+                    </div>
+                    <div style="margin-left: 20px; margin-bottom: 4px;">
+                        ปริมาตรยาที่เตรียม <span class="line-input" style="width: 150px; text-align: center;">${row.volume || ''}</span> ml 
+                        Add ลงใน Diluent <span class="line-input" style="width: 250px;">${row.solvent || ''}</span>
+                    </div>
+                    <div class="qc-section" style="margin-left: 20px;">
+                        <div class="qc-title">การตรวจสอบคุณภาพยาเคมีบำบัดที่ผสมเสร็จ</div>
+                        <div class="qc-grid">
+                            <div><span class="checkbox-square"></span> เตรียมยาและสารน้ำถูกชนิด</div>
+                            <div><span class="checkbox-square"></span> เตรียมยาถูกขนาด</div>
+                            <div><span class="checkbox-square"></span> ปราศจากตะกอนหรือฝุ่นผง</div>
+                            
+                            <div><span class="checkbox-square"></span> ภาชนะบรรจุยาไม่รั่วซึม</div>
+                            <div><span class="checkbox-square"></span> ติดฉลากถูกต้อง</div>
+                            <div>เภสัชกรผู้ตรวจสอบ <span class="line-input" style="width: 150px;"></span></div>
+                        </div>
+                    </div>
+                </div>
             `;
         });
 
@@ -874,150 +962,164 @@ function App() {
         <!DOCTYPE html>
         <html>
         <head>
-            <title>ใบเตรียมยา (Working Formula)</title>
+            <title>ใบบันทึกการเตรียมยาเคมีบำบัด</title>
             <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700&display=swap" rel="stylesheet">
             <style>
-                @page { size: A4; margin: 1.5cm; }
+                @page { size: A4; margin: 1cm 1.5cm; }
                 body { 
                     font-family: 'Sarabun', sans-serif; 
                     margin: 0; 
                     padding: 0;
-                    font-size: 14px;
+                    font-size: 13px;
                     color: #000;
-                    line-height: 1.4;
+                    line-height: 1.6;
                 }
                 .header {
                     text-align: center;
                     margin-bottom: 20px;
-                    border-bottom: 2px solid #000;
-                    padding-bottom: 10px;
                 }
                 .header h1 {
-                    font-size: 20px;
-                    margin: 0 0 5px 0;
-                }
-                .header p {
+                    font-size: 18px;
                     margin: 0;
-                    font-size: 12px;
+                    font-weight: bold;
                 }
-                .patient-info {
-                    display: grid;
-                    grid-template-columns: 1fr 1fr;
-                    gap: 10px;
-                    margin-bottom: 20px;
-                    padding: 10px;
-                    border: 1px solid #ccc;
-                    border-radius: 5px;
-                }
-                .patient-info div {
-                    display: flex;
-                }
-                .patient-info strong {
-                    width: 150px;
+                .line-input {
                     display: inline-block;
+                    border-bottom: 1px solid #000;
+                    padding: 0 5px;
+                    min-height: 16px;
                 }
-                table {
-                    width: 100%;
-                    border-collapse: collapse;
-                    margin-bottom: 30px;
+                .row {
+                    margin-bottom: 6px;
                 }
-                th, td {
+                .checkbox-square {
+                    display: inline-block;
+                    width: 14px;
+                    height: 14px;
                     border: 1px solid #000;
-                    padding: 8px;
-                    font-size: 13px;
+                    vertical-align: middle;
+                    margin-right: 4px;
+                    position: relative;
+                    top: -1px;
                 }
-                th {
-                    background-color: #f0f0f0;
-                    text-align: center;
-                }
-                .signatures {
+                .lab-row {
                     display: flex;
-                    justify-content: space-around;
-                    margin-top: 50px;
+                    align-items: center;
+                    gap: 15px;
+                    margin-bottom: 6px;
                 }
-                .signature-box {
-                    text-align: center;
-                    width: 250px;
+                .drug-section {
+                    margin-top: 15px;
                 }
-                .signature-line {
-                    border-bottom: 1px dashed #000;
-                    margin-bottom: 5px;
-                    height: 30px;
+                .drug-block {
+                    margin-bottom: 20px;
+                }
+                .drug-header {
+                    display: flex;
+                    margin-bottom: 4px;
+                    white-space: nowrap;
+                }
+                .qc-section {
+                    margin-top: 5px;
+                }
+                .qc-title {
+                    font-weight: bold;
+                }
+                .qc-grid {
+                    display: grid;
+                    grid-template-columns: auto auto auto;
+                    gap: 5px 20px;
+                    margin-top: 4px;
+                    margin-left: 20px;
+                }
+                .footer {
+                    position: fixed;
+                    bottom: 0;
+                    right: 0;
+                    font-size: 10px;
+                    color: #666;
                 }
                 @media print {
                     body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+                    .footer { position: fixed; bottom: 0; right: 0; }
                 }
+                .text-sm { font-size: 11px; }
+                .text-xs { font-size: 10px; }
             </style>
         </head>
         <body>
             <div class="header">
-                <h1>ใบเตรียมยา (Working Formula)</h1>
-                <p>แผนกเคมีบำบัด | วันเวลาที่พิมพ์: ${producedTime}</p>
+                <h1>ใบบันทึกการเตรียมยาเคมีบำบัด</h1>
+            </div>
+
+            <div class="row">
+                วันที่เตรียมยา <span class="line-input" style="width: 150px;">${producedTime}</span>
+                ผู้เตรียมยา <span class="line-input" style="width: 250px;">${user.name || user.username || ''}</span>
             </div>
             
-            <div class="patient-info">
-                <div><strong>ชื่อ-สกุล:</strong> ${patient.title || ''}${patient.name || '-'}</div>
-                <div><strong>HN:</strong> ${patient.hn || '-'}</div>
-                <div><strong>อายุ:</strong> ${patient.age ? patient.age + ' ปี' : '-'}</div>
-                <div><strong>เพศ:</strong> ${patient.gender === 'male' ? 'ชาย' : patient.gender === 'female' ? 'หญิง' : '-'}</div>
-                <div><strong>น้ำหนัก:</strong> ${patient.weight || '-'} kg</div>
-                <div><strong>ส่วนสูง:</strong> ${patient.height || '-'} cm</div>
-                <div><strong>BSA:</strong> ${bsa || '-'} m²</div>
-                <div><strong>จำนวนรอบการให้ยา (Cycle):</strong> ${patient.cycle || '-'}</div>
-                <div><strong>หอผู้ป่วย:</strong> ${patient.ward || '-'}</div>
+            <div class="row" style="display: flex; gap: 10px;">
+                <div>HN. <span class="line-input" style="width: 100px;">${patient.hn || ''}</span></div>
+                <div>ชื่อ-สกุล <span class="line-input" style="width: 250px;">${patient.title || ''}${patient.name || ''}</span></div>
+                <div>อายุ <span class="line-input" style="width: 50px; text-align: center;">${patient.age || ''}</span> ปี</div>
+                <div>เพศ <span class="line-input" style="width: 80px; text-align: center;">${patient.gender === 'male' ? 'ชาย' : patient.gender === 'female' ? 'หญิง' : ''}</span></div>
+            </div>
+            
+            <div class="row">
+                น้ำหนัก <span class="line-input" style="width: 60px; text-align: center;">${patient.weight || ''}</span> kg 
+                ส่วนสูง <span class="line-input" style="width: 60px; text-align: center;">${patient.height || ''}</span> cm. 
+                BSA = Square root of [(Weight(kg) x Height(cm)) / 3600] = <span class="line-input" style="width: 80px; text-align: center;">${bsa ? Number(bsa).toFixed(4) : ''}</span> m²
             </div>
 
-            <table>
-                <thead>
-                    <tr>
-                        <th style="width: 5%;">ลำดับ</th>
-                        <th style="width: 20%;">ชื่อยา (Drug)</th>
-                        <th style="width: 15%;">ขนาดยา (Dose)</th>
-                        <th style="width: 10%;">Route</th>
-                        <th style="width: 15%;">สารละลาย (Solvent)</th>
-                        <th style="width: 10%;">ปริมาตร (Vol)</th>
-                        <th style="width: 15%;">Lot No.</th>
-                        <th style="width: 10%;">เวลาผสมเสร็จ</th>
-                    </tr>
-                </thead>
-                <tbody>
-                    ${tableRows}
-                </tbody>
-            </table>
-
-            <div class="signatures">
-                <div class="signature-box">
-                    <div class="signature-line"></div>
-                    <p>(ผู้เตรียมยา / Prepared by)</p>
-                    <p>วันที่ ______/______/______</p>
-                </div>
-                <div class="signature-box">
-                    <div class="signature-line"></div>
-                    <p>(ผู้ตรวจสอบ / Checked by)</p>
-                    <p>วันที่ ______/______/______</p>
-                </div>
+            <div class="lab-row">
+                <div><span class="checkbox-square"></span> ANC > 1,500 cell/mm³ <span class="text-sm">[ANC= [(%Neutrophils+%Band)xWBC/100]]</span></div>
+                <div><span class="checkbox-square"></span> Hb > 10 g/dl and</div>
+                <div><span class="checkbox-square"></span> Plt > 100,000 /mm³</div>
             </div>
+
+            <div class="row" style="display: flex; gap: 10px; align-items: baseline;">
+                <div style="white-space: nowrap;">ผล Lab อื่นๆ <span class="line-input" style="width: 150px;"></span></div>
+                <div class="text-xs">(Creatinine clearance ใช้สูตร CrCl= [72xScr (mg/dL)/(140-อายุ)xน้ำหนัก (kg)]x(0.85 if female)]</div>
+            </div>
+
+            <div class="row">
+                Drug regimen <span class="line-input" style="width: 80%;">${selectedRegimen === 'custom' ? 'Custom' : selectedRegimen === 'cv' ? 'CV Regimen' : selectedRegimen === 'bc' ? 'BC Regimen' : (selectedRegimen || '')}</span>
+            </div>
+
+            <div class="drug-section">
+                <div style="font-weight: bold; margin-bottom: 10px;">Working formula</div>
+                ${drugBlocks}
+            </div>
+
+            <div class="footer">FMMU-0007-00</div>
         </body>
         </html>
         `;
 
-        if (user?.a4_printer) {
-            showNotification('กำลังส่งข้อมูลไปยังเครื่องพิมพ์เอกสาร...', 'info');
-            try {
-                const res = await axios.post(`${API_BASE}/print`, {
-                    html: htmlContent,
-                    printerName: user.a4_printer,
-                    paperSize: 'A4'
-                });
-                
-                if (res.data.success) {
-                    showNotification(`พิมพ์ใบเตรียมยาไปที่ ${user.a4_printer} สำเร็จ`, 'success');
-                    return; // Stop here, no browser dialog
+        if (user?.working_formula_printer) {
+            setPreviewData({
+                isOpen: true,
+                htmlContent: htmlContent,
+                title: 'ตัวอย่างใบเตรียมยา',
+                printerName: user.working_formula_printer,
+                onConfirm: async () => {
+                    setPreviewData(prev => ({ ...prev, isOpen: false }));
+                    showNotification('กำลังส่งข้อมูลไปยังเครื่องพิมพ์...', 'info');
+                    try {
+                        const res = await axios.post(user?.use_local_agent ? 'http://localhost:5005/api/print' : `${API_BASE}/print`, {
+                            html: htmlContent,
+                            printerName: user.working_formula_printer,
+                            paperSize: 'A4'
+                        });
+                        if (res.data.success) {
+                            showNotification(`พิมพ์ใบเตรียมยาไปที่ ${user.working_formula_printer} สำเร็จ`, 'success');
+                        }
+                    } catch (err) {
+                        console.error('Local Print Server error', err);
+                        showNotification('ไม่สามารถพิมพ์ผ่านระบบอัตโนมัติได้', 'error');
+                    }
                 }
-            } catch (err) {
-                console.error('Local Print Server error', err);
-                showNotification('ไม่สามารถพิมพ์ผ่านระบบอัตโนมัติได้ กำลังเปลี่ยนไปพิมพ์ผ่านเบราว์เซอร์...', 'warning');
-            }
+            });
+            return;
         }
 
         const printWindow = window.open('', '_blank', 'width=1000,height=800');
@@ -1107,7 +1209,6 @@ function App() {
                 <div class="section-title">ข้อมูลการคำนวณ (Calculation Parameters)</div>
                 <div class="row">
                     <div class="col"><span class="bold">พื้นที่ผิว (BSA):</span> <span class="highlight">${bsa ? Number(bsa).toFixed(4) : '-'} m²</span></div>
-                    <div class="col"><span class="bold">สูตรที่ใช้:</span> ${formula === 'mosteller' ? 'Mosteller' : 'DuBois'}</div>
                 </div>
                 <div class="row">
                     <div class="col"><span class="bold">สถานะการสูญเสียอวัยวะ:</span> ${amputation === 'amputee' ? 'มีประวัติตัดแขนขา' : 'ปกติ (None)'}</div>
@@ -1150,23 +1251,31 @@ function App() {
         </html>
         `;
 
-        if (user?.a4_printer) {
-            showNotification('กำลังส่งข้อมูลไปยังเครื่องพิมพ์เอกสาร...', 'info');
-            try {
-                const res = await axios.post(`${API_BASE}/print`, {
-                    html: htmlContent,
-                    printerName: user.a4_printer,
-                    paperSize: 'A4'
-                });
-                
-                if (res.data.success) {
-                    showNotification(`พิมพ์ผลการคำนวณไปที่ ${user.a4_printer} สำเร็จ`, 'success');
-                    return; // Stop here, no browser dialog
+        if (user?.calculation_printer) {
+            setPreviewData({
+                isOpen: true,
+                htmlContent: htmlContent,
+                title: 'ตัวอย่างผลการคำนวณ',
+                printerName: user.calculation_printer,
+                onConfirm: async () => {
+                    setPreviewData(prev => ({ ...prev, isOpen: false }));
+                    showNotification('กำลังส่งข้อมูลไปยังเครื่องพิมพ์...', 'info');
+                    try {
+                        const res = await axios.post(user?.use_local_agent ? 'http://localhost:5005/api/print' : `${API_BASE}/print`, {
+                            html: htmlContent,
+                            printerName: user.calculation_printer,
+                            paperSize: 'A4'
+                        });
+                        if (res.data.success) {
+                            showNotification(`พิมพ์ผลการคำนวณไปที่ ${user.calculation_printer} สำเร็จ`, 'success');
+                        }
+                    } catch (err) {
+                        console.error('Local Print Server error', err);
+                        showNotification('ไม่สามารถพิมพ์ผ่านระบบอัตโนมัติได้', 'error');
+                    }
                 }
-            } catch (err) {
-                console.error('Local Print Server error', err);
-                showNotification('ไม่สามารถพิมพ์ผ่านระบบอัตโนมัติได้ กำลังเปลี่ยนไปพิมพ์ผ่านเบราว์เซอร์...', 'warning');
-            }
+            });
+            return;
         }
 
         const printWindow = window.open('', '_blank', 'width=800,height=800');
@@ -1191,10 +1300,76 @@ function App() {
         printWindow.document.close();
     };
 
+    const printDrugInfo = async () => {
+        if (!selectedDrugs || selectedDrugs.length === 0) {
+            showNotification('ไม่มีข้อมูลยาที่เลือก', 'warning');
+            return;
+        }
+        
+        const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <title>พิมพ์ข้อมูลยา</title>
+            <link href="https://fonts.googleapis.com/css2?family=Sarabun:wght@400;700;900&display=swap" rel="stylesheet">
+            <style>
+                @page { size: A4; margin: 1cm; }
+                body { font-family: 'Sarabun', sans-serif; font-size: 14px; color: #000; line-height: 1.5; }
+                .drug-container { margin-bottom: 20px; padding: 15px; border: 1px solid #ccc; border-radius: 10px; page-break-inside: avoid; }
+                .drug-title { font-size: 18px; font-weight: bold; margin-bottom: 5px; color: #0369a1; }
+                .drug-desc { font-weight: bold; margin-bottom: 10px; }
+                .drug-details { font-size: 14px; white-space: pre-wrap; }
+            </style>
+        </head>
+        <body>
+            <h2 style="text-align: center; margin-bottom: 20px;">ข้อมูลยาที่เลือก</h2>
+            ${selectedDrugs.map(drugId => {
+                const dInfo = drugsInfo.find(d => d.id === drugId) || drugsInfo[0];
+                return `
+                <div class="drug-container">
+                    <div class="drug-title">${dInfo.name}</div>
+                    <div class="drug-desc">${dInfo.desc}</div>
+                    <div class="drug-details">${dInfo.details}</div>
+                </div>
+                `;
+            }).join('')}
+        </body>
+        </html>
+        `;
+
+        if (user?.drug_info_printer) {
+            showNotification('กำลังส่งข้อมูลไปยังเครื่องพิมพ์เอกสาร...', 'info');
+            try {
+                const res = await axios.post(user?.use_local_agent ? 'http://localhost:5005/api/print' : `${API_BASE}/print`, {
+                    html: htmlContent,
+                    printerName: user.drug_info_printer,
+                    isA4: true
+                });
+                if (res.data.success) {
+                    showNotification(`พิมพ์ข้อมูลยาไปที่ ${user.drug_info_printer} สำเร็จ`, 'success');
+                    return;
+                }
+            } catch (err) {
+                console.error('Local Print Server error', err);
+                showNotification('ไม่สามารถพิมพ์ผ่านระบบอัตโนมัติได้ กำลังเปลี่ยนไปพิมพ์ผ่านเบราว์เซอร์...', 'warning');
+            }
+        }
+
+        const fallbackHtml = htmlContent.replace('</body>', '<script>window.onload = () => { setTimeout(() => { window.print(); window.close(); }, 500); }</script></body>');
+        const printWindow = window.open('', '_blank', 'width=800,height=800');
+        if (!printWindow) {
+            showNotification('โปรดอนุญาตให้เบราว์เซอร์เปิดหน้าต่าง Pop-up เพื่อพิมพ์', 'warning');
+            return;
+        }
+        printWindow.document.open();
+        printWindow.document.write(fallbackHtml);
+        printWindow.document.close();
+    };
+
     const handleAddRow = () => {
         setAdminRows(prev => [
             ...prev,
-            { id: Date.now(), route: '', solvent: '', startDate: '', endDate: '', rate: '', order: prev.length + 1, skipped: false }
+            { id: Date.now(), route: '', solvent: '', startDate: '', startTime: '', endDate: '', endTime: '', rate: '', order: prev.length + 1, skipped: false }
         ]);
     };
 
@@ -1411,7 +1586,7 @@ function App() {
     // Auto-adjust admin rows based on Cycle input
     useEffect(() => {
         if (patient.cycle) {
-            const match = patient.cycle.match(/\d+/);
+            const match = patient.cycle.match(/d+/);
             if (match) {
                 const targetCount = parseInt(match[0], 10);
                 if (targetCount > 0 && targetCount <= 20) {
@@ -1484,12 +1659,13 @@ function App() {
         };
     }, [user]);
 
-    // Close drug dropdown when clicking outside
+    // Close drug dropdown and time picker when clicking outside
     useEffect(() => {
         const handleClickOutside = (e) => {
             if (drugDropdownRef.current && !drugDropdownRef.current.contains(e.target)) {
                 setDrugDropdownOpen(false);
             }
+            setTimePickerOpenRow(null);
         };
         document.addEventListener('mousedown', handleClickOutside);
         return () => document.removeEventListener('mousedown', handleClickOutside);
@@ -1519,8 +1695,8 @@ function App() {
         const finalWard = patient.ward || prevStats.ward || '';
         const finalDoctor = patient.doctor || prevStats.doctor || '';
 
-        if (!patient.hn || !finalHeight || !finalWeight) {
-            showNotification("กรุณากรอกข้อมูลที่จำเป็นให้ครบถ้วน", "error");
+        if (!patient.hn || !finalHeight || !finalWeight || !finalWard) {
+            showNotification("กรุณากรอก HN, ส่วนสูง, น้ำหนัก และเลือกหอผู้ป่วยให้ครบถ้วน", "error");
             return;
         }
 
@@ -1687,6 +1863,27 @@ function App() {
             else if (cleaned.length === 5 && cleaned.split('/').length === 2) cleaned += '/';
         }
         if (cleaned.length <= 10) {
+            setAdminRows(prev => prev.map((r, i) => i === rowIdx ? { ...r, [field]: cleaned } : r));
+        }
+    };
+
+    const handleAdminTimeChange = (val, prevVal, rowIdx, field = 'startTime') => {
+        const safePrevVal = prevVal || '';
+        let cleaned = val.replace(/[^0-9:]/g, '');
+        if (val.length > safePrevVal.length) {
+            if (cleaned.length === 2 && !cleaned.includes(':')) cleaned += ':';
+        }
+        
+        if (cleaned.length >= 2) {
+            let h = parseInt(cleaned.substring(0, 2), 10);
+            if (h > 23) cleaned = '23' + cleaned.substring(2);
+        }
+        if (cleaned.length >= 5) {
+            let m = parseInt(cleaned.substring(3, 5), 10);
+            if (m > 59) cleaned = cleaned.substring(0, 3) + '59';
+        }
+        
+        if (cleaned.length <= 5) {
             setAdminRows(prev => prev.map((r, i) => i === rowIdx ? { ...r, [field]: cleaned } : r));
         }
     };
@@ -2059,7 +2256,7 @@ function App() {
                                         value={patient.ward || ''}
                                         onChange={e => setPatient({ ...patient, ward: e.target.value })}
                                     >
-                                        <option value="">{prevStats.ward ? `หอผู้ป่วยคนก่อน: ${prevStats.ward}` : "เลือกหอผู้ป่วย - เว้นว่างหากไม่มี"}</option>
+                                        <option value="">{prevStats.ward ? `หอผู้ป่วยเดิม: ${prevStats.ward}` : "-- กรุณาเลือกหอผู้ป่วย --"}</option>
                                         <option value="WARD 08">WARD 08</option>
                                         <option value="WARD 10">WARD 10</option>
                                         <option value="WARD 11">WARD 11</option>
@@ -2076,6 +2273,7 @@ function App() {
                         onBack={handleBackFromHistory}
                         showNotification={showNotification}
                         theme={theme}
+                        setPreviewData={setPreviewData}
                     />
                 ) : step === 'admin-users' ? (
                     <AdminUsers
@@ -2636,9 +2834,11 @@ function App() {
                                     setPatientScr('');
                                     setUseAutoGfr(true);
                                     setAmputation('');
-                                    setFormula('');
+                                    setFormula('mosteller');
                                     setSelectedDrugs([]);
                                     setWbc('');
+                                    setNeutrophils('');
+                                    setBands('');
                                     setAdminRows([{ id: Date.now(), drugName: '', route: '', solvent: '', startDate: '', endDate: '', rate: '', order: 1, skipped: false, dose: '', calculatedDose: '', volume: '', storage: '', warning: '' }]);
                                     setAnc('');
                                     setPlt('');
@@ -2654,62 +2854,9 @@ function App() {
 
                         <div className="grid grid-cols-1 lg:grid-cols-12 gap-5 workspace-section">
                             <div className="lg:col-span-8 space-y-5">
-                                {/* Group BSA and Amputation in one row */}
-                                <div className="grid grid-cols-1 md:grid-cols-2 gap-5">
-                                    {/* BSA Selection */}
-                                    <div className="premium-card p-5">
-                                        <div className="flex items-center justify-between mb-4">
-                                            <div className="flex items-center gap-2">
-                                                <h2 className="text-sm font-black text-sky-700 dark:text-sky-300">เลือกสูตรคำนวณพื้นที่ผิวร่างกาย (BSA)</h2>
-                                            </div>
-                                            <button
-                                                type="button"
-                                                onClick={() => setShowBsaInfo(!showBsaInfo)}
-                                                className="flex items-center gap-1.5 text-[10px] font-black text-sky-500 hover:text-sky-400 p-1.5 bg-sky-600/5 rounded-lg border border-sky-500/20 transition-all no-print"
-                                            >
-                                                <Info size={12} /> ข้อมูลสูตร
-                                            </button>
-                                        </div>
-                                        <div className="grid grid-cols-1 gap-3">
-                                            {[
-                                                { id: 'mosteller', label: 'มอสเตลเลอร์ (Mosteller)' },
-                                                { id: 'dubois', label: 'ดูบัวส์ (DuBois)' }
-                                            ].map(f => (
-                                                <label key={f.id} className={`p-3 rounded-xl border-2 transition-all cursor-pointer flex items-center gap-3 ${formula === f.id ? 'bg-sky-50 dark:bg-sky-900/20 border-sky-500' : 'bg-white dark:bg-slate-800/80 border-slate-200 dark:border-slate-700 hover:border-sky-300'}`}>
-                                                    <input 
-                                                        type="radio" 
-                                                        name="bsaFormula" 
-                                                        checked={formula === f.id} 
-                                                        onChange={() => setFormula(f.id)} 
-                                                        className="w-4 h-4 text-sky-600 border-slate-300 focus:ring-sky-500 cursor-pointer" 
-                                                    />
-                                                    <span className={`text-sm font-black uppercase ${formula === f.id ? 'text-sky-700 dark:text-sky-300' : 'text-slate-600 dark:text-slate-400'}`}>
-                                                        {f.label}
-                                                    </span>
-                                                </label>
-                                            ))}
-                                        </div>
-                                        {showBsaInfo && (
-                                            <div className="animate-pop mt-3 p-4 rounded-xl border bg-sky-50/80 dark:bg-sky-950/40 border-sky-200 dark:border-sky-500/30">
-                                                <h3 className="font-bold text-sky-700 dark:text-sky-300 mb-2 text-xs flex items-center gap-1.5">
-                                                    <Info size={14} /> รายละเอียดสูตร
-                                                </h3>
-                                                <div className="space-y-3 text-[10px] text-slate-600 dark:text-slate-400">
-                                                    <div className="border-b border-sky-200/60 dark:border-sky-800/40 pb-2">
-                                                        <span className="font-bold text-sky-600 dark:text-sky-400">MOSTELLER Formula</span>
-                                                        <p className="mt-1 font-mono bg-white/60 dark:bg-slate-900/60 p-2 rounded text-slate-800 dark:text-slate-200">BSA (m²) = √[ (ส่วนสูง × น้ำหนัก) / 3600 ]</p>
-                                                    </div>
-                                                    <div>
-                                                        <span className="font-bold text-sky-600 dark:text-sky-400">DUBOIS & DUBOIS Formula</span>
-                                                        <p className="mt-1 font-mono bg-white/60 dark:bg-slate-900/60 p-2 rounded text-slate-800 dark:text-slate-200">BSA (m²) = 0.20247 × (ส่วนสูง^0.725) × (น้ำหนัก^0.425)</p>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        )}
-                                    </div>
-
-                                    {/* Amputation Selection */}
-                                    <div className="premium-card p-5">
+                                {/* Amputation in one row */}
+                                <div className="grid grid-cols-1 gap-5">                                    {/* Amputation Selection */}
+                                    <div className="premium-card p-5 border-t-4 border-t-indigo-500 bg-gradient-to-b from-indigo-50/50 to-white dark:from-indigo-950/20 dark:to-slate-800">
                                         <div className="flex items-center justify-between mb-4">
                                             <div className="flex items-center gap-2">
                                                 <h2 className="text-sm font-black text-sky-700 dark:text-sky-300">ประวัติการสูญเสียอวัยวะ (แขน/ขา)</h2>
@@ -2805,17 +2952,27 @@ function App() {
                                     </div>
                                 </div>
 
-                                <div className="premium-card p-5 relative z-50">
+                                <div className="premium-card p-5 relative z-50 border-t-4 border-t-emerald-500 bg-gradient-to-b from-emerald-50/50 to-white dark:from-emerald-950/20 dark:to-slate-800">
                                     <div className="flex items-center justify-between mb-4">
                                         <div className="flex items-center gap-3">
                                             <h2 className="text-sm font-black text-sky-700 dark:text-sky-300">ระบุรายชื่อยาที่ต้องการคำนวณ</h2>
                                         </div>
+                                        <div className="flex gap-2">
                                         <button
                                             onClick={() => setShowDrugInfo(!showDrugInfo)}
                                             className="flex items-center gap-2 text-[10px] font-black text-sky-500 hover:text-sky-400 p-1.5 bg-sky-600/5 rounded-lg border border-sky-500/20 transition-all no-print"
                                         >
                                             <Info size={12} /> ข้อมูลยา
-                                        </button>                                    
+                                        </button>
+                                        {showDrugInfo && (
+                                            <button
+                                                onClick={printDrugInfo}
+                                                className="flex items-center gap-2 text-[10px] font-black text-indigo-500 hover:text-indigo-400 p-1.5 bg-indigo-600/5 rounded-lg border border-indigo-500/20 transition-all no-print"
+                                            >
+                                                <Printer size={12} /> พิมพ์ข้อมูลยา
+                                            </button>
+                                        )}
+                                    </div>                                    
                                     </div>
 
                                     <div className="mb-4 flex items-center gap-3 bg-slate-50 dark:bg-slate-800/50 p-2.5 rounded-xl border border-slate-200 dark:border-slate-700">
@@ -2828,7 +2985,7 @@ function App() {
                                             onChange={e => {
                                                 let val = e.target.value;
                                                 const oldVal = patient.cycle || '';
-                                                if (val.length === 1 && oldVal.length === 0 && /^\d$/.test(val)) {
+                                                if (val.length === 1 && oldVal.length === 0 && /^d$/.test(val)) {
                                                     val = val + '/' + val;
                                                 }
                                                 setPatient({ ...patient, cycle: val });
@@ -3016,7 +3173,7 @@ function App() {
                                     )}
                                 </div>
                                 {/* Section 05: Lab Results & Safety Checks */}
-                                <div className="premium-card p-5">
+                                <div className="premium-card p-5 border-t-4 border-t-amber-500 bg-gradient-to-b from-amber-50/50 to-white dark:from-amber-950/20 dark:to-slate-800">
                                     <div className="flex items-center justify-between mb-3">
                                         <div className="flex items-center gap-2">
                                             <h2 className="text-sm font-black text-sky-700 dark:text-sky-300">ผลตรวจเลือดและการทำงานของอวัยวะ (Lab)</h2>
@@ -3032,7 +3189,7 @@ function App() {
                                                     <div className="relative">
                                                         <input type="checkbox" className="sr-only" checked={enableHematology} onChange={(e) => {
                                                             setEnableHematology(e.target.checked);
-                                                            if (!e.target.checked) { setWbc(''); setAnc(''); setPlt(''); }
+                                                            if (!e.target.checked) { setWbc(''); setNeutrophils(''); setBands(''); setAnc(''); setPlt(''); }
                                                         }} />
                                                         <div className={`block w-7 h-3.5 rounded-full transition-colors ${enableHematology ? 'bg-sky-500' : 'bg-slate-300 dark:bg-slate-600'}`}></div>
                                                         <div className={`dot absolute left-1 top-0.5 bg-white w-2.5 h-2.5 rounded-full transition-transform duration-200 ${enableHematology ? 'transform translate-x-3.5' : ''}`}></div>
@@ -3041,42 +3198,58 @@ function App() {
                                             </h3>
                                             {enableHematology && (
                                             <div className="space-y-2.5 pt-1 animate-in fade-in slide-in-from-top-2">
-                                                <div>
-                                                    <label className="block text-[10px] font-bold text-slate-500 mb-1">WBC (cells/mm³)</label>
-                                                    <input
-                                                        type="number"
-                                                        placeholder="ระบุค่า WBC"
-                                                        value={wbc}
-                                                        className="form-control text-xs py-1.5"
-                                                        onChange={e => {
-                                                            const val = e.target.value;
-                                                            setWbc(val);
-                                                            if (val && !isNaN(val)) {
-                                                                setAnc(Math.round(parseFloat(val) * 0.6).toString());
-                                                            } else {
-                                                                setAnc('');
-                                                            }
-                                                        }}
-                                                    />
+                                                <div className="grid grid-cols-2 gap-2">
+                                                    <div>
+                                                        <label className="block text-[10px] font-bold text-slate-500 mb-1">WBC (cells/mm³)</label>
+                                                        <input
+                                                            type="number"
+                                                            placeholder="ระบุค่า WBC"
+                                                            value={wbc}
+                                                            className="form-control text-xs py-1.5"
+                                                            onChange={e => setWbc(e.target.value)}
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-[10px] font-bold text-slate-500 mb-1">Platelets (cells/mm³)</label>
+                                                        <input
+                                                            type="number"
+                                                            placeholder="ระบุค่า Platelets"
+                                                            value={plt}
+                                                            className="form-control text-xs py-1.5"
+                                                            onChange={e => setPlt(e.target.value)}
+                                                        />
+                                                    </div>
+                                                </div>
+                                                <div className="grid grid-cols-2 gap-2">
+                                                    <div>
+                                                        <label className="block text-[10px] font-bold text-slate-500 mb-1">% Neutrophils</label>
+                                                        <input
+                                                            type="number"
+                                                            placeholder="% N"
+                                                            value={neutrophils}
+                                                            className="form-control text-xs py-1.5"
+                                                            onChange={e => setNeutrophils(e.target.value)}
+                                                        />
+                                                    </div>
+                                                    <div>
+                                                        <label className="block text-[10px] font-bold text-slate-500 mb-1">% Bands</label>
+                                                        <input
+                                                            type="number"
+                                                            placeholder="% B"
+                                                            value={bands}
+                                                            className="form-control text-xs py-1.5"
+                                                            onChange={e => setBands(e.target.value)}
+                                                        />
+                                                    </div>
                                                 </div>
                                                 <div>
                                                     <label className="block text-[10px] font-bold text-slate-500 mb-1">ANC (cells/mm³)</label>
                                                     <input
                                                         type="number"
-                                                        placeholder="คำนวณจาก WBC อัตโนมัติ"
+                                                        placeholder="คำนวณจากสูตร ANC = WBC × (%N + %B) ÷ 100"
                                                         value={anc}
                                                         className="form-control text-xs py-1.5 bg-slate-100 dark:bg-slate-800/50 text-slate-500 cursor-not-allowed"
                                                         readOnly
-                                                    />
-                                                </div>
-                                                <div>
-                                                    <label className="block text-[10px] font-bold text-slate-500 mb-1">Platelets (cells/mm³)</label>
-                                                    <input
-                                                        type="number"
-                                                        placeholder="ระบุค่า Platelets"
-                                                        value={plt}
-                                                        className="form-control text-xs py-1.5"
-                                                        onChange={e => setPlt(e.target.value)}
                                                     />
                                                 </div>
                                             </div>
@@ -3086,7 +3259,16 @@ function App() {
                                         {/* Card 2: Liver Function */}
                                         <div className="p-3.5 rounded-xl border border-slate-200 dark:border-slate-700/50 bg-slate-50 dark:bg-slate-800/20 space-y-3">
                                             <h3 className="text-[10px] font-black text-amber-600 dark:text-amber-500 uppercase tracking-wider flex items-center justify-between border-b border-slate-200 dark:border-slate-700/50 pb-2">
-                                                <span>การทำงานของตับ (Liver)</span>
+                                                <div className="flex items-center gap-2">
+                                                    <span>การทำงานของตับ (Liver)</span>
+                                                    <button
+                                                        type="button"
+                                                        onClick={() => setShowLiverInfo(!showLiverInfo)}
+                                                        className="flex items-center gap-1 text-[9px] font-black text-amber-500 hover:text-amber-600 p-1 bg-amber-600/10 rounded transition-all no-print"
+                                                    >
+                                                        <Info size={10} /> ข้อมูล
+                                                    </button>
+                                                </div>
                                                 <label className="flex items-center cursor-pointer">
                                                     <div className="relative">
                                                         <input type="checkbox" className="sr-only" checked={enableLiver} onChange={(e) => {
@@ -3098,6 +3280,27 @@ function App() {
                                                     </div>
                                                 </label>
                                             </h3>
+                                            {showLiverInfo && (
+                                                <div className="animate-pop p-3 rounded-xl border bg-amber-50/80 dark:bg-amber-950/40 border-amber-200 dark:border-amber-500/30 shadow-sm text-[10px] text-slate-600 dark:text-slate-400 mb-3">
+                                                    <h4 className="font-bold text-amber-700 dark:text-amber-400 mb-2">ดูเพื่อ "ลดขนาดยา"</h4>
+                                                    <p className="mb-2">ในกล่องนี้เรากรอกค่า AST, ALT, ALP และ T.Bilirubin</p>
+                                                    <ul className="list-disc pl-4 space-y-2 mb-3">
+                                                        <li><span className="font-bold">คำนวณไปทำไม:</span> เพื่อดูว่า "ตับอักเสบหรือทำงานหนักเกินไปไหม" ยาเคมีบำบัดหลายตัวต้องวิ่งไปทำลายและคัดกรองที่ตับ ถ้าตับพังอยู่แล้วยังใส่ยาเข้าไปเต็มที่ ยาจะตกค้างกลายเป็นพิษรุนแรงต่อร่างกาย</li>
+                                                        <li><span className="font-bold">ต้องปรับยาไหม:</span> ต้องปรับลดขนาดยาลงครับ
+                                                            <ul className="list-circle pl-4 mt-1 space-y-1 text-slate-500 dark:text-slate-400">
+                                                                <li>หากค่าตับอักเสบ (AST/ALT) หรือค่าเหลือง (Bilirubin) สูงเกินกว่าเกณฑ์ปกติ 3-5 เท่าขึ้นไป แพทย์และโปรแกรมจะสั่ง <b>"ปรับลดขนาดยาเคมีบำบัดลง (Dose Reduction)"</b> เช่น ลดเหลือ 75% หรือ 50% ของขนาดปกติ หรือในรายที่ตับอักเสบรุนแรงมากๆ อาจต้องเปลี่ยนไปใช้ยาตัวอื่นแทนครับ</li>
+                                                            </ul>
+                                                        </li>
+                                                    </ul>
+                                                    <div className="bg-white/60 dark:bg-slate-900/60 p-2 rounded">
+                                                        <p className="font-bold text-amber-700 dark:text-amber-400 mb-1">สรุปง่ายๆ:</p>
+                                                        <ul className="list-disc pl-4 space-y-1">
+                                                            <li><span className="font-bold text-sky-600 dark:text-sky-400">ผลเลือด (ANC/เกล็ดเลือด)</span> บอกเราว่า "รอบนี้ควรจะให้ยาได้หรือยัง หรือต้องเลื่อนออกไปก่อน"</li>
+                                                            <li><span className="font-bold text-amber-600 dark:text-amber-400">ผลตับ (และไตในช่องถัดไป)</span> บอกเราว่า "ถ้าให้ยาได้ ควรจะให้เต็มร้อย หรือต้องยอมลดปริมาณยาลงเพื่อเซฟตับคนไข้" ครับ</li>
+                                                        </ul>
+                                                    </div>
+                                                </div>
+                                            )}
                                             {enableLiver && (
                                             <div className="space-y-2.5 pt-1 animate-in fade-in slide-in-from-top-2">
                                                 <div>
@@ -3211,7 +3414,7 @@ function App() {
                                                     </div>
                                                 ) : (
                                                     <div className="space-y-2">
-                                                        <div className="grid grid-cols-3 gap-1.5">
+                                                        <div className="grid grid-cols-2 md:grid-cols-4 gap-1.5">
                                                             <div>
                                                                 <label className="block text-[9px] font-bold text-slate-500 mb-0.5">อายุ (ปี)</label>
                                                                 <input
@@ -3220,6 +3423,16 @@ function App() {
                                                                     value={patient.age}
                                                                     className="form-control text-xs px-2 py-1"
                                                                     onChange={e => setPatient({ ...patient, age: e.target.value })}
+                                                                />
+                                                            </div>
+                                                            <div>
+                                                                <label className="block text-[9px] font-bold text-slate-500 mb-0.5">น้ำหนัก (kg)</label>
+                                                                <input
+                                                                    type="number"
+                                                                    placeholder="Weight"
+                                                                    value={patient.weight || ''}
+                                                                    className="form-control text-xs px-2 py-1"
+                                                                    onChange={e => setPatient({ ...patient, weight: e.target.value })}
                                                                 />
                                                             </div>
                                                             <div>
@@ -3285,7 +3498,12 @@ function App() {
 
                             <div className="lg:col-span-4">
                                 <div className="premium-card p-6 sticky top-6 border-sky-500/50">
-                                    <h2 className="text-center font-black mb-4 uppercase text-slate-400">สรุปผลการคำนวณ</h2>
+                                    <h2 className="text-center font-black mb-4 uppercase text-slate-400 flex items-center justify-center gap-2">
+                                        สรุปผลการคำนวณ
+                                        <span className="text-[9px] bg-emerald-500/10 text-emerald-600 dark:text-emerald-400 px-2 py-0.5 rounded-full animate-pulse border border-emerald-500/20 flex items-center gap-1">
+                                            <span className="w-1.5 h-1.5 rounded-full bg-emerald-500"></span> Auto
+                                        </span>
+                                    </h2>
                                     
                                     <div className="mb-4 space-y-1.5 bg-slate-50 dark:bg-slate-800/50 p-3 rounded-lg border border-slate-200 dark:border-slate-700/50 text-xs text-slate-600 dark:text-slate-400">
                                         <div className="font-black border-b border-slate-200 dark:border-slate-700/50 pb-1.5 mb-2 text-slate-500 uppercase text-[10px] tracking-wider">ข้อมูลที่ใช้คำนวณ</div>
@@ -3294,25 +3512,26 @@ function App() {
                                         <div className="flex justify-between"><span>เพศ / อายุ:</span> <span className="font-bold text-slate-800 dark:text-slate-200">{patient.gender === 'male' ? 'ชาย' : patient.gender === 'female' ? 'หญิง' : '-'} / {patient.age || '-'} ปี</span></div>
                                         <div className="flex justify-between"><span>ประวัติแขน/ขา:</span> <span className="font-bold text-slate-800 dark:text-slate-200">{amputation === 'amputee' ? `มีประวัติตัด` : 'ปกติ'}</span></div>
                                         {patient.cycle && <div className="flex justify-between"><span>จำนวนรอบการให้ยา (Cycle):</span> <span className="font-bold text-slate-800 dark:text-slate-200">{patient.cycle}</span></div>}
-                                        {(patientScr || drugParams?.gfr) && (
+                                        {(useAutoGfr ? autoGfrValue !== null : drugParams?.gfr) && (
                                             <div className="border-t border-slate-200 dark:border-slate-700/50 pt-1.5 mt-1.5 flex flex-col gap-1.5">
-                                                {patientScr && <div className="flex justify-between"><span>Scr:</span> <span className="font-bold text-slate-800 dark:text-slate-200">{patientScr} mg/dL</span></div>}
-                                                {drugParams?.gfr && <div className="flex justify-between"><span>CrCl:</span> <span className="font-bold text-slate-800 dark:text-slate-200">{drugParams.gfr} ml/min</span></div>}
+                                                <div className="flex justify-between"><span>CrCl:</span> <span className="font-bold text-slate-800 dark:text-slate-200">{useAutoGfr ? autoGfrValue : drugParams.gfr} ml/min</span></div>
                                             </div>
                                         )}
                                     </div>
 
                                     <div className="space-y-4 bg-sky-600/5 p-4 rounded-xl border border-sky-500/20">
-                                        <div className="text-center">
+                                        <div className="text-center" key={bsa}>
                                             <span className="text-xs uppercase text-slate-500 font-black">BSA</span>
-                                            <div className="text-3xl font-black text-emerald-500">{formatBsa(bsa)} <span className="text-sm">m²</span></div>
+                                            <div className="text-3xl font-black text-emerald-500 rounded-lg animate-flash px-4 py-2 inline-block">
+                                                {formatBsa(bsa)} <span className="text-sm">m²</span>
+                                            </div>
                                         </div>
                                         <div className="border-t border-slate-700/20 pt-4 space-y-3">
                                             <span className="text-xs uppercase text-slate-500 font-black block text-center mb-1">Custom Regimen Doses</span>
                                             {singleDrugResults.length > 0 ? singleDrugResults.map(item => (
                                                 <div key={item.id} className="flex justify-between items-center bg-slate-100 dark:bg-slate-800/40 p-2.5 rounded-lg border border-slate-200 dark:border-slate-700/30">
                                                     <span className="text-xs font-black text-slate-700 dark:text-slate-300">{item.name}</span>
-                                                    <span className="text-sm font-black text-amber-600 dark:text-amber-500 flex items-baseline gap-1">
+                                                    <span className="text-sm font-black text-amber-600 dark:text-amber-500 flex items-baseline gap-1 rounded animate-flash px-1" key={item.dose}>
                                                         {sanitizeNaN(item.dose)}
                                                         <select
                                                             value={item.unit || (item.id === 'bleomycin' ? 'units' : 'mg')}
@@ -3377,25 +3596,23 @@ function App() {
                                     <div className="flex items-center justify-between mb-4">
                                         <div className="flex items-center gap-3">
                                             <h2 className="text-lg font-black text-sky-700 dark:text-sky-300">กำหนดรายละเอียดการให้ยา</h2>
-                                            {!!editingOrderLogId && user?.role?.toUpperCase() === 'ADMIN' && (
+                                            {['ADMIN', 'HEAD'].includes(user?.role?.toUpperCase()) && (
                                                 <button
                                                     type="button"
                                                     onClick={async () => {
+                                                        const newState = !lockOldHistory;
+                                                        setlockOldHistory(newState);
                                                         try {
-                                                            const res = await axios.put(`${API_BASE}/admin/order-logs/${editingOrderLogId}/toggle-date-unlock`, {
-                                                                is_date_unlocked: !isDateEditable
-                                                            }, { headers: { 'x-employee-id': user?.employee_id } });
-                                                            if (res.data.success) {
-                                                                setIsDateEditable(!isDateEditable);
-                                                                showNotification(!isDateEditable ? 'เปิดสิทธิ์แก้ไขวันที่เรียบร้อย' : 'ปิดสิทธิ์แก้ไขวันที่เรียบร้อย', 'success');
-                                                            }
+                                                            await axios.put('/api/settings', { lockOldHistory: newState });
+                                                            showNotification(newState ? 'ปิดการแก้ไขประวัติเก่าสำหรับเภสัชกร' : 'เปิดให้แก้ไขประวัติเก่าได้ตามปกติ', 'success');
                                                         } catch(err) {
-                                                            showNotification('เกิดข้อผิดพลาดในการเปลี่ยนสิทธิ์: ' + (err.response?.data?.message || err.message), 'error');
+                                                            showNotification('ไม่สามารถบันทึกการตั้งค่าได้', 'error');
                                                         }
                                                     }}
-                                                    className={`ml-3 text-[10px] px-2 py-1 rounded-md font-bold transition-all border ${isDateEditable ? 'bg-amber-100 text-amber-700 border-amber-300' : 'bg-slate-100 text-slate-500 border-slate-300 dark:bg-slate-800 dark:border-slate-600'}`}
+                                                    className={`ml-3 text-[10px] px-2 py-1 rounded-md font-bold transition-all border shadow-sm ${lockOldHistory ? 'bg-amber-100 text-amber-700 border-amber-300' : 'bg-white text-slate-600 border-slate-300 hover:bg-slate-50 dark:bg-slate-700 dark:border-slate-600 dark:text-slate-300 dark:hover:bg-slate-600'}`}
+                                                    title="เปิด/ปิดการแก้ไขประวัติเดิมสำหรับเภสัชกร"
                                                 >
-                                                    {isDateEditable ? 'ปิดแก้ไขวัน' : 'เปิดแก้ไขวัน'}
+                                                    {lockOldHistory ? 'เปิดให้แก้ไขประวัติเก่าได้' : 'ปิดการแก้ไขประวัติเก่า'}
                                                 </button>
                                             )}
                                         </div>
@@ -3442,13 +3659,16 @@ function App() {
                                                     <th className="px-3 py-2.5">วิธีให้ยา</th>
                                                     <th className="px-3 py-2.5">ตัวทำละลาย</th>
                                                     <th className="px-3 py-2.5">Vol (ml)</th>
-                                                    <th className="px-3 py-2.5">วันเริ่มต้น</th>
-                                                    <th className="px-3 py-2.5">วันสุดท้าย</th>
+                                                    <th className="px-3 py-2.5">วันที่เริ่ม</th>
+                                                    <th className="px-3 py-2.5">วันที่สิ้นสุด</th>
                                                     <th className="px-3 py-2.5">อัตราเร็ว</th>
                                                 </tr>
                                             </thead>
                                             <tbody>
-                                                {adminRows.map((row, idx) => (
+                                                {adminRows.map((row, idx) => {
+                                                    const isPharmacist = !['ADMIN', 'HEAD'].includes(user?.role?.toUpperCase());
+                                                    const isLockedRow = lockOldHistory && isPharmacist && row.isOldRecord;
+                                                    return (
                                                     <tr
                                                         key={row.id}
                                                         className={`border-b border-slate-700/10 transition-all ${
@@ -3464,6 +3684,8 @@ function App() {
                                                                     type="text"
                                                                     list={`drug-list-${idx}`}
                                                                     value={row.drugName || ''}
+                                                                    disabled={isLockedRow}
+                                                                    className={`form-control py-1.5 px-3 text-xs rounded-lg font-bold min-w-[200px] ${isLockedRow ? 'bg-slate-100 opacity-70 cursor-not-allowed text-slate-500' : ''}`}
                                                                     onChange={e => {
                                                                         const val = e.target.value;
                                                                         
@@ -3477,7 +3699,7 @@ function App() {
                                                                             }
 
                                                                             // Auto-fill from previous cycle
-                                                                            if (patient.hn) {
+                                                                            if (patient.hn && (['ADMIN', 'HEAD'].includes(user?.role?.toUpperCase()) || lockOldHistory)) {
                                                                                 const patientLogs = allOrderLogs.filter(l => l.hn === patient.hn);
                                                                                 for (const log of patientLogs) {
                                                                                     try {
@@ -3498,7 +3720,7 @@ function App() {
                                                                             if (drugKey) {
                                                                                 const drugData = DRUG_CONCENTRATION_DATA[drugKey];
                                                                                 if (drugData.concentration > 0) {
-                                                                                    const numVal = parseFloat(matchedDose.toString().replace(/[^\d.]/g, ''));
+                                                                                    const numVal = parseFloat(matchedDose.toString().replace(/[^d.]/g, ''));
                                                                                     if (!isNaN(numVal)) {
                                                                                         autoVol = (numVal / drugData.concentration).toFixed(2);
                                                                                         if (autoVol.endsWith('.00')) autoVol = autoVol.replace('.00', '');
@@ -3511,7 +3733,6 @@ function App() {
                                                                         checkSolventRules(val, row.solvent);
                                                                     }}
                                                                     placeholder="ค้นหา/ระบุชื่อยา..."
-                                                                    className="form-control py-1.5 px-3 text-xs rounded-lg font-bold min-w-[200px]"
                                                                 />
                                                                 <datalist id={`drug-list-${idx}`}>
                                                                     {allAdminDrugs.map(drug => (
@@ -3540,11 +3761,12 @@ function App() {
                                                             <div className="flex gap-1 items-center min-w-[140px]">
                                                                 <input
                                                                     type="text"
-                                                                    value={(row.dose || '').match(/[\d.]+/) ? (row.dose || '').match(/[\d.]+/)[0] : ''}
+                                                                    value={(row.dose || '').match(/[d.]+/) ? (row.dose || '').match(/[d.]+/)[0] : ''}
+                                                                    disabled={isLockedRow}
                                                                     onChange={e => {
-                                                                        const numVal = e.target.value.replace(/[^\d.]/g, '');
+                                                                        const numVal = e.target.value.replace(/[^d.]/g, '');
                                                                         const str = row.dose || '';
-                                                                        let currentUnit = str.replace(/[\d.\s]/g, '');
+                                                                        let currentUnit = str.replace(/[d.s]/g, '');
                                                                         if (str.toLowerCase().includes('auc')) currentUnit = 'AUC';
                                                                         if (!currentUnit) currentUnit = 'mg';
                                                                         
@@ -3569,24 +3791,25 @@ function App() {
                                                                         setAdminRows(prev => prev.map((r, i) => i === idx ? { ...r, dose: newVal, volume: autoVol } : r));
                                                                     }}
                                                                     placeholder="ระบุตัวเลข"
-                                                                    className="form-control py-1.5 px-2 text-xs rounded-lg w-[75px] text-center"
+                                                                    className={`form-control py-1.5 px-2 text-xs rounded-lg w-[75px] text-center ${isLockedRow ? 'bg-slate-100 opacity-70 cursor-not-allowed text-slate-500' : ''}`}
                                                                 />
                                                                 <select
                                                                     value={(() => {
                                                                         const str = row.dose || '';
                                                                         if (str.toLowerCase().includes('auc')) return 'AUC';
-                                                                        const u = str.replace(/[\d.\s]/g, '');
+                                                                        const u = str.replace(/[d.s]/g, '');
                                                                         return u || 'mg';
                                                                     })()}
+                                                                    disabled={isLockedRow}
                                                                     onChange={e => {
                                                                         const newUnit = e.target.value;
                                                                         const str = row.dose || '';
-                                                                        const numMatch = str.match(/[\d.]+/);
+                                                                        const numMatch = str.match(/[d.]+/);
                                                                         const currentNum = numMatch ? numMatch[0] : '';
                                                                         const newVal = currentNum ? `${currentNum} ${newUnit}` : '';
                                                                         setAdminRows(prev => prev.map((r, i) => i === idx ? { ...r, dose: newVal } : r));
                                                                     }}
-                                                                    className="form-control py-1.5 px-1 text-xs rounded-lg w-16 bg-slate-50 dark:bg-slate-800"
+                                                                    className={`form-control py-1.5 px-1 text-xs rounded-lg w-16 ${isLockedRow ? 'bg-slate-100 opacity-70 cursor-not-allowed text-slate-500' : 'bg-slate-50 dark:bg-slate-800'}`}
                                                                 >
                                                                     <option value="mg">mg</option>
                                                                     <option value="g">g</option>
@@ -3598,8 +3821,8 @@ function App() {
                                                             </div>
                                                             {/* Real-time Diff Display */}
                                                             {row.calculatedDose && row.dose && (() => {
-                                                                const calcMatch = row.calculatedDose.toString().match(/[\d.]+/);
-                                                                const doseMatch = row.dose.toString().match(/[\d.]+/);
+                                                                const calcMatch = row.calculatedDose.toString().match(/[d.]+/);
+                                                                const doseMatch = row.dose.toString().match(/[d.]+/);
                                                                 if (calcMatch && doseMatch) {
                                                                     const calcVal = parseFloat(calcMatch[0]);
                                                                     const doseVal = parseFloat(doseMatch[0]);
@@ -3619,8 +3842,9 @@ function App() {
                                                         <td className="px-3 py-2.5">
                                                             <select
                                                                 value={row.route}
+                                                                disabled={isLockedRow}
                                                                 onChange={e => setAdminRows(prev => prev.map((r, i) => i === idx ? { ...r, route: e.target.value } : r))}
-                                                                className="form-control py-1.5 px-3 text-xs rounded-lg font-bold min-w-[140px]"
+                                                                className={`form-control py-1.5 px-3 text-xs rounded-lg font-bold min-w-[140px] ${isLockedRow ? 'bg-slate-100 opacity-70 cursor-not-allowed text-slate-500' : ''}`}
                                                             >
                                                                 <option value="">-- เลือกวิธี --</option>
                                                                 <option value="IV drip">IV drip</option>
@@ -3636,13 +3860,14 @@ function App() {
                                                                     type="text"
                                                                     list={`solvent-list-${idx}`}
                                                                     value={row.solvent === 'ระบุเอง' ? '' : (row.solvent || '')}
+                                                                    disabled={isLockedRow}
                                                                     onChange={e => {
                                                                         const val = e.target.value;
                                                                         setAdminRows(prev => prev.map((r, i) => i === idx ? { ...r, solvent: val } : r));
                                                                         checkSolventRules(row.drugName, val);
                                                                     }}
                                                                     placeholder="ค้นหา/ระบุเอง..."
-                                                                    className="form-control py-1.5 px-3 text-xs rounded-lg font-bold min-w-[200px]"
+                                                                    className={`form-control py-1.5 px-3 text-xs rounded-lg font-bold min-w-[200px] ${isLockedRow ? 'bg-slate-100 opacity-70 cursor-not-allowed text-slate-500' : ''}`}
                                                                 />
                                                                 <datalist id={`solvent-list-${idx}`}>
                                                                     {allSolvents.map(sol => (
@@ -3671,87 +3896,94 @@ function App() {
                                                             <input
                                                                 type="text"
                                                                 value={row.volume || ''}
+                                                                disabled={isLockedRow}
                                                                 onChange={e => setAdminRows(prev => prev.map((r, i) => i === idx ? { ...r, volume: e.target.value } : r))}
                                                                 placeholder="เช่น 500 ml"
-                                                                className="form-control py-1.5 px-3 text-xs rounded-lg min-w-[80px]"
+                                                                className={`form-control py-1.5 px-3 text-xs rounded-lg min-w-[80px] ${isLockedRow ? 'bg-slate-100 opacity-70 cursor-not-allowed text-slate-500' : ''}`}
                                                             />
                                                         </td>
                                                         <td className="px-3 py-2.5">
-                                                            <div className="relative flex items-center">
-                                                                <input
-                                                                    type="text"
-                                                                    placeholder="วว/ดด/ปปปป"
-                                                                    value={row.startDate}
-                                                                    onChange={e => handleAdminDateChange(e.target.value, row.startDate, idx, 'startDate')}
-                                                                    disabled={!!editingOrderLogId && !isDateEditable}
-                                                                    className={`form-control py-1.5 px-3 text-xs rounded-lg font-bold min-w-[140px] ${(!!editingOrderLogId && !isDateEditable) ? 'opacity-70 cursor-not-allowed bg-slate-50 dark:bg-slate-900/50' : ''}`}
-                                                                    maxLength={10}
-                                                                />
-                                                                <input
-                                                                    type="date"
-                                                                    min={new Date().toISOString().split('T')[0]}
-                                                                    disabled={!!editingOrderLogId && !isDateEditable}
-                                                                    className={`absolute left-0 right-0 top-0 bottom-0 opacity-0 w-full h-full ${(!!editingOrderLogId && !isDateEditable) ? 'cursor-not-allowed' : 'cursor-pointer'}`}
-                                                                    onClick={(e) => { if (!editingOrderLogId || isDateEditable) { try { e.target.showPicker(); } catch(err){} } }}
-                                                                    value={(() => {
-                                                                        if (row.startDate && row.startDate.length === 10) {
-                                                                            const d = row.startDate.substring(0, 2);
-                                                                            const m = row.startDate.substring(3, 5);
-                                                                            const yNum = parseInt(row.startDate.substring(6, 10), 10);
-                                                                            if (!isNaN(yNum)) {
-                                                                                const gYear = yNum > 2400 ? yNum - 543 : yNum;
-                                                                                return `${gYear}-${m}-${d}`;
+                                                            <div className="flex flex-col gap-1.5">
+                                                                <div className="relative flex items-center">
+                                                                    <input
+                                                                        type="text"
+                                                                        placeholder="วว/ดด/ปปปป"
+                                                                        value={row.startDate}
+                                                                        disabled={isLockedRow}
+                                                                        onChange={e => handleAdminDateChange(e.target.value, row.startDate, idx, 'startDate')}
+                                                                        className={`form-control py-1.5 px-3 text-xs rounded-lg font-bold min-w-[140px] ${isLockedRow ? 'bg-slate-100 opacity-70 cursor-not-allowed text-slate-500' : ''}`}
+                                                                        maxLength={10}
+                                                                    />
+                                                                    {!isLockedRow && (
+                                                                    <input
+                                                                        type="date"
+                                                                        min={new Date().toISOString().split('T')[0]}
+                                                                        className="absolute left-0 right-0 top-0 bottom-0 opacity-0 w-full h-full cursor-pointer"
+                                                                        onClick={(e) => { try { e.target.showPicker(); } catch(err){} }}
+                                                                        value={(() => {
+                                                                            if (row.startDate && row.startDate.length === 10) {
+                                                                                const d = row.startDate.substring(0, 2);
+                                                                                const m = row.startDate.substring(3, 5);
+                                                                                const yNum = parseInt(row.startDate.substring(6, 10), 10);
+                                                                                if (!isNaN(yNum)) {
+                                                                                    const gYear = yNum > 2400 ? yNum - 543 : yNum;
+                                                                                    return `${gYear}-${m}-${d}`;
+                                                                                }
                                                                             }
-                                                                        }
-                                                                        return '';
-                                                                    })()}
-                                                                    onChange={(e) => {
-                                                                        if (!e.target.value) return;
-                                                                        const [y, m, d] = e.target.value.split('-');
-                                                                        const thaiYear = parseInt(y, 10) < 2400 ? parseInt(y, 10) + 543 : parseInt(y, 10);
-                                                                        handleAdminDateChange(`${d}/${m}/${thaiYear}`, row.startDate, idx, 'startDate');
-                                                                    }}
-                                                                />
-                                                                <Calendar size={14} className="absolute right-3 text-slate-400 pointer-events-none" />
+                                                                            return '';
+                                                                        })()}
+                                                                        onChange={(e) => {
+                                                                            if (!e.target.value) return;
+                                                                            const [y, m, d] = e.target.value.split('-');
+                                                                            const thaiYear = parseInt(y, 10) < 2400 ? parseInt(y, 10) + 543 : parseInt(y, 10);
+                                                                            handleAdminDateChange(`${d}/${m}/${thaiYear}`, row.startDate, idx, 'startDate');
+                                                                        }}
+                                                                    />
+                                                                    )}
+                                                                    <Calendar size={14} className="absolute right-3 text-slate-400 pointer-events-none" />
+                                                                </div>
                                                             </div>
                                                         </td>
-                                                        <td className="px-3 py-2.5">
-                                                            <div className="relative flex items-center">
-                                                                <input
-                                                                    type="text"
-                                                                    placeholder="วว/ดด/ปปปป"
-                                                                    value={row.endDate}
-                                                                    onChange={e => handleAdminDateChange(e.target.value, row.endDate, idx, 'endDate')}
-                                                                    disabled={!!editingOrderLogId && !isDateEditable}
-                                                                    className={`form-control py-1.5 px-3 text-xs rounded-lg font-bold min-w-[140px] ${(!!editingOrderLogId && !isDateEditable) ? 'opacity-70 cursor-not-allowed bg-slate-50 dark:bg-slate-900/50' : ''}`}
-                                                                    maxLength={10}
-                                                                />
-                                                                <input
-                                                                    type="date"
-                                                                    min={new Date().toISOString().split('T')[0]}
-                                                                    disabled={!!editingOrderLogId && !isDateEditable}
-                                                                    className={`absolute left-0 right-0 top-0 bottom-0 opacity-0 w-full h-full ${(!!editingOrderLogId && !isDateEditable) ? 'cursor-not-allowed' : 'cursor-pointer'}`}
-                                                                    onClick={(e) => { if (!editingOrderLogId || isDateEditable) { try { e.target.showPicker(); } catch(err){} } }}
-                                                                    value={(() => {
-                                                                        if (row.endDate && row.endDate.length === 10) {
-                                                                            const d = row.endDate.substring(0, 2);
-                                                                            const m = row.endDate.substring(3, 5);
-                                                                            const yNum = parseInt(row.endDate.substring(6, 10), 10);
-                                                                            if (!isNaN(yNum)) {
-                                                                                const gYear = yNum > 2400 ? yNum - 543 : yNum;
-                                                                                return `${gYear}-${m}-${d}`;
+                                                        <td className="px-3 py-2.5 min-w-max">
+                                                            <div className="flex gap-2 items-center min-w-max">
+                                                                <div className="relative flex items-center">
+                                                                    <input
+                                                                        type="text"
+                                                                        placeholder="วว/ดด/ปปปป"
+                                                                        value={row.endDate}
+                                                                        disabled={isLockedRow}
+                                                                        onChange={e => handleAdminDateChange(e.target.value, row.endDate, idx, 'endDate')}
+                                                                        className={`form-control py-1.5 px-3 text-xs rounded-lg font-bold min-w-[140px] ${isLockedRow ? 'bg-slate-100 opacity-70 cursor-not-allowed text-slate-500' : ''}`}
+                                                                        maxLength={10}
+                                                                    />
+                                                                    {!isLockedRow && (
+                                                                    <input
+                                                                        type="date"
+                                                                        min={new Date().toISOString().split('T')[0]}
+                                                                        className="absolute left-0 right-0 top-0 bottom-0 opacity-0 w-full h-full cursor-pointer"
+                                                                        onClick={(e) => { try { e.target.showPicker(); } catch(err){} }}
+                                                                        value={(() => {
+                                                                            if (row.endDate && row.endDate.length === 10) {
+                                                                                const d = row.endDate.substring(0, 2);
+                                                                                const m = row.endDate.substring(3, 5);
+                                                                                const yNum = parseInt(row.endDate.substring(6, 10), 10);
+                                                                                if (!isNaN(yNum)) {
+                                                                                    const gYear = yNum > 2400 ? yNum - 543 : yNum;
+                                                                                    return `${gYear}-${m}-${d}`;
+                                                                                }
                                                                             }
-                                                                        }
-                                                                        return '';
-                                                                    })()}
-                                                                    onChange={(e) => {
-                                                                        if (!e.target.value) return;
-                                                                        const [y, m, d] = e.target.value.split('-');
-                                                                        const thaiYear = parseInt(y, 10) < 2400 ? parseInt(y, 10) + 543 : parseInt(y, 10);
-                                                                        handleAdminDateChange(`${d}/${m}/${thaiYear}`, row.endDate, idx, 'endDate');
-                                                                    }}
-                                                                />
-                                                                <Calendar size={14} className="absolute right-3 text-slate-400 pointer-events-none" />
+                                                                            return '';
+                                                                        })()}
+                                                                        onChange={(e) => {
+                                                                            if (!e.target.value) return;
+                                                                            const [y, m, d] = e.target.value.split('-');
+                                                                            const thaiYear = parseInt(y, 10) < 2400 ? parseInt(y, 10) + 543 : parseInt(y, 10);
+                                                                            handleAdminDateChange(`${d}/${m}/${thaiYear}`, row.endDate, idx, 'endDate');
+                                                                        }}
+                                                                    />
+                                                                    )}
+                                                                    <Calendar size={14} className="absolute right-3 text-slate-400 pointer-events-none" />
+                                                                </div>
                                                             </div>
                                                         </td>
                                                         <td className="px-3 py-2.5">
@@ -3761,8 +3993,9 @@ function App() {
                                                                     list={`rate-list-${idx}`}
                                                                     placeholder="เช่น 100 mL/hr"
                                                                     value={row.rate || ''}
+                                                                    disabled={isLockedRow}
                                                                     onChange={e => setAdminRows(prev => prev.map((r, i) => i === idx ? { ...r, rate: e.target.value } : r))}
-                                                                    className="form-control py-1.5 px-3 text-xs rounded-lg font-bold min-w-[130px]"
+                                                                    className={`form-control py-1.5 px-3 text-xs rounded-lg font-bold min-w-[130px] ${isLockedRow ? 'bg-slate-100 opacity-70 cursor-not-allowed text-slate-500' : ''}`}
                                                                 />
                                                                 <datalist id={`rate-list-${idx}`}>
                                                                     {allRates.map(rate => (
@@ -3785,7 +4018,7 @@ function App() {
                                                                         + บันทึก
                                                                     </button>
                                                                 )}
-                                                                {adminRows.length > 1 && (
+                                                                {adminRows.length > 1 && !isLockedRow && (
                                                                     <button
                                                                         type="button"
                                                                         onClick={() => setAdminRows(prev => prev.filter((_, i) => i !== idx))}
@@ -3798,7 +4031,8 @@ function App() {
                                                             </div>
                                                         </td>
                                                     </tr>
-                                                ))}
+                                                    );
+                                                })}
                                             </tbody>
                                         </table>
                                     </div>
@@ -3822,6 +4056,15 @@ function App() {
                 showNotification={showNotification}
             />
 
+            <PrintPreviewModal
+                isOpen={previewData.isOpen}
+                htmlContent={previewData.htmlContent}
+                title={previewData.title}
+                printerName={previewData.printerName}
+                onConfirm={previewData.onConfirm}
+                onCancel={() => setPreviewData(prev => ({ ...prev, isOpen: false }))}
+            />
+
             {notification && (
                 <Notification
                     {...notification}
@@ -3832,7 +4075,7 @@ function App() {
             {/* Modal: Diff Warning */}
             {showDiffModal && (
                 <div className="fixed inset-0 z-50 flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
-                    <div className="bg-white dark:bg-slate-800 rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col border border-slate-200 dark:border-slate-700 animate-in zoom-in-95 duration-300">
+                    <div className="bg-gradient-to-b from-sky-50/50 to-white dark:from-sky-950/20 dark:to-slate-800 rounded-3xl shadow-2xl w-full max-w-lg overflow-hidden flex flex-col border-2 border-slate-200 border-t-sky-500 dark:border-slate-700 dark:border-t-sky-500 animate-in zoom-in-95 duration-300">
                         <div className="p-5 border-b border-slate-100 dark:border-slate-700 flex items-center gap-3 bg-amber-50 dark:bg-amber-900/20">
                             <div className="bg-amber-100 dark:bg-amber-900/50 p-2 rounded-xl text-amber-500">
                                 <AlertTriangle size={24} />
