@@ -1412,17 +1412,21 @@ const fs = require('fs');
 const path = require('path');
 const crypto = require('crypto');
 
-app.get('/api/printers', async (req, res) => {
-    try {
-        const printers = await ptp.getPrinters();
-        // pdf-to-printer returns an array of objects or strings depending on the OS/version
-        // Usually it's an array of objects with deviceId and name
-        const printerNames = printers.map(p => typeof p === 'string' ? p : p.name);
-        res.json(printerNames);
-    } catch (err) {
-        console.error('Fetch Printers Error:', err);
-        res.status(500).json({ success: false, message: 'Failed to fetch printers' });
-    }
+app.get('/api/printers', (req, res) => {
+    const { exec } = require('child_process');
+    exec('powershell -Command "Get-Printer | Select-Object -ExpandProperty Name"', (error, stdout, stderr) => {
+        if (error) {
+            console.error('Fetch Printers Error:', error);
+            return res.status(500).json({ success: false, message: 'Failed to fetch printers' });
+        }
+        try {
+            const printers = stdout.split('\n').map(p => p.trim()).filter(p => p.length > 0);
+            res.json(printers);
+        } catch (err) {
+            console.error('Parse Printers Error:', err);
+            res.status(500).json({ success: false, message: 'Failed to parse printers' });
+        }
+    });
 });
 
 app.post('/api/print', async (req, res) => {

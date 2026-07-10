@@ -2744,7 +2744,7 @@ function App() {
                                         {amputation === 'amputee' && (
                                             <div className="p-3 bg-sky-50/50 dark:bg-sky-900/10 rounded-xl border border-sky-100 dark:border-sky-800 space-y-3">
                                                 <div>
-                                                    <div className="text-[10px] font-bold text-sky-700 dark:text-sky-400 mb-1.5">ระบุตำแหน่งที่สูญเสีย:</div>
+                                                    <div className="text-xs font-bold text-sky-700 dark:text-sky-400 mb-2">ระบุตำแหน่งที่สูญเสีย:</div>
                                                     <div className="grid grid-cols-2 gap-2">
                                                         {[
                                                             { id: 'below_knee', label: 'ใต้เข่า (BK)' },
@@ -2752,15 +2752,15 @@ function App() {
                                                             { id: 'below_elbow', label: 'ใต้ศอก (BE)' },
                                                             { id: 'above_elbow', label: 'เหนือศอก (AE)' }
                                                         ].map(opt => (
-                                                            <label key={opt.id} className={`px-2 py-1.5 rounded border transition-all cursor-pointer flex items-center gap-1.5 ${ampDetails.level === opt.id ? 'bg-white dark:bg-slate-800 border-sky-400 shadow-sm' : 'bg-white/60 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 hover:border-sky-300'}`}>
+                                                            <label key={opt.id} className={`px-3 py-2 rounded-lg border transition-all cursor-pointer flex items-center gap-2 ${ampDetails.level === opt.id ? 'bg-white dark:bg-slate-800 border-sky-400 shadow-sm' : 'bg-white/60 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 hover:border-sky-300'}`}>
                                                                 <input 
                                                                     type="radio" 
                                                                     name="ampLevel" 
                                                                     checked={ampDetails.level === opt.id} 
                                                                     onChange={() => setAmpDetails({ ...ampDetails, level: opt.id })} 
-                                                                    className="w-3 h-3 text-sky-600 cursor-pointer" 
+                                                                    className="w-4 h-4 text-sky-600 cursor-pointer" 
                                                                 />
-                                                                <span className={`text-[10px] font-bold ${ampDetails.level === opt.id ? 'text-sky-700 dark:text-sky-300' : 'text-slate-600 dark:text-slate-400'}`}>
+                                                                <span className={`text-xs font-bold ${ampDetails.level === opt.id ? 'text-sky-700 dark:text-sky-300' : 'text-slate-600 dark:text-slate-400'}`}>
                                                                     {opt.label}
                                                                 </span>
                                                             </label>
@@ -2768,21 +2768,21 @@ function App() {
                                                     </div>
                                                 </div>
                                                 <div>
-                                                    <div className="text-[10px] font-bold text-sky-700 dark:text-sky-400 mb-1.5">วิธีปรับคำนวณ:</div>
+                                                    <div className="text-xs font-bold text-sky-700 dark:text-sky-400 mb-2">วิธีปรับคำนวณ:</div>
                                                     <div className="grid grid-cols-1 gap-2">
                                                         {[
                                                             { id: 'weight_method', label: 'ปรับตามน้ำหนัก (Weight)' },
                                                             { id: 'bsa_method', label: 'ปรับตามพื้นที่ผิว (BSA)' }
                                                         ].map(opt => (
-                                                            <label key={opt.id} className={`px-2 py-1.5 rounded border transition-all cursor-pointer flex items-center gap-1.5 ${ampDetails.method === opt.id ? 'bg-white dark:bg-slate-800 border-sky-400 shadow-sm' : 'bg-white/60 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 hover:border-sky-300'}`}>
+                                                            <label key={opt.id} className={`px-3 py-2 rounded-lg border transition-all cursor-pointer flex items-center gap-2 ${ampDetails.method === opt.id ? 'bg-white dark:bg-slate-800 border-sky-400 shadow-sm' : 'bg-white/60 dark:bg-slate-800/60 border-slate-200 dark:border-slate-700 hover:border-sky-300'}`}>
                                                                 <input 
                                                                     type="radio" 
                                                                     name="ampMethod" 
                                                                     checked={ampDetails.method === opt.id} 
                                                                     onChange={() => setAmpDetails({ ...ampDetails, method: opt.id })} 
-                                                                    className="w-3 h-3 text-sky-600 cursor-pointer" 
+                                                                    className="w-4 h-4 text-sky-600 cursor-pointer" 
                                                                 />
-                                                                <span className={`text-[10px] font-bold ${ampDetails.method === opt.id ? 'text-sky-700 dark:text-sky-300' : 'text-slate-600 dark:text-slate-400'}`}>
+                                                                <span className={`text-xs font-bold ${ampDetails.method === opt.id ? 'text-sky-700 dark:text-sky-300' : 'text-slate-600 dark:text-slate-400'}`}>
                                                                     {opt.label}
                                                                 </span>
                                                             </label>
@@ -2829,7 +2829,7 @@ function App() {
                                                 let val = e.target.value;
                                                 const oldVal = patient.cycle || '';
                                                 if (val.length === 1 && oldVal.length === 0 && /^\d$/.test(val)) {
-                                                    val = val + '/';
+                                                    val = val + '/' + val;
                                                 }
                                                 setPatient({ ...patient, cycle: val });
                                             }}
