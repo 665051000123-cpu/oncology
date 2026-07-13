@@ -1,0 +1,12 @@
+225: if (currentUser?.a4_printer) {
+230: printerName: currentUser.a4_printer,
+234: if (showNotification) showNotification(`พิมพ์รายการยาไปที่ ${currentUser.a4_printer} สำเร็จ`, 'success');
+372: if (currentUser?.a4_printer) {
+377: printerName: currentUser.a4_printer,
+381: if (showNotification) showNotification(`พิมพ์รายการยาไปที่ ${currentUser.a4_printer} สำเร็จ`, 'success');
+476: if (currentUser?.a4_printer) {
+481: printerName: currentUser.a4_printer,
+485: if (showNotification) showNotification(`พิมพ์รายการยาไปที่ ${currentUser.a4_printer} สำเร็จ`, 'success');
+581: if (currentUser?.a4_printer) {
+586: printerName: currentUser.a4_printer,
+590: if (showNotification) showNotification(`พิมพ์รายการยาไปที่ ${currentUser.a4_printer} สำเร็จ`, 'success');

@@ -1,0 +1,100 @@
+1: import React, { useState, useEffect } from 'react';
+2: import axios from 'axios';
+3: import { X, Printer, CheckCircle2, AlertCircle, Save } from 'lucide-react';
+4: 
+5: const PrinterSettings = ({ user, setUser, show, onClose, showNotification }) => {
+6: const [printers, setPrinters] = useState([]);
+7: const [loading, setLoading] = useState(false);
+8: const [status, setStatus] = useState('กำลังโหลดรายชื่อเครื่องปริ้นท์...');
+9: const [error, setError] = useState(null);
+10: 
+11: // Selected printers
+12: const [stickerPrinter, setStickerPrinter] = useState('');
+13: const [workingFormulaPrinter, setWorkingFormulaPrinter] = useState('');
+14: const [calculationPrinter, setCalculationPrinter] = useState('');
+15: const [drugInfoPrinter, setDrugInfoPrinter] = useState('');
+16: const [allDrugsPrinter, setAllDrugsPrinter] = useState('');
+17: 
+18: useEffect(() => {
+19: if (show) {
+20: fetchPrinters();
+21: // Load saved settings
+22: const savedSticker = localStorage.getItem('sticker_printer');
+23: const savedWorkingFormula = localStorage.getItem('working_formula_printer');
+24: const savedCalculation = localStorage.getItem('calculation_printer');
+25: const savedDrugInfo = localStorage.getItem('drug_info_printer');
+26: const savedAllDrugs = localStorage.getItem('all_drugs_printer');
+27: 
+28: if (savedSticker) setStickerPrinter(savedSticker);
+29: if (savedWorkingFormula) setWorkingFormulaPrinter(savedWorkingFormula);
+30: if (savedCalculation) setCalculationPrinter(savedCalculation);
+31: if (savedDrugInfo) setDrugInfoPrinter(savedDrugInfo);
+32: if (savedAllDrugs) setAllDrugsPrinter(savedAllDrugs);
+33: }
+34: }, [show]);
+35: 
+36: const fetchPrinters = async () => {
+37: setLoading(true);
+38: setError(null);
+39: try {
+40: const res = await axios.get('/api/printers');
+41: setPrinters(res.data);
+42: setStatus('ดึงรายชื่อเครื่องปริ้นท์สำเร็จ');
+43: } catch (err) {
+44: console.error('Fetch printers error', err);
+45: setError('ไม่สามารถดึงรายชื่อเครื่องปริ้นท์ได้: ' + err.message);
+46: setStatus('เกิดข้อผิดพลาดในการดึงข้อมูล');
+47: } finally {
+48: setLoading(false);
+49: }
+50: };
+51: 
+52: const handleSave = () => {
+53: localStorage.setItem('sticker_printer', stickerPrinter);
+54: localStorage.setItem('working_formula_printer', workingFormulaPrinter);
+55: localStorage.setItem('calculation_printer', calculationPrinter);
+56: localStorage.setItem('drug_info_printer', drugInfoPrinter);
+57: localStorage.setItem('all_drugs_printer', allDrugsPrinter);
+58: 
+59: // Also save to user context for backward compatibility in App.jsx if needed
+60: const updatedUser = {
+61: ...user,
+62: default_printer: stickerPrinter,
+63: working_formula_printer: workingFormulaPrinter,
+64: calculation_printer: calculationPrinter,
+65: drug_info_printer: drugInfoPrinter,
+66: all_drugs_printer: allDrugsPrinter
+67: };
+68: setUser(updatedUser);
+69: localStorage.setItem('oncology_user', JSON.stringify(updatedUser));
+70: 
+71: showNotification('บันทึกการตั้งค่าเครื่องปริ้นท์เรียบร้อยแล้ว', 'success');
+72: onClose();
+73: };
+74: 
+75: if (!show) return null;
+76: 
+77: return (
+78: <div className="fixed inset-0 z-[100] flex items-center justify-center p-4 bg-slate-900/60 backdrop-blur-sm animate-in fade-in duration-200">
+79: <div className="bg-white rounded-3xl shadow-2xl w-full max-w-xl overflow-hidden flex flex-col border border-slate-200 animate-in zoom-in-95 duration-300">
+80: {/* Header */}
+81: <div className="p-6 border-b border-slate-100 flex justify-between items-center bg-gradient-to-r from-sky-50 to-white">
+82: <div className="flex items-center gap-3">
+83: <div className="w-12 h-12 rounded-2xl bg-sky-100 flex items-center justify-center text-sky-600 shadow-inner">
+84: <Printer size={24} />
+85: </div>
+86: <div>
+87: <h2 className="text-xl font-black text-slate-800">ตั้งค่าเครื่องพิมพ์ (Local Print Server)</h2>
+88: <p className="text-sm font-medium text-slate-500">พิมพ์เอกสารอัตโนมัติ ไม่ต้องกด Confirm</p>
+89: </div>
+90: </div>
+91: <button
+92: onClick={onClose}
+93: className="w-10 h-10 rounded-full bg-slate-100 hover:bg-slate-200 text-slate-500 flex items-center justify-center transition-colors"
+94: >
+95: <X size={20} />
+96: </button>
+97: </div>
+98: 
+99: {/* Body */}
+100: <div className="p-6 overflow-y-auto max-h-[70vh] bg-slate-50/50">

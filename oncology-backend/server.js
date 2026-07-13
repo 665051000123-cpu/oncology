@@ -1489,7 +1489,13 @@ app.post('/api/print', async (req, res) => {
         fs.writeFileSync(tempPath, pdfBuffer);
 
         // Print using pdf-to-printer
-        await ptp.print(tempPath, { printer: printerName });
+        let ptpOptions = { printer: printerName };
+        if (paperSize === 'Sticker') {
+            ptpOptions.scale = 'noscale';
+            // Disable SumatraPDF's auto-rotation and centering
+            ptpOptions.sumatraPdfArgs = ['-print-settings', 'noscale,portrait'];
+        }
+        await ptp.print(tempPath, ptpOptions);
 
         // Clean up temp file after some time
         setTimeout(() => {

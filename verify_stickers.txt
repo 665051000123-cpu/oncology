@@ -1,0 +1,34 @@
+        const printStickersAsync = async () => {
+            if (user?.default_printer) {
+                showNotification('กำลังส่งข้อมูลไปยังเครื่องพิมพ์สติ๊กเกอร์...', 'info');
+                try {
+                    const res = await axios.post(`${API_BASE}/print`, {
+                        html: htmlContent,
+                        printerName: user.default_printer,
+                        paperSize: 'Sticker'
+                    });
+                    
+                    if (res.data.success) {
+                        showNotification(`พิมพ์สติ๊กเกอร์ไปที่ ${user.default_printer} สำเร็จ`, 'success');
+                        return; // Stop here, no browser dialog
+                    }
+                } catch (err) {
+                    console.error('Local Print Server error', err);
+                    showNotification('ไม่สามารถพิมพ์ผ่านระบบอัตโนมัติได้ กำลังเปลี่ยนไปพิมพ์ผ่านเบราว์เซอร์...', 'warning');
+                }
+            }
+
+            const printWindow = window.open('', '_blank', 'width=800,height=600');
+            if (!printWindow) {
+                showNotification('โปรดอนุญาตให้เบราว์เซอร์เปิดหน้าต่าง Pop-up เพื่อพิมพ์สติ๊กเกอร์', 'warning');
+                return;
+            }
+
+            const fallbackHtml = htmlContent.replace('</body>', `
+                <script>
+                    window.onload = () => {
+                        setTimeout(() => {
+                            window.print();
+                            window.close();
+                        }, 500);
+                    };

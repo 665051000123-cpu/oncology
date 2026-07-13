@@ -1,18 +1,10 @@
-<!doctype html>
-<html lang="th">
 
-<head>
-    <meta charset="UTF-8" />
-    <link rel="icon" type="image/svg+xml" href="/vite.svg" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>Oncology Dose Verification System - RAM2 HOSPITAL</title>
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet">
-</head>
+import sys
 
-<body>
-    
+with open("client/index.html", "r", encoding="utf-8") as f:
+    content = f.read()
+
+handler = """
     <script>
         window.addEventListener("error", function (e) {
             var errorDiv = document.createElement("div");
@@ -47,8 +39,11 @@
             document.body.appendChild(errorDiv);
         });
     </script>
-<div id="root"></div>
-    <script type="module" src="/src/main.jsx"></script>
-</body>
+"""
 
-</html>
+if "<div id=\"root\"></div>" in content and "window.addEventListener" not in content:
+    content = content.replace("<div id=\"root\"></div>", handler + "<div id=\"root\"></div>")
+    with open("client/index.html", "w", encoding="utf-8") as f:
+        f.write(content)
+    print("Injected error handler")
+

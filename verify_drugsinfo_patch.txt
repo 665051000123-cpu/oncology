@@ -1,0 +1,3 @@
+2: import { ArrowLeft, Pill, Search, FlaskConical, Ruler, ShieldAlert, Activity, Plus, Edit2, Trash2, Save, X, Printer } from 'lucide-react';
+261: title="พิมพ์ข้อมูลยาทั้งหมด"
+263: <Printer size={16} /> พิมพ์

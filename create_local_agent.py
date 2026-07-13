@@ -1,4 +1,32 @@
-const express = require('express');
+import os
+import io
+
+base_dir = r'd:\patien-system\local-print-agent'
+if not os.path.exists(base_dir):
+    os.makedirs(base_dir)
+
+# 1. package.json
+pkg_json = """{
+  "name": "oncology-local-print-agent",
+  "version": "1.0.0",
+  "description": "Local Print Agent for Oncology System",
+  "main": "agent.js",
+  "scripts": {
+    "start": "node agent.js"
+  },
+  "dependencies": {
+    "cors": "^2.8.5",
+    "express": "^4.18.2",
+    "pdf-to-printer": "^5.6.0",
+    "puppeteer": "^21.5.0"
+  }
+}
+"""
+with io.open(os.path.join(base_dir, 'package.json'), 'w', encoding='utf-8') as f:
+    f.write(pkg_json)
+
+# 2. agent.js
+agent_js = """const express = require('express');
 const cors = require('cors');
 const { exec } = require('child_process');
 const puppeteer = require('puppeteer');
@@ -7,33 +35,19 @@ const path = require('path');
 const fs = require('fs');
 const crypto = require('crypto');
 
-
-function getExecutablePath() {
-    const paths = [
-        'C:\\Program Files\\Google\\Chrome\\Application\\chrome.exe',
-        'C:\\Program Files (x86)\\Google\\Chrome\\Application\\chrome.exe',
-        'C:\\Program Files (x86)\\Microsoft\\Edge\\Application\\msedge.exe',
-        'C:\\Program Files\\Microsoft\\Edge\\Application\\msedge.exe'
-    ];
-    for (const p of paths) {
-        if (fs.existsSync(p)) return p;
-    }
-    return undefined; // Let puppeteer try its default
-}
-
 const app = express();
 app.use(cors());
 app.use(express.json({ limit: '50mb' }));
 
 // 1. Fetch Printers API
 app.get('/api/printers', (req, res) => {
-    exec('powershell -NoProfile -Command "[Console]::OutputEncoding = [System.Text.Encoding]::UTF8; Get-Printer | Select-Object -ExpandProperty Name"', (error, stdout, stderr) => {
+    exec('powershell -Command "Get-Printer | Select-Object -ExpandProperty Name"', (error, stdout, stderr) => {
         if (error) {
             console.error('Fetch Printers Error:', error);
             return res.status(500).json({ success: false, message: 'Failed to fetch printers' });
         }
         try {
-            const printers = stdout.split('\n').map(p => p.trim()).filter(p => p.length > 0);
+            const printers = stdout.split('\\n').map(p => p.trim()).filter(p => p.length > 0);
             res.json(printers);
         } catch (err) {
             console.error('Parse Printers Error:', err);
@@ -51,11 +65,11 @@ app.post('/api/print', async (req, res) => {
             return res.status(400).json({ success: false, message: 'Printer name is required' });
         }
 
-        const browser = await puppeteer.launch({ headless: 'new', executablePath: getExecutablePath() });
+        const browser = await puppeteer.launch({ headless: 'new' });
         const page = await browser.newPage();
 
         // Strip out any <script> tags
-        const cleanHtml = html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+        const cleanHtml = html.replace(/<script\\b[^<]*(?:(?!<\\/script>)<[^<]*)*<\\/script>/gi, '');
         await page.setContent(cleanHtml, { waitUntil: 'domcontentloaded' });
 
         let pdfOptions = {
@@ -107,3 +121,20 @@ app.listen(PORT, '0.0.0.0', () => {
     console.log(`⚠️  DO NOT CLOSE THIS WINDOW if you want to print!`);
     console.log(`====================================================`);
 });
+"""
+with io.open(os.path.join(base_dir, 'agent.js'), 'w', encoding='utf-8') as f:
+    f.write(agent_js)
+
+# 3. start.bat
+start_bat = """@echo off
+echo Installing dependencies for Local Print Agent (if not installed)...
+call npm install
+echo.
+echo Starting Local Print Agent...
+node agent.js
+pause
+"""
+with io.open(os.path.join(base_dir, 'start.bat'), 'w', encoding='utf-8') as f:
+    f.write(start_bat)
+
+print("Created local-print-agent successfully")

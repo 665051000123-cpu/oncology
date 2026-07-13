@@ -1,0 +1,94 @@
+83: const [isDateEditable, setIsDateEditable] = useState(false);
+189: { id: Date.now(), drugName: '', route: '', solvent: '', startDate: '', startTime: '', endDate: '', endTime: '', rate: '', order: 1, skipped: false, dose: '', calculatedDose: '', volume: '', storage: '', warning: '' }
+209: const [startDateFilter, setStartDateFilter] = useState('');
+210: const [endDateFilter, setEndDateFilter] = useState('');
+622: timestamp: new Date().toISOString(),
+715: setIsDateEditable(log.is_date_unlocked || false);
+734: const now = new Date();
+735: const formatDateTime = (date) => {
+736: const d = date.getDate().toString().padStart(2, '0');
+744: const producedTime = formatDateTime(now);
+795: let pTime = formatDateTime(now);
+796: let exp = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000); // Default +3 days
+798: if (r.startDate && r.startDate.length === 10) {
+799: const dd = r.startDate.substring(0, 2);
+800: const mm = r.startDate.substring(3, 5);
+801: const yyNum = parseInt(r.startDate.substring(6, 10), 10);
+815: const rDate = new Date(`${gregorianYear}-${mm}-${dd}T${hh}:${min}:00`);
+816: if (!isNaN(rDate.getTime())) {
+817: exp = new Date(rDate.getTime() + 3 * 24 * 60 * 60 * 1000);
+846: <span>หมดอายุ: ${formatDateTime(exp)}</span>
+906: const now = new Date();
+907: const formatDateTime = (date) => {
+908: const d = date.getDate().toString().padStart(2, '0');
+916: const producedTime = formatDateTime(now);
+1135: const today = new Date().toLocaleDateString('th-TH', { year: 'numeric', month: 'long', day: 'numeric', hour: '2-digit', minute: '2-digit' });
+1280: { id: Date.now(), route: '', solvent: '', startDate: '', startTime: '', endDate: '', endTime: '', rate: '', order: prev.length + 1, skipped: false }
+1506: newRows.push({ id: Date.now() + i, drugName: '', route: '', solvent: '', startDate: '', endDate: '', rate: '', order: i + 1, skipped: false, dose: '', calculatedDose: '', volume: '', storage: '', warning: '' });
+1517: const lastActivityRef = useRef(Date.now());
+1527: lastActivityRef.current = Date.now();
+1531: lastActivityRef.current = Date.now();
+1541: const elapsed = Date.now() - lastActivityRef.current;
+1550: showNotification("เซสชันหมดเวลาเนื่องจากไม่มีการใช้งานระบบ", "warning");
+1692: const now = new Date();
+1693: const day = String(now.getDate()).padStart(2, '0');
+1718: const parseFilterDate = (dateStr) => {
+1728: const d = new Date(year, month, day);
+1732: const handleDateInputChange = (val, currentVal, setter) => {
+1747: const isoToThaiDate = (iso) => {
+1755: const thaiDateToISO = (thai) => {
+1766: const handleAdminDateChange = (val, prevVal, rowIdx, field) => {
+1814: return new Date(year, month, day);
+1835: if (startDateFilter) {
+1836: const start = parseFilterDate(startDateFilter);
+1840: const logDate = parseThaiTimestamp(log.timestamp);
+1841: if (!logDate) return false;
+1842: logDate.setHours(0, 0, 0, 0);
+1843: return logDate >= start;
+1847: if (endDateFilter) {
+1848: const end = parseFilterDate(endDateFilter);
+1852: const logDate = parseThaiTimestamp(log.timestamp);
+1853: if (!logDate) return false;
+1854: logDate.setHours(23, 59, 59, 999);
+1855: return logDate <= end;
+1900: }, [logs, searchQuery, formulaFilter, pharmacistFilter, sortConfig, startDateFilter, endDateFilter]);
+2243: <label className="block text-xs font-black text-slate-400 mb-1.5 uppercase">วันที่เริ่มต้น (Start Date)</label>
+2248: value={startDateFilter}
+2249: onChange={e => handleDateInputChange(e.target.value, startDateFilter, setStartDateFilter)}
+2258: if (startDateFilter && startDateFilter.length === 10) {
+2259: const d = startDateFilter.substring(0, 2);
+2260: const m = startDateFilter.substring(3, 5);
+2261: const yNum = parseInt(startDateFilter.substring(6, 10), 10);
+2273: handleDateInputChange(`${d}/${m}/${thaiYear}`, startDateFilter, setStartDateFilter);
+2280: <label className="block text-xs font-black text-slate-400 mb-1.5 uppercase">วันที่สิ้นสุด (End Date)</label>
+2285: value={endDateFilter}
+2286: onChange={e => handleDateInputChange(e.target.value, endDateFilter, setEndDateFilter)}
+2295: if (endDateFilter && endDateFilter.length === 10) {
+2296: const d = endDateFilter.substring(0, 2);
+2297: const m = endDateFilter.substring(3, 5);
+2298: const yNum = parseInt(endDateFilter.substring(6, 10), 10);
+2310: handleDateInputChange(`${d}/${m}/${thaiYear}`, endDateFilter, setEndDateFilter);
+2345: setStartDateFilter('');
+2346: setEndDateFilter('');
+2749: setAdminRows([{ id: Date.now(), drugName: '', route: '', solvent: '', startDate: '', endDate: '', rate: '', order: 1, skipped: false, dose: '', calculatedDose: '', volume: '', storage: '', warning: '' }]);
+3559: <th className="px-3 py-2.5">วันที่ & เวลาเริ่ม</th>
+3560: <th className="px-3 py-2.5">วันที่ & เวลาสิ้นสุด</th>
+3808: value={row.startDate}
+3810: onChange={e => handleAdminDateChange(e.target.value, row.startDate, idx, 'startDate')}
+3817: min={new Date().toISOString().split('T')[0]}
+3821: if (row.startDate && row.startDate.length === 10) {
+3822: const d = row.startDate.substring(0, 2);
+3823: const m = row.startDate.substring(3, 5);
+3824: const yNum = parseInt(row.startDate.substring(6, 10), 10);
+3836: handleAdminDateChange(`${d}/${m}/${thaiYear}`, row.startDate, idx, 'startDate');
+3920: value={row.endDate}
+3922: onChange={e => handleAdminDateChange(e.target.value, row.endDate, idx, 'endDate')}
+3929: min={new Date().toISOString().split('T')[0]}
+3933: if (row.endDate && row.endDate.length === 10) {
+3934: const d = row.endDate.substring(0, 2);
+3935: const m = row.endDate.substring(3, 5);
+3936: const yNum = parseInt(row.endDate.substring(6, 10), 10);
+3948: handleAdminDateChange(`${d}/${m}/${thaiYear}`, row.endDate, idx, 'endDate');
+4217: การแจ้งเตือนการหมดเวลา
+4220: ระบบกำลังจะออกจากระบบอัตโนมัติเนื่องจากไม่มีการใช้งานระบบเป็นเวลานาน โปรดยืนยันว่าคุณต้องการใช้งานระบบต่อหรือไม่
+4249: lastActivityRef.current = Date.now();

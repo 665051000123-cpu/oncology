@@ -1,7 +1,11 @@
-import React from 'react';
+import io
+
+file_path = r'd:\patien-system\client\src\components\PrintPreviewModal.jsx'
+
+new_content = """import React from 'react';
 import { X, Printer } from 'lucide-react';
 
-const PrintPreviewModal = ({ isOpen, htmlContent, title, printerName, paperSize = 'A4', onConfirm, onCancel }) => {
+const PrintPreviewModal = ({ isOpen, htmlContent, title, printerName, onConfirm, onCancel }) => {
     if (!isOpen) return null;
 
     return (
@@ -18,19 +22,15 @@ const PrintPreviewModal = ({ isOpen, htmlContent, title, printerName, paperSize 
                     </button>
                 </div>
                 
-                {/* Preview Area - Exact Paper Size */}
-                <div className="flex-1 bg-slate-200 overflow-auto p-4 md:p-8 flex justify-center items-start">
-                    <div 
-                        className="bg-white shadow-xl border border-slate-300 flex flex-col overflow-hidden shrink-0"
-                        style={
-                            paperSize === 'Sticker' 
-                                ? { width: '8cm', height: '5cm', transform: 'scale(1.8)', transformOrigin: 'top center', marginBottom: '4cm' } 
-                                : { width: '210mm', minHeight: '297mm' }
-                        }
-                    >
+                {/* Preview Area - Simple and Readable */}
+                <div 
+                    className="flex-1 bg-slate-200 overflow-y-auto p-4 md:p-8"
+                >
+                    <div className="w-full max-w-[900px] mx-auto bg-white shadow-xl border border-slate-300 min-h-full">
+                        {/* We use an iframe to render the raw HTML to prevent CSS conflicts */}
                         <iframe 
                             srcDoc={htmlContent} 
-                            className="w-full h-full border-0 flex-1 pointer-events-none" 
+                            className="w-full h-[800px] border-0" 
                             title="Print Preview"
                         />
                     </div>
@@ -62,3 +62,9 @@ const PrintPreviewModal = ({ isOpen, htmlContent, title, printerName, paperSize 
 };
 
 export default PrintPreviewModal;
+"""
+
+with io.open(file_path, 'w', encoding='utf-8') as f:
+    f.write(new_content)
+
+print("Updated PrintPreviewModal successfully for readability")

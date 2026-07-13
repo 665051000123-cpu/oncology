@@ -1,0 +1,62 @@
+1454: app.post('/api/print', async (req, res) => {
+1455: try {
+1456: const { html, printerName, paperSize = 'A4' } = req.body;
+1457: 
+1458: if (!printerName) {
+1459: return res.status(400).json({ success: false, message: 'Printer name is required' });
+1460: }
+1461: 
+1462: const browser = await puppeteer.launch({ headless: 'new' });
+1463: const page = await browser.newPage();
+1464: 
+1465: // Strip out any <script> tags to prevent window.close() or other issues
+1466: const cleanHtml = html.replace(/<script\b[^<]*(?:(?!<\/script>)<[^<]*)*<\/script>/gi, '');
+1467: await page.setContent(cleanHtml, { waitUntil: 'domcontentloaded' });
+1468: 
+1469: let pdfOptions = {
+1470: printBackground: true,
+1471: margin: { top: 0, right: 0, bottom: 0, left: 0 }
+1472: };
+1473: 
+1474: if (paperSize === 'Sticker') {
+1475: pdfOptions.width = '80mm';
+1476: pdfOptions.height = '50mm';
+1477: } else if (paperSize === 'A5') {
+1478: pdfOptions.format = 'A5';
+1479: } else {
+1480: pdfOptions.format = 'A4';
+1481: }
+1482: 
+1483: const pdfBuffer = await page.pdf(pdfOptions);
+1484: await browser.close();
+1485: 
+1486: // Write buffer to a temp file
+1487: const tempFilename = `temp_print_${crypto.randomBytes(4).toString('hex')}.pdf`;
+1488: const tempPath = path.join(__dirname, tempFilename);
+1489: fs.writeFileSync(tempPath, pdfBuffer);
+1490: 
+1491: // Print using pdf-to-printer
+1492: await ptp.print(tempPath, { printer: printerName });
+1493: 
+1494: // Clean up temp file after some time
+1495: setTimeout(() => {
+1496: try {
+1497: if (fs.existsSync(tempPath)) fs.unlinkSync(tempPath);
+1498: } catch (e) {
+1499: console.error('Failed to clean up temp file:', e);
+1500: }
+1501: }, 15000);
+1502: 
+1503: res.json({ success: true, message: 'Printed successfully' });
+1504: } catch (err) {
+1505: console.error('Print Error:', err);
+1506: res.status(500).json({ success: false, message: 'Failed to print: ' + err.message });
+1507: }
+1508: });
+1509: 
+1510: 
+1511: // รัน Server ที่พอร์ต 5004 เป็นตัวกลางกระจายคำสั่ง
+1512: const PORT = 5004;
+1513: app.listen(PORT, '0.0.0.0', () => {
+1514: console.log(`🌐 Clinical API Bridge is running on http://localhost:${PORT}`);
+1515: });

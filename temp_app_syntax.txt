@@ -1,0 +1,20 @@
+1296: </style>
+1297: </head>
+1298: <body>
+1299: <h2 style="text-align: center; margin-bottom: 20px;">ข้อมูลยาที่เลือก</h2>
+1300: ${selectedDrugs.map(drugId => {
+1301: const dInfo = drugsInfo.find(d => d.id === drugId) || drugsInfo[0];
+1302: return \`
+1303: <div class="drug-container">
+1304: <div class="drug-title">\${dInfo.name}</div>
+1305: <div class="drug-desc">\${dInfo.desc}</div>
+1306: <div class="drug-details">\${dInfo.details}</div>
+1307: </div>
+1308: \`;
+1309: }).join('')}
+1310: </body>
+1311: </html>
+1312: `;
+1313: 
+1314: if (user?.a4_printer) {
+1315: showNotification('กำลังส่งข้อมูลไปยังเครื่องพิมพ์เอกสาร...', 'info');

@@ -1,0 +1,40 @@
+241: <p className="text-xs opacity-70">รายการยาที่ใช้ในการคำนวณขนาดยาทั้งหมดในระบบ ดึงข้อมูลจากฐานข้อมูล</p>
+242: </div>
+243: </div>
+244: <div className="flex items-center gap-3 w-full md:w-auto self-stretch md:self-auto justify-end">
+245: <div className="relative flex-1 md:flex-none">
+246: <Search size={14} className="absolute left-3 top-1/2 -translate-y-1/2 opacity-50" />
+247: <input
+248: type="text"
+249: placeholder="ค้นหาชื่อยา..."
+250: value={searchQuery}
+251: onChange={(e) => setSearchQuery(e.target.value)}
+252: className={`pl-9 pr-4 py-2 rounded-xl text-sm font-bold border transition-all w-full md:w-[220px] ${isDark
+253: ? 'bg-slate-800 border-slate-700 text-white placeholder:text-slate-500 focus:border-sky-500'
+254: : 'bg-white border-slate-200 text-slate-900 placeholder:text-slate-400 focus:border-sky-500 shadow-sm'
+255: }`}
+256: />
+257: </div>
+258: <button
+259: onClick={() => window.print()}
+260: className={`text-sm py-2 px-4 rounded-xl border flex items-center gap-2 cursor-pointer shrink-0 shadow-sm transition-colors ${isDark ? 'bg-slate-800 hover:bg-slate-700 text-slate-300 border-slate-700' : 'bg-white hover:bg-slate-100 text-slate-700 border-slate-200'}`}
+261: title="พิมพ์ข้อมูลยาทั้งหมด"
+262: >
+263: <Printer size={16} /> พิมพ์
+264: </button>
+265: {isAdmin && (
+266: <button
+267: onClick={handleOpenAddModal}
+268: className="btn-primary text-sm py-2 px-4 rounded-xl flex items-center gap-2 cursor-pointer shrink-0 shadow-md"
+269: >
+270: <Plus size={16} /> เพิ่มยาใหม่
+271: </button>
+272: )}
+273: </div>
+274: </div>
+275: 
+276: {/* Summary Cards */}
+277: <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4">
+278: <div className={`premium-card p-4 border-l-4 border-l-sky-500 flex items-center gap-4 transition-all hover:translate-y-[-2px]`}>
+279: <div className={`p-2.5 rounded-xl ${isDark ? 'bg-sky-950/40 text-sky-400' : 'bg-sky-100 text-sky-600'}`}>
+280: <Pill size={20} />

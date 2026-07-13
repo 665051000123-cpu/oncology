@@ -99,6 +99,7 @@ function App() {
         htmlContent: '',
         title: '',
         printerName: '',
+        paperSize: 'A4',
         onConfirm: null
     });
 
@@ -126,7 +127,7 @@ function App() {
                 }
             }
             if (triggers) {
-                showNotification(rule.title + 'n' + rule.desc.replace(/n/g, 'n'), 'error', 0);
+                showNotification(rule.title + '\n' + rule.desc, 'error', 0);
             }
         }
     };
@@ -196,6 +197,8 @@ function App() {
     const [adminRows, setAdminRows] = useState([
         { id: Date.now(), drugName: '', route: '', solvent: '', startDate: '', startTime: '', endDate: '', endTime: '', rate: '', order: 1, skipped: false, dose: '', calculatedDose: '', volume: '', storage: '', warning: '' }
     ]);
+
+
     const [showDiffModal, setShowDiffModal] = useState(false);
     const [diffWarningsData, setDiffWarningsData] = useState([]);
     const [anc, setAnc] = useState('');
@@ -620,6 +623,26 @@ function App() {
         setSingleDrugResults(prev => prev.map(item => item.id === drugId ? { ...item, unit: newUnit } : item));
     };
 
+    // Auto-sync dose from singleDrugResults to adminRows when calculation updates
+    useEffect(() => {
+        if (!singleDrugResults || singleDrugResults.length === 0) return;
+        
+        setAdminRows(prevRows => {
+            let changed = false;
+            const newRows = prevRows.map(row => {
+                if (row.drugName && (!row.dose || row.dose.trim() === '')) {
+                    const foundResult = singleDrugResults.find(r => r.name.toLowerCase() === row.drugName.toLowerCase() || r.id.toLowerCase() === row.drugName.toLowerCase());
+                    if (foundResult && foundResult.dose !== undefined && foundResult.dose !== null && !isNaN(parseFloat(foundResult.dose))) {
+                        changed = true;
+                        return { ...row, dose: `${foundResult.dose} ${foundResult.unit || 'mg'}` };
+                    }
+                }
+                return row;
+            });
+            return changed ? newRows : prevRows;
+        });
+    }, [singleDrugResults]);
+
     const proceedSaveOrder = async () => {
         let activeRows = adminRows.filter(r => !r.skipped).map((r, idx) => {
             const { isOldRecord, ...rest } = r;
@@ -661,6 +684,92 @@ function App() {
         }
     };
 
+    
+    const printHistory = () => {
+        const historyContainer = document.getElementById('history-print-area');
+        if (!historyContainer) return;
+        
+        let styleTags = '';
+        for (let i = 0; i < document.styleSheets.length; i++) {
+            try {
+                if (document.styleSheets[i].href) {
+                    styleTags += `<link rel="stylesheet" href="${document.styleSheets[i].href}">`;
+                } else {
+                    let cssRules = document.styleSheets[i].cssRules;
+                    let css = '';
+                    for (let j = 0; j < cssRules.length; j++) {
+                        css += cssRules[j].cssText;
+                    }
+                    styleTags += `<style>${css}</style>`;
+                }
+            } catch(e) {}
+        }
+
+        const htmlContent = `
+        <!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <title>ใบพิมพ์สติ๊กเกอร์เตรียมยา</title>
+            ${styleTags}
+            <style>
+                @page { size: A4 landscape; margin: 1cm; }
+                body { background-color: white !important; }
+                .no-print { display: none !important; }
+                .print-hide { display: none !important; }
+                ::-webkit-scrollbar { display: none; }
+            </style>
+        </head>
+        <body class="bg-white">
+            ${historyContainer.outerHTML}
+        </body>
+        </html>
+        `;
+
+        setPreviewData({
+            isOpen: true,
+            htmlContent: htmlContent,
+            title: 'รายงานประวัติการคำนวณ',
+            printerName: user?.calculation_printer || '',
+            paperSize: 'A4',
+            onConfirm: async () => {
+                setPreviewData(prev => ({ ...prev, isOpen: false }));
+                if (user?.calculation_printer) {
+                    showNotification('กำลังส่งคำสั่งพิมพ์...', 'info');
+                    try {
+                        const res = await axios.post(user?.use_local_agent ? 'http://localhost:5005/api/print' : `${API_BASE}/print`, {
+                            html: htmlContent,
+                            printerName: user.calculation_printer,
+                            paperSize: 'A4'
+                        });
+                        
+                        if (res.data.success) {
+                            showNotification(`ส่งคำสั่งพิมพ์ไปที่ ${user.calculation_printer} แล้ว`, 'success');
+                        }
+                    } catch (err) {
+                        console.error('Local Print Server error', err);
+                        showNotification('ไม่สามารถเชื่อมต่อ Print Server ได้ ระบบจะเปิดหน้าต่างให้พิมพ์เอง...', 'warning');
+                        openFallback();
+                    }
+                } else {
+                    openFallback();
+                }
+            }
+        });
+
+        const openFallback = () => {
+            const printWindow = window.open('', '_blank', 'width=1000,height=800');
+            if (!printWindow) {
+                showNotification('ระบบเปิดหน้าต่างเบราว์เซอร์แทน', 'warning');
+                return;
+            }
+
+            const fallbackHtml = htmlContent.replace('</body>', `<script>window.onload = () => { setTimeout(() => { window.print(); window.close(); }, 500); }</script></body>`);
+            printWindow.document.write(fallbackHtml);
+            printWindow.document.close();
+        };
+    };
+
     const handleSaveOrder = async () => {
         const activeRows = adminRows.filter(r => !r.skipped);
         if (activeRows.length === 0) {
@@ -672,8 +781,8 @@ function App() {
             let warnings = [];
             for (const row of activeRows) {
                 if (row.calculatedDose && row.dose && row.dose !== row.calculatedDose) {
-                    const calcMatch = row.calculatedDose.toString().match(/[d.]+/);
-                    const doseMatch = row.dose.toString().match(/[d.]+/);
+                    const calcMatch = row.calculatedDose.toString().match(/[\d.]+/);
+                    const doseMatch = row.dose.toString().match(/[\d.]+/);
                     
                     if (calcMatch && doseMatch) {
                         const calcVal = parseFloat(calcMatch[0]);
@@ -751,6 +860,9 @@ function App() {
         };
         const producedTime = formatDateTime(now);
 
+        
+        const rowsToPrint = activeRows.some(r => r.drugName) ? activeRows : (singleDrugResults.length > 0 ? singleDrugResults.map(r => ({ drugName: r.name, dose: r.dose })) : activeRows);
+        
         const htmlContent = `
         <!DOCTYPE html>
         <html>
@@ -799,7 +911,7 @@ function App() {
             </style>
         </head>
         <body>
-            ${activeRows.map((r, index) => {
+            ${rowsToPrint.map((r, index) => {
                 let pTime = formatDateTime(now);
                 let exp = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000); // Default +3 days
                 
@@ -844,7 +956,7 @@ function App() {
                     </div>
                     <div class="row">
                         <span>การเก็บยา: ${r.storage || ''}</span>
-                        <span>(${index + 1}/${activeRows.length})</span>
+                        <span>(${index + 1}/${rowsToPrint.length})</span>
                     </div>
                     <div class="row">
                         <span>คำเตือน: ${r.warning || ''}</span>
@@ -860,28 +972,42 @@ function App() {
         `;
 
         const printStickersAsync = async () => {
-            if (user?.default_printer) {
-                showNotification('กำลังส่งข้อมูลไปยังเครื่องพิมพ์สติ๊กเกอร์...', 'info');
-                try {
-                    const res = await axios.post(user?.use_local_agent ? 'http://localhost:5005/api/print' : `${API_BASE}/print`, {
-                        html: htmlContent,
-                        printerName: user.default_printer,
-                        paperSize: 'Sticker'
-                    });
-                    
-                    if (res.data.success) {
-                        showNotification(`พิมพ์สติ๊กเกอร์ไปที่ ${user.default_printer} สำเร็จ`, 'success');
-                        return; // Stop here, no browser dialog
+            setPreviewData({
+                isOpen: true,
+                htmlContent: htmlContent,
+                title: 'ตัวอย่างสติ๊กเกอร์ยา',
+                printerName: user?.default_printer || '',
+                paperSize: 'Sticker',
+                onConfirm: async () => {
+                    setPreviewData(prev => ({ ...prev, isOpen: false }));
+                    if (user?.default_printer) {
+                        showNotification('กำลังส่งข้อมูลไปยังเครื่องปริ้นสติ๊กเกอร์...', 'info');
+                        try {
+                            const res = await axios.post(user?.use_local_agent ? 'http://localhost:5005/api/print' : `${API_BASE}/print`, {
+                                html: htmlContent,
+                                printerName: user.default_printer,
+                                paperSize: 'Sticker'
+                            });
+                            
+                            if (res.data.success) {
+                                showNotification(`สั่งปริ้นไปยัง ${user.default_printer} สำเร็จ`, 'success');
+                            }
+                        } catch (err) {
+                            console.error('Local Print Server error', err);
+                            showNotification('ไม่สามารถเชื่อมต่อระบบปริ้นส่วนตัวได้ (กำลังเปิดหน้าต่างเบราว์เซอร์แทน)...', 'warning');
+                            openFallback();
+                        }
+                    } else {
+                        openFallback();
                     }
-                } catch (err) {
-                    console.error('Local Print Server error', err);
-                    showNotification('ไม่สามารถพิมพ์ผ่านระบบอัตโนมัติได้ กำลังเปลี่ยนไปพิมพ์ผ่านเบราว์เซอร์...', 'warning');
                 }
-            }
+            });
+        };
 
+        const openFallback = () => {
             const printWindow = window.open('', '_blank', 'width=800,height=600');
             if (!printWindow) {
-                showNotification('โปรดอนุญาตให้เบราว์เซอร์เปิดหน้าต่าง Pop-up เพื่อพิมพ์สติ๊กเกอร์', 'warning');
+                showNotification('เบราว์เซอร์บล็อคการเปิดหน้าต่าง Pop-up กรุณาอนุญาต', 'warning');
                 return;
             }
 
@@ -1095,53 +1221,58 @@ function App() {
         </html>
         `;
 
-        if (user?.working_formula_printer) {
-            setPreviewData({
-                isOpen: true,
-                htmlContent: htmlContent,
-                title: 'ตัวอย่างใบเตรียมยา',
-                printerName: user.working_formula_printer,
-                onConfirm: async () => {
-                    setPreviewData(prev => ({ ...prev, isOpen: false }));
-                    showNotification('กำลังส่งข้อมูลไปยังเครื่องพิมพ์...', 'info');
+        const openWorkingFormulaFallback = () => {
+            const printWindow = window.open("", "_blank", "width=1000,height=800");
+            if (!printWindow) {
+                showNotification('ระบบเปิดหน้าต่างเบราว์เซอร์แทน', 'warning');
+                return;
+            }
+
+            const fallbackHtml = htmlContent.replace("</body>", `
+                <script>
+                    window.onload = () => {
+                        setTimeout(() => {
+                            window.print();
+                            window.close();
+                        }, 500);
+                    };
+                </script>
+            </body>
+            `);
+
+            printWindow.document.write(fallbackHtml);
+            printWindow.document.close();
+        };
+
+        setPreviewData({
+            isOpen: true,
+            htmlContent: htmlContent,
+            title: "ตัวอย่างใบเตรียมยา",
+            printerName: user?.working_formula_printer || "",
+            paperSize: "A4",
+            onConfirm: async () => {
+                setPreviewData(prev => ({ ...prev, isOpen: false }));
+                if (user?.working_formula_printer) {
+                    showNotification('กำลังส่งคำสั่งพิมพ์...', 'info');
                     try {
-                        const res = await axios.post(user?.use_local_agent ? 'http://localhost:5005/api/print' : `${API_BASE}/print`, {
+                        const res = await axios.post(user?.use_local_agent ? "http://localhost:5005/api/print" : `${API_BASE}/print`, {
                             html: htmlContent,
                             printerName: user.working_formula_printer,
-                            paperSize: 'A4'
+                            paperSize: "A4"
                         });
                         if (res.data.success) {
-                            showNotification(`พิมพ์ใบเตรียมยาไปที่ ${user.working_formula_printer} สำเร็จ`, 'success');
+                            showNotification(`ส่งคำสั่งพิมพ์ไปที่ ${user.working_formula_printer} แล้ว`, 'success');
                         }
                     } catch (err) {
-                        console.error('Local Print Server error', err);
-                        showNotification('ไม่สามารถพิมพ์ผ่านระบบอัตโนมัติได้', 'error');
+                        console.error("Local Print Server error", err);
+                        showNotification('ไม่สามารถเชื่อมต่อ Print Server ได้ ระบบจะเปิดหน้าต่างให้พิมพ์เอง...', 'warning');
+                        openWorkingFormulaFallback();
                     }
+                } else {
+                    openWorkingFormulaFallback();
                 }
-            });
-            return;
-        }
-
-        const printWindow = window.open('', '_blank', 'width=1000,height=800');
-        if (!printWindow) {
-            showNotification('โปรดอนุญาตให้เบราว์เซอร์เปิดหน้าต่าง Pop-up เพื่อพิมพ์', 'warning');
-            return;
-        }
-
-        const fallbackHtml = htmlContent.replace('</body>', `
-            <script>
-                window.onload = () => {
-                    setTimeout(() => {
-                        window.print();
-                        window.close();
-                    }, 500);
-                };
-            </script>
-        </body>
-        `);
-
-        printWindow.document.write(fallbackHtml);
-        printWindow.document.close();
+            }
+        });
     };
 
     const printCalculationA4 = async () => {
@@ -1251,53 +1382,58 @@ function App() {
         </html>
         `;
 
-        if (user?.calculation_printer) {
-            setPreviewData({
-                isOpen: true,
-                htmlContent: htmlContent,
-                title: 'ตัวอย่างผลการคำนวณ',
-                printerName: user.calculation_printer,
-                onConfirm: async () => {
-                    setPreviewData(prev => ({ ...prev, isOpen: false }));
-                    showNotification('กำลังส่งข้อมูลไปยังเครื่องพิมพ์...', 'info');
+        const openCalculationFallback = () => {
+            const printWindow = window.open("", "_blank", "width=800,height=800");
+            if (!printWindow) {
+                showNotification('ระบบเปิดหน้าต่างเบราว์เซอร์แทน', 'warning');
+                return;
+            }
+
+            const fallbackHtml = htmlContent.replace("</body>", `
+                <script>
+                    window.onload = () => {
+                        setTimeout(() => {
+                            window.print();
+                            window.close();
+                        }, 500);
+                    };
+                </script>
+            </body>
+            `);
+
+            printWindow.document.write(fallbackHtml);
+            printWindow.document.close();
+        };
+
+        setPreviewData({
+            isOpen: true,
+            htmlContent: htmlContent,
+            title: "ประวัติการคำนวณ",
+            printerName: user?.calculation_printer || "",
+            paperSize: "A4",
+            onConfirm: async () => {
+                setPreviewData(prev => ({ ...prev, isOpen: false }));
+                if (user?.calculation_printer) {
+                    showNotification('กำลังส่งคำสั่งพิมพ์...', 'info');
                     try {
-                        const res = await axios.post(user?.use_local_agent ? 'http://localhost:5005/api/print' : `${API_BASE}/print`, {
+                        const res = await axios.post(user?.use_local_agent ? "http://localhost:5005/api/print" : `${API_BASE}/print`, {
                             html: htmlContent,
                             printerName: user.calculation_printer,
-                            paperSize: 'A4'
+                            paperSize: "A4"
                         });
                         if (res.data.success) {
-                            showNotification(`พิมพ์ผลการคำนวณไปที่ ${user.calculation_printer} สำเร็จ`, 'success');
+                            showNotification(`ส่งคำสั่งพิมพ์ไปที่ ${user.calculation_printer} แล้ว`, 'success');
                         }
                     } catch (err) {
-                        console.error('Local Print Server error', err);
-                        showNotification('ไม่สามารถพิมพ์ผ่านระบบอัตโนมัติได้', 'error');
+                        console.error("Local Print Server error", err);
+                        showNotification('ไม่สามารถเชื่อมต่อ Print Server ได้ ระบบจะเปิดหน้าต่างให้พิมพ์เอง...', 'warning');
+                        openCalculationFallback();
                     }
+                } else {
+                    openCalculationFallback();
                 }
-            });
-            return;
-        }
-
-        const printWindow = window.open('', '_blank', 'width=800,height=800');
-        if (!printWindow) {
-            showNotification('โปรดอนุญาตให้เบราว์เซอร์เปิดหน้าต่าง Pop-up เพื่อพิมพ์', 'warning');
-            return;
-        }
-
-        const fallbackHtml = htmlContent.replace('</body>', `
-            <script>
-                window.onload = () => {
-                    setTimeout(() => {
-                        window.print();
-                        window.close();
-                    }, 500);
-                };
-            </script>
-        </body>
-        `);
-
-        printWindow.document.write(fallbackHtml);
-        printWindow.document.close();
+            }
+        });
     };
 
     const printDrugInfo = async () => {
@@ -1337,33 +1473,47 @@ function App() {
         </html>
         `;
 
-        if (user?.drug_info_printer) {
-            showNotification('กำลังส่งข้อมูลไปยังเครื่องพิมพ์เอกสาร...', 'info');
-            try {
-                const res = await axios.post(user?.use_local_agent ? 'http://localhost:5005/api/print' : `${API_BASE}/print`, {
-                    html: htmlContent,
-                    printerName: user.drug_info_printer,
-                    isA4: true
-                });
-                if (res.data.success) {
-                    showNotification(`พิมพ์ข้อมูลยาไปที่ ${user.drug_info_printer} สำเร็จ`, 'success');
-                    return;
-                }
-            } catch (err) {
-                console.error('Local Print Server error', err);
-                showNotification('ไม่สามารถพิมพ์ผ่านระบบอัตโนมัติได้ กำลังเปลี่ยนไปพิมพ์ผ่านเบราว์เซอร์...', 'warning');
+        const openDrugInfoFallback = () => {
+            const fallbackHtml = htmlContent.replace("</body>", "<script>window.onload = () => { setTimeout(() => { window.print(); window.close(); }, 500); }</script></body>");
+            const printWindow = window.open("", "_blank", "width=800,height=800");
+            if (!printWindow) {
+                showNotification('ระบบเปิดหน้าต่างเบราว์เซอร์แทน', 'warning');
+                return;
             }
-        }
+            printWindow.document.open();
+            printWindow.document.write(fallbackHtml);
+            printWindow.document.close();
+        };
 
-        const fallbackHtml = htmlContent.replace('</body>', '<script>window.onload = () => { setTimeout(() => { window.print(); window.close(); }, 500); }</script></body>');
-        const printWindow = window.open('', '_blank', 'width=800,height=800');
-        if (!printWindow) {
-            showNotification('โปรดอนุญาตให้เบราว์เซอร์เปิดหน้าต่าง Pop-up เพื่อพิมพ์', 'warning');
-            return;
-        }
-        printWindow.document.open();
-        printWindow.document.write(fallbackHtml);
-        printWindow.document.close();
+        setPreviewData({
+            isOpen: true,
+            htmlContent: htmlContent,
+            title: "ข้อมูลยา",
+            printerName: user?.drug_info_printer || "",
+            paperSize: "A4",
+            onConfirm: async () => {
+                setPreviewData(prev => ({ ...prev, isOpen: false }));
+                if (user?.drug_info_printer) {
+                    showNotification('กำลังส่งคำสั่งพิมพ์...', 'info');
+                    try {
+                        const res = await axios.post(user?.use_local_agent ? "http://localhost:5005/api/print" : `${API_BASE}/print`, {
+                            html: htmlContent,
+                            printerName: user.drug_info_printer,
+                            isA4: true
+                        });
+                        if (res.data.success) {
+                            showNotification(`ส่งคำสั่งพิมพ์ไปที่ ${user.drug_info_printer} แล้ว`, 'success');
+                        }
+                    } catch (err) {
+                        console.error("Local Print Server error", err);
+                        showNotification('ไม่สามารถเชื่อมต่อ Print Server ได้ ระบบจะเปิดหน้าต่างให้พิมพ์เอง...', 'warning');
+                        openDrugInfoFallback();
+                    }
+                } else {
+                    openDrugInfoFallback();
+                }
+            }
+        });
     };
 
     const handleAddRow = () => {
@@ -1586,7 +1736,7 @@ function App() {
     // Auto-adjust admin rows based on Cycle input
     useEffect(() => {
         if (patient.cycle) {
-            const match = patient.cycle.match(/d+/);
+            const match = String(patient.cycle).match(/\d+/);
             if (match) {
                 const targetCount = parseInt(match[0], 10);
                 if (targetCount > 0 && targetCount <= 20) {
@@ -1753,11 +1903,11 @@ function App() {
         logs.forEach(log => {
             if (log.formula_used) {
                 const val = log.formula_used.toUpperCase();
-                if (val.includes('CV REGIMEN')) formulas.add('CV Regimen');
-                else if (val.includes('BC REGIMEN')) formulas.add('BC Regimen');
-                else if (val.includes('VINCRISTINE')) formulas.add('Vincristine');
-                else if (val.includes('CARBOPLATIN')) formulas.add('Carboplatin');
-                else if (val.includes('BLEOMYCIN')) formulas.add('Bleomycin');
+                if (String(val).includes('CV REGIMEN')) formulas.add('CV Regimen');
+                else if (String(val).includes('BC REGIMEN')) formulas.add('BC Regimen');
+                else if (String(val).includes('VINCRISTINE')) formulas.add('Vincristine');
+                else if (String(val).includes('CARBOPLATIN')) formulas.add('Carboplatin');
+                else if (String(val).includes('BLEOMYCIN')) formulas.add('Bleomycin');
                 else formulas.add(log.formula_used);
             }
         });
@@ -1822,7 +1972,7 @@ function App() {
     };
 
     const handleDateInputChange = (val, currentVal, setter) => {
-        let cleaned = val.replace(/[^0-9/]/g, '');
+        let cleaned = String(val).replace(/[^0-9/]/g, '');
         if (val.length > currentVal.length) {
             if (cleaned.length === 2 && !cleaned.includes('/')) {
                 cleaned = cleaned + '/';
@@ -1857,7 +2007,7 @@ function App() {
     // Handler for admin row date text inputs with auto-slash and BE year
     const handleAdminDateChange = (val, prevVal, rowIdx, field) => {
         const safePrevVal = prevVal || '';
-        let cleaned = val.replace(/[^0-9/]/g, '');
+        let cleaned = String(val).replace(/[^0-9/]/g, '');
         if (val.length > safePrevVal.length) {
             if (cleaned.length === 2 && !cleaned.includes('/')) cleaned += '/';
             else if (cleaned.length === 5 && cleaned.split('/').length === 2) cleaned += '/';
@@ -1869,7 +2019,7 @@ function App() {
 
     const handleAdminTimeChange = (val, prevVal, rowIdx, field = 'startTime') => {
         const safePrevVal = prevVal || '';
-        let cleaned = val.replace(/[^0-9:]/g, '');
+        let cleaned = String(val).replace(/[^0-9:]/g, '');
         if (val.length > safePrevVal.length) {
             if (cleaned.length === 2 && !cleaned.includes(':')) cleaned += ':';
         }
@@ -1954,11 +2104,11 @@ function App() {
             result = result.filter(log => {
                 if (!log.formula_used) return false;
                 const val = log.formula_used.toUpperCase();
-                if (formulaFilter === 'CV Regimen') return val.includes('CV REGIMEN');
-                if (formulaFilter === 'BC Regimen') return val.includes('BC REGIMEN');
-                if (formulaFilter === 'Vincristine') return val.includes('VINCRISTINE');
-                if (formulaFilter === 'Carboplatin') return val.includes('CARBOPLATIN');
-                if (formulaFilter === 'Bleomycin') return val.includes('BLEOMYCIN');
+                if (formulaFilter === 'CV Regimen') return String(val).includes('CV REGIMEN');
+                if (formulaFilter === 'BC Regimen') return String(val).includes('BC REGIMEN');
+                if (formulaFilter === 'Vincristine') return String(val).includes('VINCRISTINE');
+                if (formulaFilter === 'Carboplatin') return String(val).includes('CARBOPLATIN');
+                if (formulaFilter === 'Bleomycin') return String(val).includes('BLEOMYCIN');
                 return log.formula_used === formulaFilter;
             });
         }
@@ -2154,7 +2304,7 @@ function App() {
                             <div className="flex justify-between items-start mb-6">
                                 <div>
                                     <h1 className="text-3xl font-black">Patient Check-in</h1>
-                                    <p className="text-slate-400">ระบบเข้าตรวจสอบและบันทึกข้อมูลผู้ป่วย</p>
+                                    <p className="text-slate-500 font-medium">ระบบเข้าตรวจสอบและบันทึกข้อมูลผู้ป่วย</p>
                                 </div>
                             </div>
                             <div className="space-y-4">
@@ -2285,7 +2435,7 @@ function App() {
                     />
                 ) : step === 'calculation-history' ? (
                     <div className="animate-row-in space-y-6">
-                        <div className="max-w-7xl mx-auto premium-card p-6 md:p-8 relative">
+                        <div id="history-print-area" className="max-w-7xl mx-auto premium-card p-6 md:p-8 relative bg-white">
                             <div className="flex flex-col md:flex-row justify-between items-start md:items-center gap-4 mb-6 pb-4 border-b border-slate-700/10">
                                 <div className="flex items-center gap-3">
                                     <button
@@ -2296,10 +2446,10 @@ function App() {
                                         <ArrowLeft size={20} />
                                     </button>
                                     <div>
-                                        <h1 className="text-3xl font-black flex items-center gap-2">
+                                        <h1 className="text-3xl font-black flex items-center gap-2 text-slate-800">
                                             <History size={28} className="text-sky-400 print-hide" /> รายงานบันทึกประวัติการคำนวณ
                                         </h1>
-                                        <p className="text-slate-400">ประวัติและบันทึกข้อมูลการคำนวณขนาดยาเคมีบำบัดของผู้ป่วย</p>
+                                        <p className="text-slate-500 font-medium">ประวัติและบันทึกข้อมูลการคำนวณขนาดยาเคมีบำบัดของผู้ป่วย</p>
                                     </div>
                                 </div>
                                 <div className="flex items-center gap-2.5 no-print w-full md:w-auto">
@@ -2321,7 +2471,7 @@ function App() {
                                         onChange={e => setSearchQuery(e.target.value)}
                                         className="form-control py-2 px-4 text-sm rounded-xl border border-slate-700/30 font-bold focus:border-sky-500 w-[240px]"
                                     />
-                                    <button onClick={() => window.print()} className="no-print bg-slate-800 hover:bg-slate-700 text-sky-400 font-bold py-2 px-4 rounded-xl border border-slate-700 flex items-center gap-2 text-xs transition-all active:scale-95 shadow-lg whitespace-nowrap">
+                                    <button onClick={printHistory} className="no-print bg-slate-800 hover:bg-slate-700 text-sky-400 font-bold py-2 px-4 rounded-xl border border-slate-700 flex items-center gap-2 text-xs transition-all active:scale-95 shadow-lg whitespace-nowrap">
                                         <Printer size={14} /> พิมพ์รายงาน
                                     </button>
                                 </div>
@@ -2495,7 +2645,7 @@ function App() {
                                                 
                                                 <div className="relative border-l-2 border-slate-200 dark:border-slate-700 ml-3 md:ml-4 space-y-5 pb-8 mt-6">
                                                     {hnLogs.map((log, idx) => (
-                                                        <div key={log.id} className="relative pl-5 md:pl-8 group">
+                                                        <div key={log.id} className="relative pl-5 md:pl-8 group break-inside-avoid">
                                                             {/* Timeline dot */}
                                                             <div className="absolute -left-[9px] top-1.5 w-4 h-4 rounded-full bg-sky-500 border-4 border-white dark:border-slate-900 shadow-sm group-hover:scale-125 transition-transform duration-300 ring-2 ring-transparent group-hover:ring-sky-200 dark:group-hover:ring-sky-900/50"></div>
                                                             
@@ -2724,7 +2874,7 @@ function App() {
                                         ({patient.hn} 📂)
                                     </span>
                                 </h2>
-                                <p className="text-slate-400">H: {patient.height} cm | W: {patient.weight} kg | อายุ: {patient.age ? `${patient.age} ปี` : '-'} | เพศ: {patient.gender === 'female' ? 'หญิง (Female)' : patient.gender === 'male' ? 'ชาย (Male)' : '-'}{patient.ward ? ` | หอผู้ป่วย: ${patient.ward}` : ''}{patient.cycle ? ` | จำนวนรอบการให้ยา: ${patient.cycle}` : ''}</p>
+                                <p className="text-slate-500 font-medium">H: {patient.height} cm | W: {patient.weight} kg | อายุ: {patient.age ? `${patient.age} ปี` : '-'} | เพศ: {patient.gender === 'female' ? 'หญิง (Female)' : patient.gender === 'male' ? 'ชาย (Male)' : '-'}{patient.ward ? ` | หอผู้ป่วย: ${patient.ward}` : ''}{patient.cycle ? ` | จำนวนรอบการให้ยา: ${patient.cycle}` : ''}</p>
 
                                 {patient.allergies && (
                                     <div className="mt-2 flex flex-wrap gap-1.5">
@@ -2985,7 +3135,7 @@ function App() {
                                             onChange={e => {
                                                 let val = e.target.value;
                                                 const oldVal = patient.cycle || '';
-                                                if (val.length === 1 && oldVal.length === 0 && /^d$/.test(val)) {
+                                                if (val.length === 1 && oldVal.length === 0 && /^\d$/.test(val)) {
                                                     val = val + '/' + val;
                                                 }
                                                 setPatient({ ...patient, cycle: val });
@@ -3706,7 +3856,10 @@ function App() {
                                                                                         const details = JSON.parse(log.order_details);
                                                                                         const prevRow = details.find(r => r.drugName && r.drugName.toLowerCase() === val.toLowerCase());
                                                                                         if (prevRow && prevRow.dose) {
-                                                                                            matchedDose = prevRow.dose;
+                                                                                            let d = String(prevRow.dose);
+                                                                                            if (d.match(/[\d.]+/) && d.match(/[\d.]+/)[0] !== '.') {
+                                                                                                matchedDose = d;
+                                                                                            }
                                                                                             break;
                                                                                         }
                                                                                     } catch(e) {}
@@ -3720,7 +3873,7 @@ function App() {
                                                                             if (drugKey) {
                                                                                 const drugData = DRUG_CONCENTRATION_DATA[drugKey];
                                                                                 if (drugData.concentration > 0) {
-                                                                                    const numVal = parseFloat(matchedDose.toString().replace(/[^d.]/g, ''));
+                                                                                    const numVal = parseFloat(matchedDose.toString().replace(/[^\d.]/g, ''));
                                                                                     if (!isNaN(numVal)) {
                                                                                         autoVol = (numVal / drugData.concentration).toFixed(2);
                                                                                         if (autoVol.endsWith('.00')) autoVol = autoVol.replace('.00', '');
@@ -3761,12 +3914,12 @@ function App() {
                                                             <div className="flex gap-1 items-center min-w-[140px]">
                                                                 <input
                                                                     type="text"
-                                                                    value={(row.dose || '').match(/[d.]+/) ? (row.dose || '').match(/[d.]+/)[0] : ''}
+                                                                    value={((row.dose || '').toString().match(/[\d.]+/) && (row.dose || '').toString().match(/[\d.]+/)[0] !== '.') ? (row.dose || '').toString().match(/[\d.]+/)[0] : ''}
                                                                     disabled={isLockedRow}
                                                                     onChange={e => {
-                                                                        const numVal = e.target.value.replace(/[^d.]/g, '');
+                                                                        const numVal = e.target.value.replace(/[^\d.]/g, '');
                                                                         const str = row.dose || '';
-                                                                        let currentUnit = str.replace(/[d.s]/g, '');
+                                                                        let currentUnit = str.replace(/[\d.\s]/g, '');
                                                                         if (str.toLowerCase().includes('auc')) currentUnit = 'AUC';
                                                                         if (!currentUnit) currentUnit = 'mg';
                                                                         
@@ -3795,16 +3948,16 @@ function App() {
                                                                 />
                                                                 <select
                                                                     value={(() => {
-                                                                        const str = row.dose || '';
+                                                                        const str = String(row.dose || '');
                                                                         if (str.toLowerCase().includes('auc')) return 'AUC';
-                                                                        const u = str.replace(/[d.s]/g, '');
+                                                                        const u = str.replace(/[\d.\s]/g, '');
                                                                         return u || 'mg';
                                                                     })()}
                                                                     disabled={isLockedRow}
                                                                     onChange={e => {
                                                                         const newUnit = e.target.value;
-                                                                        const str = row.dose || '';
-                                                                        const numMatch = str.match(/[d.]+/);
+                                                                        const str = String(row.dose || '');
+                                                                        const numMatch = str.match(/[\d.]+/);
                                                                         const currentNum = numMatch ? numMatch[0] : '';
                                                                         const newVal = currentNum ? `${currentNum} ${newUnit}` : '';
                                                                         setAdminRows(prev => prev.map((r, i) => i === idx ? { ...r, dose: newVal } : r));
@@ -3821,8 +3974,8 @@ function App() {
                                                             </div>
                                                             {/* Real-time Diff Display */}
                                                             {row.calculatedDose && row.dose && (() => {
-                                                                const calcMatch = row.calculatedDose.toString().match(/[d.]+/);
-                                                                const doseMatch = row.dose.toString().match(/[d.]+/);
+                                                                const calcMatch = row.calculatedDose.toString().match(/[\d.]+/);
+                                                                const doseMatch = row.dose.toString().match(/[\d.]+/);
                                                                 if (calcMatch && doseMatch) {
                                                                     const calcVal = parseFloat(calcMatch[0]);
                                                                     const doseVal = parseFloat(doseMatch[0]);
@@ -4061,6 +4214,7 @@ function App() {
                 htmlContent={previewData.htmlContent}
                 title={previewData.title}
                 printerName={previewData.printerName}
+                paperSize={previewData.paperSize}
                 onConfirm={previewData.onConfirm}
                 onCancel={() => setPreviewData(prev => ({ ...prev, isOpen: false }))}
             />

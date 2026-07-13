@@ -1,0 +1,9 @@
+1088: if (user?.a4_printer) {
+1093: printerName: user.a4_printer,
+1098: showNotification(`พิมพ์ใบเตรียมยาไปที่ ${user.a4_printer} สำเร็จ`, 'success');
+1236: if (user?.a4_printer) {
+1241: printerName: user.a4_printer,
+1246: showNotification(`พิมพ์ผลการคำนวณไปที่ ${user.a4_printer} สำเร็จ`, 'success');
+1314: if (user?.a4_printer) {
+1319: printerName: user.a4_printer,
+1323: showNotification(`พิมพ์ข้อมูลยาไปที่ ${user.a4_printer} สำเร็จ`, 'success');

@@ -1,0 +1,2 @@
+1277: const printDrugInfo = async () => {
+2942: onClick={printDrugInfo}

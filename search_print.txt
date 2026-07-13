@@ -1,0 +1,96 @@
+3: import { Moon, Sun, ChevronRight, ArrowLeft, ArrowRight, Printer, Trash2, History, User, Info, LogOut, ArrowUpDown, ChevronUp, ChevronDown, Filter, X, Settings, Pill, Search, Calendar, ClipboardList, AlertTriangle, AlertCircle, CheckCircle, Syringe, Package, Clock } from 'lucide-react';
+13: import PrinterSettings from './components/PrinterSettings';
+95: const [showPrinterSettings, setShowPrinterSettings] = useState(false);
+727: const printStickers = () => {
+730: showNotification('ไม่มีรายการยาสำหรับพิมพ์', 'warning');
+751: <title>พิมพ์สติ๊กเกอร์ยา</title>
+772: @media print {
+773: body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+854: const printStickersAsync = async () => {
+855: if (user?.default_printer) {
+856: showNotification('กำลังส่งข้อมูลไปยังเครื่องพิมพ์สติ๊กเกอร์...', 'info');
+858: const res = await axios.post(`${API_BASE}/print`, {
+860: printerName: user.default_printer,
+865: showNotification(`พิมพ์สติ๊กเกอร์ไปที่ ${user.default_printer} สำเร็จ`, 'success');
+869: console.error('Local Print Server error', err);
+870: showNotification('ไม่สามารถพิมพ์ผ่านระบบอัตโนมัติได้ กำลังเปลี่ยนไปพิมพ์ผ่านเบราว์เซอร์...', 'warning');
+874: const printWindow = window.open('', '_blank', 'width=800,height=600');
+875: if (!printWindow) {
+876: showNotification('โปรดอนุญาตให้เบราว์เซอร์เปิดหน้าต่าง Pop-up เพื่อพิมพ์สติ๊กเกอร์', 'warning');
+884: window.print();
+892: printWindow.document.write(fallbackHtml);
+893: printWindow.document.close();
+896: printStickersAsync();
+899: const printWorkingFormula = async () => {
+902: showNotification('ไม่มีรายการยาสำหรับพิมพ์', 'warning');
+1032: @media print {
+1033: body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+1088: if (user?.a4_printer) {
+1089: showNotification('กำลังส่งข้อมูลไปยังเครื่องพิมพ์เอกสาร...', 'info');
+1091: const res = await axios.post(`${API_BASE}/print`, {
+1093: printerName: user.a4_printer,
+1098: showNotification(`พิมพ์ใบเตรียมยาไปที่ ${user.a4_printer} สำเร็จ`, 'success');
+1102: console.error('Local Print Server error', err);
+1103: showNotification('ไม่สามารถพิมพ์ผ่านระบบอัตโนมัติได้ กำลังเปลี่ยนไปพิมพ์ผ่านเบราว์เซอร์...', 'warning');
+1107: const printWindow = window.open('', '_blank', 'width=1000,height=800');
+1108: if (!printWindow) {
+1109: showNotification('โปรดอนุญาตให้เบราว์เซอร์เปิดหน้าต่าง Pop-up เพื่อพิมพ์', 'warning');
+1117: window.print();
+1125: printWindow.document.write(fallbackHtml);
+1126: printWindow.document.close();
+1129: const printCalculationA4 = async () => {
+1131: showNotification('กรุณาระบุข้อมูลผู้ป่วย (HN) เพื่อพิมพ์ใบสรุป', 'warning');
+1141: <title>พิมพ์ผลการคำนวณ A4</title>
+1163: @media print {
+1164: body { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+1226: <div>พิมพ์เมื่อ: ${today}</div>
+1236: if (user?.a4_printer) {
+1237: showNotification('กำลังส่งข้อมูลไปยังเครื่องพิมพ์เอกสาร...', 'info');
+1239: const res = await axios.post(`${API_BASE}/print`, {
+1241: printerName: user.a4_printer,
+1246: showNotification(`พิมพ์ผลการคำนวณไปที่ ${user.a4_printer} สำเร็จ`, 'success');
+1250: console.error('Local Print Server error', err);
+1251: showNotification('ไม่สามารถพิมพ์ผ่านระบบอัตโนมัติได้ กำลังเปลี่ยนไปพิมพ์ผ่านเบราว์เซอร์...', 'warning');
+1255: const printWindow = window.open('', '_blank', 'width=800,height=800');
+1256: if (!printWindow) {
+1257: showNotification('โปรดอนุญาตให้เบราว์เซอร์เปิดหน้าต่าง Pop-up เพื่อพิมพ์', 'warning');
+1265: window.print();
+1273: printWindow.document.write(fallbackHtml);
+1274: printWindow.document.close();
+1911: <div className="p-4 md:p-8 print:p-0 min-h-screen flex flex-col justify-between relative">
+1913: <div className="absolute top-6 left-6 flex items-center gap-5 premium-card p-5 px-8 rounded-3xl shadow-[0_20px_50px_rgba(8,_112,_184,_0.3)] z-50 animate-row-in no-print backdrop-blur-xl border-sky-500/50">
+1922: onClick={() => setShowPrinterSettings(true)}
+1925: <Printer size={14} /> ตั้งค่าเครื่องพิมพ์
+1970: <button onClick={() => setTheme(theme === 'dark' ? 'light' : 'dark')} className="absolute top-4 right-4 bg-slate-800 text-white dark:bg-white dark:text-slate-900 border-2 border-slate-600 px-5 py-3 rounded-full shadow-lg z-50 font-black flex items-center gap-2 no-print hover:scale-105 active:scale-95 transition-all text-sm cursor-pointer">
+1974: <div className={`w-full max-w-full mx-auto my-auto print:my-0 print:pt-0 ${user ? 'pt-32 md:pt-36' : 'pt-4 md:pt-12'}`}>
+2200: className="p-2.5 rounded-xl border border-slate-700/30 hover:bg-slate-700/10 transition-all cursor-pointer text-slate-400 hover:text-white mr-2 no-print"
+2207: <History size={28} className="text-sky-400 print-hide" /> รายงานบันทึกประวัติการคำนวณ
+2212: <div className="flex items-center gap-2.5 no-print w-full md:w-auto">
+2231: <button onClick={() => window.print()} className="no-print bg-slate-800 hover:bg-slate-700 text-sky-400 font-bold py-2 px-4 rounded-xl border border-slate-700 flex items-center gap-2 text-xs transition-all active:scale-95 shadow-lg whitespace-nowrap">
+2232: <Printer size={14} /> พิมพ์รายงาน
+2238: <div className={`no-print p-5 rounded-2xl border mb-5 grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-4 animate-pop ${theme === 'dark'
+2366: <div className="flex items-center gap-3 mb-2 no-print">
+2430: className="text-slate-400 hover:text-rose-500 p-1 rounded-md hover:bg-rose-500/10 transition-colors active:scale-95 no-print ml-1"
+2609: <div className="w-full premium-card p-5 flex flex-col md:flex-row justify-between items-start md:items-center gap-4 no-print">
+2714: placeholder="พิมพ์ชื่อยาที่แพ้..."
+2774: className="flex items-center gap-1.5 text-[10px] font-black text-sky-500 hover:text-sky-400 p-1.5 bg-sky-600/5 rounded-lg border border-sky-500/20 transition-all no-print"
+2869: className="flex items-center gap-2 text-[10px] font-black text-sky-500 hover:text-sky-400 p-1.5 bg-sky-600/5 rounded-lg border border-sky-500/20 transition-all no-print"
+3164: className="flex items-center gap-1 text-[9px] font-black text-amber-500 hover:text-amber-600 p-1 bg-amber-600/10 rounded transition-all no-print"
+3464: <div className="flex gap-2 mt-4 no-print flex-col">
+3476: onClick={printCalculationA4}
+3477: className="w-full btn btn-secondary text-sm flex items-center justify-center gap-2 py-3 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all cursor-pointer font-bold no-print text-slate-700 dark:text-slate-300"
+3479: <Printer size={18} /> พิมพ์ผลการคำนวณ (A5)
+3519: onClick={printWorkingFormula}
+3520: className="btn btn-secondary text-sm flex items-center gap-2 py-2 px-6 rounded-xl bg-indigo-50 dark:bg-indigo-900/20 border border-indigo-200 dark:border-indigo-800 text-indigo-700 dark:text-indigo-300 hover:bg-indigo-100 dark:hover:bg-indigo-900/40 transition-all cursor-pointer font-bold no-print"
+3522: <Printer size={14} /> พิมพ์ใบเตรียมยา (A4)
+3526: onClick={printStickers}
+3527: className="btn btn-secondary text-sm flex items-center gap-2 py-2 px-6 rounded-xl bg-slate-100 dark:bg-slate-800 border border-slate-300 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 transition-all cursor-pointer font-bold no-print"
+3529: <Printer size={14} /> พิมพ์สติ๊กเกอร์
+3534: className={`btn btn-secondary text-sm flex items-center gap-2 py-2 px-6 rounded-xl border transition-all cursor-pointer font-bold no-print ${editingOrderLogId ? 'bg-amber-500/10 text-amber-600 border-amber-500/30 hover:bg-amber-500 hover:text-white shadow-sm' : 'bg-teal-500/10 text-teal-600 border-teal-500/30 hover:bg-teal-500 hover:text-white shadow-sm'}`}
+3542: className="btn btn-primary text-sm flex items-center gap-2 py-2 px-6 rounded-xl bg-sky-500 hover:bg-sky-600 text-white shadow-sm transition-all cursor-pointer font-bold no-print"
+3948: <PrinterSettings
+3951: show={showPrinterSettings}
+3952: onClose={() => setShowPrinterSettings(false)}
+4024: <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/75 backdrop-blur-md p-4 animate-fade-in no-print">
+4036: <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in no-print">
+4071: <div className="fixed inset-0 z-[9999] flex items-center justify-center bg-black/60 backdrop-blur-sm p-4 animate-fade-in no-print">
